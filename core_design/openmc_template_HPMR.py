@@ -43,7 +43,6 @@ def create_pin_regions(params,pin_type):
 
 
 def create_fuel_pin(params, materials_database):
-    #materials_database = collect_materials_data(params)
     fuel_pin_regions = create_pin_regions(params, 'fuel')
 
     # Creating fuel pin materials
@@ -442,7 +441,6 @@ def build_openmc_model_HPMR(params):
     # **************************************************************************************************************************
 
     # Create the materials 
-    #materials = create_materials(params)
     materials_database = collect_materials_data(params)
 
     fuel = materials_database[params['Fuel']]
@@ -452,12 +450,6 @@ def build_openmc_model_HPMR(params):
     gap = materials_database[params['Gap']]
     control_drum_absorber = materials_database[params['Control Drum Absorber']]
     control_drum_reflector = materials_database[params['Control Drum Reflector']]
-    print(f"fuel {fuel}")
-    print(f"coolant {coolant}")
-    print(f"reflector {reflector}")
-    print(f"moderator {moderator}")
-    print(f"control_drum_absorber {control_drum_absorber}")
-    print(f"control_drum_reflector {control_drum_reflector}")
     # **************************************************************************************************************************
     #                                                Sec. 1.2 : GEOMETRY
     # **************************************************************************************************************************
@@ -480,17 +472,38 @@ def build_openmc_model_HPMR(params):
 
     # Create the whole core geometry
     core_geometry, core = create_core_geometry(core_reg, core_reg_out, cr_01, cr_02, cr_03, cr_04, cr_05, cr_06, cr_07, cr_08, cr_09, cr_10, cr_11, cr_12)
-
     # Export the geometry to .xml file
     core_geometry.export_to_xml()
 
     # **************************************************************************************************************************
     #                                                Sec. 1.3 : PLOTTING
     # **************************************************************************************************************************
-    # reading all the materials properties
-    materials_database = collect_materials_data(params)
     
     if params['plotting'] == "Y":
+        create_universe_plot(materials_database, fuel_pin_universe, 
+                        plot_width = 2.2 * params['Fuel Pin Radii'][-1],
+                        num_pixels = 500, 
+                        font_size = 16,
+                        title = "Fuel Pin Universe", 
+                        fig_size = 8, 
+                        output_file_name = "fuel_pin_universe.png")
+        
+        create_universe_plot(materials_database, htpipe_universe, 
+                        plot_width = 2.2 * params['Heat Pipe Radii'][-1],
+                        num_pixels = 500, 
+                        font_size = 16,
+                        title = "Heat Pipe Universe", 
+                        fig_size = 8, 
+                        output_file_name = "heatpipe_universe.png")  
+        
+        create_universe_plot(materials_database, fuel_assembly, 
+                        plot_width = 1.3 * params['Assembly FTF'],
+                        num_pixels = 500, 
+                        font_size = 16,
+                        title = "Fuel Asembly", 
+                        fig_size = 8, 
+                        output_file_name = "fuel_assembly.png")                              
+
         create_universe_plot(materials_database, core_geometry, 
                         plot_width = 2.01 * params['Core Radius'],
                         num_pixels = 2000, 

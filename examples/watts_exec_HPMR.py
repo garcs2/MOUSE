@@ -40,18 +40,22 @@ update_params({
 # **************************************************************************************************************************
 #                                                Sec. 1: Materials
 # **************************************************************************************************************************
-
+# These params are based on this report: https://inldigitallibrary.inl.gov/sites/sti/sti/Sort_99962.pdf
 update_params({
     'reactor type': "HPMR",
-    'TRISO Fueled': "No",
-    'Fuel': 'homog_TRISO',    # The fuel use is homogenized triso particles
+    'TRISO Fueled': "Yes",
+    
+    # The fuel TRISO particles dispersed in a graphite matrix with a packing fraction of 36%. 
+    # TRISO particles have a UO2 kernels and dimensions typical for fuel used in the AGR-2 campaign (https://inldigitallibrary.inl.gov/sites/sti/sti/Sort_50872.pdf)
+    # TRISO particles are homogenization with the surrounding graphite matrix. 
+    'Fuel': 'homog_TRISO',     
     'Enrichment': 0.19985,
     'Reflector' : 'Be',
-    'Coolant': 'homog_hp', 
-    'Moderator': 'graphite2',
-    'Gap': 'Helium',
+    'Moderator': 'monolith_graphite',
+    'Gap': 'Helium', # gap between the fuel and the moderator OR between heatpipe and moderator
     'Control Drum Absorber': 'B4C_natural',  # The absorber material in the control drums
     'Control Drum Reflector': 'Be',
+    'Coolant': 'homog_heatpipe', # The reactor is cooled by heatpipes which are modeled as a mixture of SS-316 and sodium
     'Common Temperature': 1000, 
 })
 
@@ -62,7 +66,7 @@ update_params({
 update_params({
     'Fuel Pin Materials': ['homog_TRISO', 'Helium'],
     'Fuel Pin Radii': [1.00, 1.05],
-    'Heat Pipe Materials': ['homog_hp', 'Helium'],
+    'Heat Pipe Materials': ['homog_heatpipe', 'Helium'],
     'Heat Pipe Radii': [1.10, 1.15],
     "Pin Gap Distance": 0.46,
     'Number of Rings per Assembly': 6,

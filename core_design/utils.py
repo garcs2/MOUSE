@@ -95,7 +95,6 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
         'TRIGA_fuel': 'red',
         'ZrH': 'yellow',
         'UO2': 'green',
-        'UO2_2': 'green',
         'UC': 'purple',
         'UCO': 'orange',
         'UN': 'cyan',
@@ -107,20 +106,20 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
         'Zr': 'lime',
         'SS304': 'black',
         'B4C_natural': 'olive',
-        'B4C_enriched': 'olive',
+        'B4C_enriched': 'aqua',
         'SiC': 'teal',
         'Graphite': 'coral',
         'buffer_graphite': 'gold',
         'PyC': 'salmon',
         'homog_TRISO': 'maroon',
-        'homog_hp': 'seashell',
-        'graphite2': 'blue'
+        'homog_heatpipe': 'seashell',
+        'monolith_graphite': 'navy'
     }
     
     # Check for materials in the database that do not have a color specified
     undefined_colors = [mat_name for mat_name in materials_database if mat_name not in potential_colors]
     if undefined_colors:
-        raise ValueError(f"Error: The following materials do not have colors specified in the potential_colors dictionary: {', '.join(undefined_colors)}")
+        raise ValueError(f"\033[91m\n\nError: The following materials do not have colors specified in the potential_colors dictionary:\n {', '.join(undefined_colors)}\n\n\033[0m")
     
     # Create the plot_colors dictionary only with existing materials
     colors = {materials_database[mat_name]: color for mat_name, color in potential_colors.items() if mat_name in materials_database}
@@ -147,9 +146,6 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
     legend_patches = [mpatches.Patch(color=color, label=mat_name) 
                       for mat_name, color in potential_colors.items() 
                       if mat_name in materials_database and materials_database[mat_name] in used_materials]
-        
-    # Add the legend to the plot, positioning it outside the plot area
-    universe_plot.legend(handles=legend_patches, fontsize=font_size, loc='center left', bbox_to_anchor=(1, 0.5))
     # Save the figure to a file
     fig.savefig(output_file_name, bbox_inches='tight')
 
