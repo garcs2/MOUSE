@@ -73,9 +73,9 @@ update_params({
     'Lattice Pitch': 3.4, # center-to-center distance between adjacent fuel/heatpipe pins
     
 })
-params['Assembly FTF'] = (params['Lattice Pitch'] * (params['Number of Rings per Assembly'] - 1) +  2 * params['Fuel Pin Radii'][-1]) * np.sqrt(3)
+params['Assembly FTF'] = (params['Lattice Pitch'] * (params['Number of Rings per Assembly'] - 1) +  1.4 * params['Fuel Pin Radii'][-1]) * np.sqrt(3)
 params['Active Height'] = 160 #cm  
-params['Reflector Thickness'] = params['Assembly FTF'] / 2
+params['Reflector Thickness'] = 16 #cm
 params['Axial Reflector Thickness'] = 20 #cm
 params['Core Radius'] = params['Assembly FTF']* params['Number of Rings per Core'] +  params['Reflector Thickness']     
 params['hexagonal Core Edge Length'] = (params['Assembly FTF'] * (params['Number of Rings per Core']-1)) + (params['Assembly FTF']/2) + 6.6  # The edge lenght is 86.6 as in the originial input so 6.6 is added based on this value
@@ -98,7 +98,6 @@ calculate_reflector_mass_HPMR(params)
 # **************************************************************************************************************************
 #                                           Sec. 4: Overall System
 # ************************************************************************************************************************** 
-tf = 24*60*60
 update_params({
     'Power MWt': 5, 
     'Thermal Efficiency': 0.36,
