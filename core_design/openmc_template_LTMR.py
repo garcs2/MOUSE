@@ -305,7 +305,7 @@ def build_openmc_model_LTMR(params):
         create_universe_plot(materials_database, fuel_pin_universe, 
                         plot_width = 2.2 * params['Fuel Pin Radii'][-1],
                         num_pixels = 500, 
-                        font_size = 16,
+                        font_size = 32,
                         title = "Fuel Pin Universe", 
                         fig_size = 8, 
                         output_file_name = "fuel_pin_universe.png")
@@ -337,7 +337,7 @@ def build_openmc_model_LTMR(params):
         create_universe_plot(materials_database, moderator_pin_universe, 
                         plot_width = 2.2 * params['Moderator Pin Radii'][-1],
                         num_pixels = 500, 
-                        font_size = 16,
+                        font_size = 32,
                         title = "Moderator Pin Universe", 
                         fig_size = 8, 
                         output_file_name = "moderator_pin_universe.png")
@@ -407,7 +407,7 @@ def build_openmc_model_LTMR(params):
         create_universe_plot(materials_database, core_geometry, 
                         plot_width = 2.01 * params['Core Radius'],
                         num_pixels = 2000, 
-                        font_size = 16,
+                        font_size = 32,
                         title = "Reactor Core", 
                         fig_size = 8, 
                         output_file_name = "core.png")

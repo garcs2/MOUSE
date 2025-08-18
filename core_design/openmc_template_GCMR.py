@@ -201,7 +201,7 @@ def build_openmc_model_GCMR(params):
         create_universe_plot(materials_database, triso_universe, 
                         plot_width = 2.2 * params['Fuel Pin Radii'][-1],
                         num_pixels = 500, 
-                        font_size = 16,
+                        font_size = 32,
                         title = "TRISO Particle", 
                         fig_size = 8, 
                         output_file_name = "TRISO_Particle.png")
@@ -264,7 +264,7 @@ def build_openmc_model_GCMR(params):
         create_universe_plot(materials_database, assembly_universe, 
                 plot_width =      2 *params['Lattice Pitch'] * params['Assembly Rings']  ,
                 num_pixels = 5000, 
-                font_size = 16,
+                font_size = 32,
                 title = "Fuel Assembly", 
                 fig_size = 8, 
                 output_file_name = "Fuel Assembly.png")
@@ -272,7 +272,7 @@ def build_openmc_model_GCMR(params):
         create_universe_plot(materials_database, assembly_universe, 
                 plot_width =      0.3 * params['Lattice Pitch'] * params['Assembly Rings']  ,
                 num_pixels = 5000, 
-                font_size = 16,
+                font_size = 32,
                 title = "Fuel Assembly", 
                 fig_size = 8, 
                 output_file_name = "Fuel Assembly (zoomed in).png")        
@@ -361,7 +361,7 @@ def build_openmc_model_GCMR(params):
             create_universe_plot(materials_database, active_core_universe, 
             plot_width = 2.2 *params['Assembly FTF'] *  params['Core Rings'] ,
             num_pixels = 500, 
-            font_size = 16,
+            font_size = 32,
             title = "Core", 
             fig_size = 8, 
             output_file_name = "Core.png")
@@ -370,7 +370,7 @@ def build_openmc_model_GCMR(params):
             create_universe_plot(materials_database, active_core_universe, 
             plot_width = 0.5 * params['Assembly FTF'] *  params['Core Rings'] ,
             num_pixels = 500, 
-            font_size = 16,
+            font_size = 32,
             title = "Core", 
             fig_size = 8, 
             output_file_name = "Core (zoomed in).png")        

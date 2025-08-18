@@ -107,6 +107,9 @@ update_params({
 params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux'] =  calculate_heat_flux(params)
 
+# **************************************************************************************************************************
+#                                           Sec. 5: Running OpenMC
+# ************************************************************************************************************************** 
 heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_HPMR, heat_flux_monitor, params)
 fuel_calculations(params)  # calculate the fuel mass and SWU

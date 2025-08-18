@@ -150,6 +150,8 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
     legend_patches = [mpatches.Patch(color=color, label=mat_name) 
                       for mat_name, color in potential_colors.items() 
                       if mat_name in materials_database and materials_database[mat_name] in used_materials]
+    # Add the legend to the plot, positioning it outside the plot area
+    universe_plot.legend(handles=legend_patches, fontsize=font_size, loc='center left', bbox_to_anchor=(1, 0.5))
     # Save the figure to a file
     fig.savefig(output_file_name, bbox_inches='tight')
 
