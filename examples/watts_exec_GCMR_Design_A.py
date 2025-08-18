@@ -118,7 +118,7 @@ params.update({
     'Compressor Pressure Ratio': 4,
     'Compressor Isentropic Efficiency': 0.8,
     'Primary Loop Count': 2, # Number of Primary Coolant Loops present in plant
-    'Primary Loop per loop load fraction': 0.5, # based on assuming that each Primary Loop Handles the total load evenly (1/2)
+    'Primary Loop per loop load fraction': 0.5, # assuming that each Primary Loop Handles the total load evenly (1/2)
     'Primary Loop Inlet Temperature': 300 + 273.15, # K
     'Primary Loop Outlet Temperature': 550 + 273.15, # K
     'Secondary Loop Inlet Temperature': 290 + 273.15, # K

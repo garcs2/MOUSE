@@ -52,7 +52,10 @@ def mass_flow_rate(params):
         thermal_power_MW = params['Power MWt'] * loop_factor
         
     deltaT =  params['Primary Loop Outlet Temperature'] - params['Primary Loop Inlet Temperature']
-    coolant = params['Coolant']
+    if params['reactor type'] == "HPMR":
+        coolant = params['Secondary Coolant']
+    else:    
+        coolant = params['Coolant']
     coolant_specific_heat = material_specific_heat(coolant)
     m_dot = 1e6 * thermal_power_MW/ (deltaT * coolant_specific_heat)
     params['Coolant Mass Flow Rate']  = m_dot / loop_factor # For Reactor Mass Flow Rate

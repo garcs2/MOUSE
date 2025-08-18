@@ -444,7 +444,7 @@ def build_openmc_model_HPMR(params):
     materials_database = collect_materials_data(params)
 
     fuel = materials_database[params['Fuel']]
-    coolant = materials_database[params['Coolant']]
+    coolant = materials_database[params['Cooling Device']]
     reflector = materials_database[params['Reflector']]
     moderator = materials_database[params['Moderator']]
     gap = materials_database[params['Secondary Coolant']]

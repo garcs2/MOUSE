@@ -52,7 +52,7 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
 
 
 
-def scale_GCMR_accounts(df, params):
+def scale_redundant_BOP_and_primary_loop(df, params):
     # Scales special cases to handle redundant / multiple coolant, BoP loops
     escalation_year = params['Escalation Year']
     cost_col = f'FOAK Estimated Cost (${escalation_year })'

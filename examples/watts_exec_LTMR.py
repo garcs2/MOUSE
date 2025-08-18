@@ -213,7 +213,7 @@ params['Mainenance to Direct Cost Ratio']                = 0.015
 # A78: Annualized Decommisioning Cost
 params['A78: CAPEX to Decommissioning Cost Ratio'] = 0.15
 # **************************************************************************************************************************
-#                                           Sec. 12: Buildings & Economic Parameters
+#                                           Sec. 10: Buildings & Economic Parameters
 # **************************************************************************************************************************
 
 update_params({
@@ -276,7 +276,7 @@ update_params({
 })
 
 # **************************************************************************************************************************
-#                                           Sec. 13: Post Processing
+#                                           Sec. 11: Post Processing
 # **************************************************************************************************************************
 params['Number of Samples'] = 100 # Accounting for cost uncertainties
 # Estimate costs using the cost database file and save the output to an Excel file
