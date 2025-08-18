@@ -71,6 +71,10 @@ def calculate_number_of_rings(rings_over_one_edge):
         2 * sum(range(1, rings_over_one_edge -1)) +\
             2*rings_over_one_edge-1
 
+def calculate_number_fuel_elements_hpmr(rings_over_one_edge):
+    total_number_of_rings = calculate_number_of_rings(rings_over_one_edge)
+    number_of_heatpipe_pins = calculate_number_of_rings(int(np.ceil(rings_over_one_edge/2)))
+    return total_number_of_rings - number_of_heatpipe_pins
 
 def calculate_total_number_of_TRISO_particles(params):
     compact_fuel_vol = cylinder_volume(params['Compact Fuel Radius'], params['Active Height'])
@@ -112,7 +116,7 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
         'buffer_graphite': 'gold',
         'PyC': 'salmon',
         'homog_TRISO': 'maroon',
-        'homog_heatpipe': 'seashell',
+        'heatpipe': 'seashell',
         'monolith_graphite': 'navy'
     }
     
@@ -173,7 +177,7 @@ def openmc_depletion(params, lattice_geometry, settings):
                                                     1000000 * params['Power MWt'] , timestep_units='MWd/kg')
     elif 'Time Steps' in params:                                               
         time_steps_list = params['Time Steps'] 
-        power_list = params['Power']
+        power_list = [params['Power MWt'] * 1e6] * len(time_steps_list)
         integrator = openmc.deplete.CECMIntegrator(operator, time_steps_list, power_list)
 
     print("Start Depletion")

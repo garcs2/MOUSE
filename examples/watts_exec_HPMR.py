@@ -52,11 +52,11 @@ update_params({
     'Enrichment': 0.19985,
     'Reflector' : 'Be',
     'Moderator': 'monolith_graphite',
-    'Gap': 'Helium', # gap between the fuel and the moderator OR between heatpipe and moderator
+    'Secondary Coolant': 'Helium', # gap between the fuel and the moderator OR between heatpipe and moderator is filled with the secondary coolant (e.g. Helium)
     'Control Drum Absorber': 'B4C_natural',  # The absorber material in the control drums
     'Control Drum Reflector': 'Be',
-    'Coolant': 'homog_heatpipe', # The reactor is cooled by heatpipes which are modeled as a mixture of SS-316 and sodium
-    'Common Temperature': 1000, 
+    'Coolant': 'heatpipe', # The reactor is cooled by heatpipes which are modeled as a mixture of SS-316 and sodium
+    'Common Temperature': 1000,  #K
 })
 
 # **************************************************************************************************************************
@@ -65,23 +65,21 @@ update_params({
 
 update_params({
     'Fuel Pin Materials': ['homog_TRISO', 'Helium'],
-    'Fuel Pin Radii': [1.00, 1.05],
-    'Heat Pipe Materials': ['homog_heatpipe', 'Helium'],
+    'Fuel Pin Radii': [1.00, 1.05], #cm
+    'Heat Pipe Materials': ['heatpipe', 'Helium'],
     'Heat Pipe Radii': [1.10, 1.15],
-    "Pin Gap Distance": 0.46,
-    'Number of Rings per Assembly': 6,
-    'Number of Rings per Core': 3,
-    'Lattice Pitch': 3.4,
-    'Fuel Pin Count per Assembly': 72,
-    'Height': 200, # Total height with top and bottom reflector used in the correction factor 
+    'Number of Rings per Assembly': 6, # number of pins (fuel or heatpipe) along the side of the hex assembly
+    'Number of Rings per Core': 3, # number of assemblies alog the side of the core
+    'Lattice Pitch': 3.4, # center-to-center distance between adjacent fuel/heatpipe pins
+    
 })
-
-params['Assembly FTF'] = (params['Lattice Pitch']*(params['Number of Rings per Assembly']-1)*np.sqrt(3)) + (2*(params['Fuel Pin Radii'])[-1]) + params['Pin Gap Distance']  #32 cm
+params['Assembly FTF'] = (params['Lattice Pitch'] * (params['Number of Rings per Assembly'] - 1) +  2 * params['Fuel Pin Radii'][-1]) * np.sqrt(3)
+params['Active Height'] = 160 #cm  
 params['Reflector Thickness'] = params['Assembly FTF'] / 2
-params['Axial Reflector Thickness'] = params['Reflector Thickness']
-params['Core Radius'] = params['Assembly FTF']* params['Number of Rings per Core'] +  params['Reflector Thickness']     #112 cm
-params['Active Height'] = (10/7) * params['Core Radius']  #160 cm    # From the ratio between core radius and active height of HPMR
+params['Axial Reflector Thickness'] = 20 #cm
+params['Core Radius'] = params['Assembly FTF']* params['Number of Rings per Core'] +  params['Reflector Thickness']     
 params['hexagonal Core Edge Length'] = (params['Assembly FTF'] * (params['Number of Rings per Core']-1)) + (params['Assembly FTF']/2) + 6.6  # The edge lenght is 86.6 as in the originial input so 6.6 is added based on this value
+params['Fuel Pin Count per Assembly'] = calculate_number_fuel_elements_hpmr(params['Number of Rings per Assembly'])
 params['Fuel Assemblies Count'] =  (3 * params['Number of Rings per Core']**2) - (3 * params['Number of Rings per Core'])
 params['Fuel Pin Count'] = params['Fuel Assemblies Count'] * params['Fuel Pin Count per Assembly']
 # **************************************************************************************************************************
@@ -89,7 +87,7 @@ params['Fuel Pin Count'] = params['Fuel Assemblies Count'] * params['Fuel Pin Co
 # ************************************************************************************************************************** 
 
 update_params({
-    'Drum Radius': params['Core Radius'] / 7.442, 
+    'Drum Radius': 15, 
     'Drum Absorber Thickness': 1,  # cm
     'Drum Height': params['Active Height']
 })
@@ -105,8 +103,7 @@ update_params({
     'Power MWt': 5, 
     'Thermal Efficiency': 0.36,
     'Heat Flux Criteria': 0.9,  # MW/m^2 
-    'Time Steps': [0.01*tf,   0.99*tf,   3.00*tf,   6.00*tf,  20.00*tf,  70.00*tf, 100.00*tf, 165.00*tf, 365.00*tf, 365.00*tf, 365.00*tf,365.00*tf, 365.00*tf, 365.00*tf, 365.00*tf],
-    'Power': [5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06, 5.0e+06 ]
+    'Time Steps': [t * 86400 for t in [0.01,   0.99,   3,   6,  20,  70, 100, 165, 365, 365, 365, 365, 365, 365, 365.00] ] # seconds
 })
 params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux'] =  calculate_heat_flux(params)

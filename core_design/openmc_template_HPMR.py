@@ -236,7 +236,7 @@ def create_hex_core_geometry(params, fuel_assembly, graphite_assembly, graphite_
     core_reg.fill = core_hex
 
     # Filling of hex core gap
-    core_reg_out.fill = materials_database[params['Gap']]             
+    core_reg_out.fill = materials_database[params['Secondary Coolant']]             
 
 
     return core_reg, core_reg_out   
@@ -320,7 +320,7 @@ def create_control_drums(params, materials_database):
 
     cr_drum.fill            = materials_database[params['Control Drum Absorber']]
     cr_refl.fill            = materials_database[params['Control Drum Reflector']]
-    cr_gpp.fill             = materials_database[params['Gap']]
+    cr_gpp.fill             = materials_database[params['Secondary Coolant']]
     cr_ass.fill             = materials_database[params['Reflector']]
     # Define a universe for the control drum 
     control_drum_uni = openmc.Universe(cells=[cr_drum,cr_refl,cr_gpp,cr_ass])
@@ -447,7 +447,7 @@ def build_openmc_model_HPMR(params):
     coolant = materials_database[params['Coolant']]
     reflector = materials_database[params['Reflector']]
     moderator = materials_database[params['Moderator']]
-    gap = materials_database[params['Gap']]
+    gap = materials_database[params['Secondary Coolant']]
     control_drum_absorber = materials_database[params['Control Drum Absorber']]
     control_drum_reflector = materials_database[params['Control Drum Reflector']]
     # **************************************************************************************************************************
