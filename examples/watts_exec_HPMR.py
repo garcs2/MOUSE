@@ -50,11 +50,11 @@ update_params({
     # TRISO particles are homogenization with the surrounding graphite matrix. 
     'Fuel': 'homog_TRISO',     
     'Enrichment': 0.19985,
-    'Reflector' : 'Be',
+    'Reflector' : 'Graphite',
     'Moderator': 'monolith_graphite',
     'Secondary Coolant': 'Helium', # gap between the fuel and the moderator OR between heatpipe and moderator is filled with the secondary coolant (e.g. Helium)
     'Control Drum Absorber': 'B4C_natural',  # The absorber material in the control drums
-    'Control Drum Reflector': 'Be',
+    'Control Drum Reflector': 'Graphite',
     'Cooling Device': 'heatpipe', # The reactor is cooled by heatpipes which are modeled as a mixture of SS-316 and sodium
     'Common Temperature': 1000,  #K
     'HX Material': 'SS316'
@@ -75,20 +75,22 @@ update_params({
     
 })
 params['Assembly FTF'] = (params['Lattice Pitch'] * (params['Number of Rings per Assembly'] - 1) +  1.4 * params['Fuel Pin Radii'][-1]) * np.sqrt(3)
-params['Active Height'] = 160 #cm  
-params['Reflector Thickness'] = 16 #cm
-params['Axial Reflector Thickness'] = 20 #cm
-params['Core Radius'] = params['Assembly FTF']* params['Number of Rings per Core'] +  params['Reflector Thickness']     
 params['hexagonal Core Edge Length'] = (params['Assembly FTF'] * (params['Number of Rings per Core']-1)) + (params['Assembly FTF']/2) + 6.6  # The edge lenght is 86.6 as in the originial input so 6.6 is added based on this value
+params['Reflector Thickness'] = 50 # it was 37 #cm
+params['Core Radius'] = 0.5*np.sqrt(3)*params['hexagonal Core Edge Length'] +  params['Reflector Thickness']
+params['Active Height'] =  2 * params['Core Radius'] # it was 160 #cm  
+params['Axial Reflector Thickness'] = params['Reflector Thickness']
 params['Fuel Pin Count per Assembly'] = calculate_number_fuel_elements_hpmr(params['Number of Rings per Assembly'])
 params['Fuel Assemblies Count'] =  (3 * params['Number of Rings per Core']**2) - (3 * params['Number of Rings per Core'])
 params['Fuel Pin Count'] = params['Fuel Assemblies Count'] * params['Fuel Pin Count per Assembly']
+# calculate the number of heatpipes
+number_of_heatpipes_hmpr(params)
 # **************************************************************************************************************************
 #                                           Sec. 3: Control Drums
 # ************************************************************************************************************************** 
 
 update_params({
-    'Drum Radius': 15, 
+    'Drum Radius': 0.4 * params['Reflector Thickness'], 
     'Drum Absorber Thickness': 1,  # cm
     'Drum Height': params['Active Height']
 })
@@ -100,7 +102,7 @@ calculate_reflector_mass_HPMR(params)
 #                                           Sec. 4: Overall System
 # ************************************************************************************************************************** 
 update_params({
-    'Power MWt': 5, 
+    'Power MWt': 10, 
     'Thermal Efficiency': 0.36,
     'Heat Flux Criteria': 0.9,  # MW/m^2 
     'Time Steps': [t * 86400 for t in [0.01,   0.99,   3,   6,  20,  70, 100, 165, 365, 365, 365, 365, 365, 365, 365.00] ] # seconds
@@ -170,7 +172,7 @@ update_params({
     'Guard Vessel Thickness': 0,  # cm
     'Guard Vessel Material': 'low_alloy_steel',
     'Gap Between Guard Vessel And Cooling Vessel': 5,  # cm
-    'Cooling Vessel Thickness': 0.5,  # cm
+    'Cooling Vessel Thickness': 0,  # cm # no cooling vessel
     'Cooling Vessel Material': 'stainless_steel',
     'Gap Between Cooling Vessel And Intake Vessel': 4,  # cm
     'Intake Vessel Thickness': 0.5,  # cm
@@ -284,7 +286,6 @@ update_params({
     'Annual Return': 0.0475,  # Annual return on decommissioning costs
     'NOAK Unit Number': 100,
 })
-
 # **************************************************************************************************************************
 #                                           Sec. 11: Post Processing
 # **************************************************************************************************************************

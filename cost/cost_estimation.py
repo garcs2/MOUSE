@@ -47,18 +47,49 @@ def calculate_high_level_accounts_cost(df, target_level, option, FOAK_or_NOAK):
                         total_sum += df[df["Account"] == account_value][cost_column].values[0]
                     df.at[index, cost_column] = total_sum
 
+
     return df
 
 
 
-def update_high_level_costs(scaled_cost, option):
+def update_high_level_costs(scaled_cost, option, sample):
     # input is the scaled cost
-    df_with_children_accounts =  find_children_accounts(scaled_cost)
+    df_with_children_accounts = find_children_accounts(scaled_cost)
+    
+    # List to store accounts without subaccounts
+    no_subaccounts_list = []
+
+    # Determine the prefix condition based on the option parameter
+    if option == "base":
+        valid_prefixes = ('1', '2')
+    elif option == "other":
+        valid_prefixes = ('3', '4', '5')
+    elif option == "finance": 
+        valid_prefixes = ('6')  
+    elif option == "annual": 
+        valid_prefixes = ('7', '8')      
+    else:
+        raise ValueError("Invalid option. Choose 'base' or 'other' or 'finance' or 'annual'.")
+
     for level in range(4, -1, -1):
         df_updated = calculate_high_level_accounts_cost(df_with_children_accounts, level, option, 'F') # FOAK
         df_updated_2 = calculate_high_level_accounts_cost(df_updated, level, option, 'N')     # NOAK
+        
+        # Check for accounts without subaccounts and set their cost to zero
+        for index, row in df_updated_2.iterrows():
+            if str(row["Account"]).startswith(valid_prefixes):
+                if row['Level'] == level and pd.isna(row[get_estimated_cost_column(df_updated_2, 'F')]) and pd.isna(row['Children Accounts']):
+                    df_updated_2.at[index, get_estimated_cost_column(df_updated_2, 'F')] = 0
+                    no_subaccounts_list.append(row['Account'])
+                if row['Level'] == level and pd.isna(row[get_estimated_cost_column(df_updated_2, 'N')]) and pd.isna(row['Children Accounts']):
+                    df_updated_2.at[index, get_estimated_cost_column(df_updated_2, 'N')] = 0
+                    no_subaccounts_list.append(row['Account'])
+    
+    # Print the list of accounts without subaccounts at the end
+    if sample == 0:
+        if no_subaccounts_list:
+            print(f"Warning: The following accounts do not have any subaccounts: {', '.join(map(str, set(no_subaccounts_list))) }")
     return df_updated_2
-
 
 
 def save_params_to_excel_file(excel_file, params):
@@ -85,11 +116,11 @@ def transform_dataframe(df):
 
     # Select all numerical columns
     numerical_columns = df.select_dtypes(include=[np.number]).columns
+     # Remove rows where all values in numerical columns are zero
+    df = df.loc[~(df[numerical_columns] == 0).all(axis=1)]
     # Convert all values in the numerical columns to integers
     df[numerical_columns] = df[numerical_columns].astype(int)
 
-    # Remove rows where all values in numerical columns are zero
-    df = df.loc[~(df[numerical_columns] == 0).all(axis=1)]
     return df
 
 
@@ -181,15 +212,15 @@ def bottom_up_cost_estimate(cost_database_filename, params):
         scaled_cost = scale_redundant_BOP_and_primary_loop(scaled_cost, params)
         NOAK_COA = FOAK_to_NOAK(scaled_cost, params)
 
-        updated_cost = update_high_level_costs(scaled_cost, 'base' )
+        updated_cost = update_high_level_costs(scaled_cost, 'base', i )
         updated_cost_with_indirect_cost = calculate_accounts_31_32_75_82_cost(updated_cost, params)
         cost_with_decommissioning = calculate_decommissioning_cost(updated_cost_with_indirect_cost, params)
-        updated_accounts_10_40 = update_high_level_costs(cost_with_decommissioning, 'other' )
+        updated_accounts_10_40 = update_high_level_costs(cost_with_decommissioning, 'other' , i)
         high_Level_capital_cost = calculate_high_level_capital_costs(updated_accounts_10_40, params)
         
-        updated_accounts_10_60 = update_high_level_costs(high_Level_capital_cost, 'finance' )
+        updated_accounts_10_60 = update_high_level_costs(high_Level_capital_cost, 'finance' , i)
         TCI = calculate_TCI(updated_accounts_10_60, params )
-        updated_accounts_70_80 = update_high_level_costs(TCI , 'annual' )
+        updated_accounts_70_80 = update_high_level_costs(TCI , 'annual' , i)
         Final_COA = energy_cost_levelized(params, updated_accounts_70_80)
         FOAK_column = get_estimated_cost_column(Final_COA, 'F')
         NOAK_column = get_estimated_cost_column(Final_COA, 'N')

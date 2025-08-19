@@ -70,11 +70,16 @@ def calculate_number_of_rings(rings_over_one_edge):
     return 2 * rings_over_one_edge * (rings_over_one_edge -1) +\
         2 * sum(range(1, rings_over_one_edge -1)) +\
             2*rings_over_one_edge-1
-
+ 
 def calculate_number_fuel_elements_hpmr(rings_over_one_edge):
     total_number_of_rings = calculate_number_of_rings(rings_over_one_edge)
     number_of_heatpipe_pins = calculate_number_of_rings(int(np.ceil(rings_over_one_edge/2)))
     return total_number_of_rings - number_of_heatpipe_pins
+
+def number_of_heatpipes_hmpr(params):
+    tot_rings_per_assembly = calculate_number_of_rings(params['Number of Rings per Assembly'])
+    params['Number of Heatpipes per Assembly'] = tot_rings_per_assembly - params['Fuel Pin Count per Assembly']
+    params['Number of Heatpipes'] = params['Number of Heatpipes per Assembly'] * params['Fuel Assemblies Count'] 
 
 def calculate_total_number_of_TRISO_particles(params):
     compact_fuel_vol = cylinder_volume(params['Compact Fuel Radius'], params['Active Height'])

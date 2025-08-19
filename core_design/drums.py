@@ -23,6 +23,7 @@ def calculate_drums_volumes_and_masses(params):
             params['Drum Count'] = number_of_drums
     elif params['reactor type'] == "HPMR":
             number_of_drums = 12 
+            params['Drum Count'] = number_of_drums
 
     all_drums_volume = drum_volume * number_of_drums
     
@@ -89,9 +90,16 @@ def calculate_moderator_mass_GCMR(params):
 
 def calculate_reflector_mass_HPMR(params):
     materials_database = collect_materials_data(params)
-    tot_number_assemblies = calculate_number_of_rings(params['Number of Rings per Core'])
-    reflector_volume = (circle_area(params['Core Radius']) -\
-       tot_number_assemblies * hexagonal_area_from_ftf(params['Assembly FTF']) - params['All Drums Area']) * params['Active Height']    
+    # first, determine the area of the big hexagonal of monolith surrounding the assemblies
+    assembly_long_diag = 1.1547 * params['Assembly FTF']
+    assembly_side_length =  params['Assembly FTF'] / (np.sqrt(3))
+    big_hex_FTF = params['Number of Rings per Core'] *  assembly_long_diag  + (params['Number of Rings per Core'] - 1) * assembly_side_length
+    big_hex_area = hexagonal_area_from_ftf(big_hex_FTF)
+    reflector_volume = ( circle_area(params['Core Radius']) - big_hex_area ) * params['Active Height']
+    reflector_density = materials_database[params['Reflector']].density
+    reflector_mass    = reflector_density * reflector_volume  / 1000 # Kg
+    params['Reflector Mass'] = reflector_mass
+    
 
 def calculate_moderator_mass(params): 
     # for the moderator pins
