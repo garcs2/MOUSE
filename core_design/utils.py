@@ -53,17 +53,6 @@ def calculate_pins_in_assembly(params, pin_type):
 def create_cells(regions:dict, materials:list)->dict:
     return {key:openmc.Cell(name=key, fill=mat, region=value) for (key,value), mat in zip(regions.items(), materials)}
 
-def calculate_reflector_mass_LTMR(params):
-    hex_area =  2.598 * params['Lattice Radius'] * params['Lattice Radius']
-    core_radius = params['Core Radius']
-    area_of_all_drums = params['All Drums Area'] 
-    drum_height = params['Drum Height']
-    # I assume for now that the drums are always fully inside the reflector
-    
-    area_reflector = 3.14 * core_radius * core_radius - hex_area  - area_of_all_drums # cm2
-    vol_reflector = area_reflector * drum_height # cm^3
-    mass_reflector = vol_reflector * 3.02/1000 # mass in Kg
-    params['Reflector Mass'] = mass_reflector 
 
 def calculate_number_of_rings(rings_over_one_edge):
     # total number of rings given the rings over one edge

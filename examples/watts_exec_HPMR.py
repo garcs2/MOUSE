@@ -96,13 +96,12 @@ update_params({
 })
 
 calculate_drums_volumes_and_masses(params)
-calculate_reflector_mass_HPMR(params)
-
+calculate_reflector_and_moderator_mass_HPMR(params)
 # **************************************************************************************************************************
 #                                           Sec. 4: Overall System
 # ************************************************************************************************************************** 
 update_params({
-    'Power MWt': 10, 
+    'Power MWt': 7, 
     'Thermal Efficiency': 0.36,
     'Heat Flux Criteria': 0.9,  # MW/m^2 
     'Time Steps': [t * 86400 for t in [0.01,   0.99,   3,   6,  20,  70, 100, 165, 365, 365, 365, 365, 365, 365, 365.00] ] # seconds
@@ -122,7 +121,7 @@ fuel_calculations(params)  # calculate the fuel mass and SWU
 # ************************************************************************************************************************** 
 params.update({
     'Primary Loop Purification': True,
-    'Secondary HX Mass': 0,
+    'Secondary HX Mass': 0, # assume only one HX
     'Primary Loop Count': 2, # Number of Primary Coolant Loops present in plant
 
     # temperatures are based on https://www.sciencedirect.com/science/article/pii/S1359431125014711
@@ -132,8 +131,7 @@ params.update({
     'Secondary Loop Outlet Temperature': 630 + 273.15, # K,
    })
 params['Primary HX Mass'] = calculate_heat_exchanger_mass(params)  # Kg
-# calculate coolant mass flow rate
-mass_flow_rate(params)
+
   
 # Update BoP Parameters
 params.update({
@@ -171,10 +169,10 @@ update_params({
     'Gap Between Vessel And Guard Vessel': 0,  
     'Guard Vessel Thickness': 0,  # cm
     'Guard Vessel Material': 'low_alloy_steel',
-    'Gap Between Guard Vessel And Cooling Vessel': 5,  # cm
-    'Cooling Vessel Thickness': 0,  # cm # no cooling vessel
+    'Gap Between Guard Vessel And Cooling Vessel': 1,  # cm
+    'Cooling Vessel Thickness': 0.5,  # cm # 
     'Cooling Vessel Material': 'stainless_steel',
-    'Gap Between Cooling Vessel And Intake Vessel': 4,  # cm
+    'Gap Between Cooling Vessel And Intake Vessel': 1,  # cm
     'Intake Vessel Thickness': 0.5,  # cm
     'Intake Vessel Material': 'stainless_steel'
 })

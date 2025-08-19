@@ -50,12 +50,26 @@ def hexagonal_area_from_ftf(ftf_distance):
     area = (np.sqrt(3) / 2) * ftf_distance ** 2
     return area
 
+def calculate_reflector_mass_LTMR(params):
+    hex_area =  2.598 * params['Lattice Radius'] * params['Lattice Radius']
+    core_radius = params['Core Radius']
+    area_of_all_drums = params['All Drums Area'] 
+    drum_height = params['Drum Height']
+    # I assume for now that the drums are always fully inside the reflector
+    
+    area_reflector = 3.14 * core_radius * core_radius - hex_area  - area_of_all_drums # cm2
+    vol_reflector = area_reflector * drum_height # cm^3
+    reflector_density = materials_database[params['Reflector']].density
+    mass_reflector = vol_reflector * reflector_density/1000 # mass in Kg
+    params['Reflector Mass'] = mass_reflector 
+    params['Axial Reflector Mass'] = (1/1000) * reflector_density * cylinder_volume(core_radius, params['Axial Reflector Thickness'])
+
+
 
 def calculate_reflector_mass_GCMR(params):
     materials_database = collect_materials_data(params)
     tot_number_assemblies = calculate_number_of_rings(params['Core Rings'] )
-    reflector_height = (params['Active Height'] if 'Axial Reflector Thickness' not in params.keys() 
-                                                else params['Active Height'] + 2*params['Axial Reflector Thickness'])
+    reflector_height = params['Active Height']
     reflector_volume = reflector_height * (circle_area(params['Core Radius']) 
                                            - tot_number_assemblies*hexagonal_area_from_ftf(params['Assembly FTF'])
                                            - params['All Drums Area']) 
@@ -63,6 +77,7 @@ def calculate_reflector_mass_GCMR(params):
     reflector_density = materials_database[params['Reflector']].density
     reflector_mass = reflector_density * reflector_volume  / 1000 # Kg
     params['Reflector Mass'] = reflector_mass
+    params['Axial Reflector Mass'] = 2 *  (1/1000) * reflector_density * cylinder_volume(params['Core Radius'], params['Axial Reflector Thickness'])
 
 
 def calculate_moderator_mass_GCMR(params): 
@@ -88,7 +103,7 @@ def calculate_moderator_mass_GCMR(params):
     tot_booster_mass   = tot_number_assemblies * area_moderator_booster_per_hex * params['Active Height'] * materials_database[params['Moderator Booster']].density / 1000 # Kg
     params['Moderator Booster Mass'] = tot_booster_mass
 
-def calculate_reflector_mass_HPMR(params):
+def calculate_reflector_and_moderator_mass_HPMR(params):
     materials_database = collect_materials_data(params)
     # first, determine the area of the big hexagonal of monolith surrounding the assemblies
     assembly_long_diag = 1.1547 * params['Assembly FTF']
@@ -99,6 +114,14 @@ def calculate_reflector_mass_HPMR(params):
     reflector_density = materials_database[params['Reflector']].density
     reflector_mass    = reflector_density * reflector_volume  / 1000 # Kg
     params['Reflector Mass'] = reflector_mass
+    # mass of two axial reflectors
+    params['Axial Reflector Mass'] = 2 * (1/1000) * reflector_density * cylinder_volume(params['Core Radius'], params['Axial Reflector Thickness'])
+
+    # moderator = big hex minus the fuel and heatpipes
+    fuel_area     =  params['Fuel Pin Count']  * circle_area(params['Fuel Pin Radii'][-1])
+    heatpipe_area =  params['Number of Heatpipes'] * circle_area(params['Heat Pipe Radii'][-1])
+    params['Moderator Total Area'] = big_hex_area - fuel_area - heatpipe_area
+    params['Moderator Mass'] = params['Moderator Total Area'] * params['Active Height'] * materials_database[params['Moderator']].density / 1000 #Kg
     
 
 def calculate_moderator_mass(params): 
