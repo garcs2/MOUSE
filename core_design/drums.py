@@ -59,6 +59,8 @@ def calculate_reflector_mass_LTMR(params):
     
     area_reflector = 3.14 * core_radius * core_radius - hex_area  - area_of_all_drums # cm2
     vol_reflector = area_reflector * drum_height # cm^3
+    
+    materials_database = collect_materials_data(params)
     reflector_density = materials_database[params['Reflector']].density
     mass_reflector = vol_reflector * reflector_density/1000 # mass in Kg
     params['Reflector Mass'] = mass_reflector 

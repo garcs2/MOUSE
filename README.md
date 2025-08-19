@@ -27,13 +27,28 @@ MOUSE is powered by the Workflow and Template Toolkit for Simulation ([WATTS](ht
 Three reactor designs are included so far:
 - Liquid-metal thermal microreactor (LTMR)
 - Gas-cooled microreactor (GCMR)
-- Heat pipe microreactor (HPMR): Its cost estimation is still under development
+- Heat pipe microreactor (HPMR)
+
+The designs can be found [here](./assets/Ref_openmc_2d_designs)
+
+
+## Prerequisites
+Before running the MOUSE code, ensure that the following packages are installed:
+- [OpenMC](https://github.com/openmc-dev/openmc)
+- [WATTS](https://github.com/watts-dev/watts)
 
 ### Getting started
 The user can specifiy the reactor design specs and/or the economics parameters for the LTMR and GCMR in the files
-`watts_exec_LTMR.py` and `watts_exec_GCMR.py`
+`watts_exec_LTMR.py` or `watts_exec_GCMR_Design_A.py` or `watts_exec_HPMR.py`
 
 A complete detailed bottom up cost estimation is obtained by running commands such as
 ```
 python -m examples.watts_exec_LTMR
 ```
+```
+python -m examples.watts_exec_GCMR_Design_A
+```
+```
+python -m examples.watts_exec_HPMR
+```
+Examples of the results are [here](./assets/Ref_Results)

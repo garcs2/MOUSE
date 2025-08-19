@@ -32,7 +32,7 @@ def update_params(updates):
 #                                                Sec. 0: Settings
 # **************************************************************************************************************************
 update_params({
-    'plotting': "N",  # "Y" or "N": Yes or No
+    'plotting': "Y",  # "Y" or "N": Yes or No
     'cross_sections_xml_location': '/projects/MRP_MOUSE/openmc_data/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
     'simplified_chain_thermal_xml': '/projects/MRP_MOUSE/openmc_data/simplified_thermal_chain11.xml'       # on INL HPC
 })
