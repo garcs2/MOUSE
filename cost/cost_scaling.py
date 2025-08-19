@@ -29,8 +29,9 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
             cost_premium = 1
         elif  0.1 <= params['Enrichment'] < 0.2:
             cost_premium = 1.15
-        elif  0.2 <params['Enrichment']:
+        elif 0.2 <= params['Enrichment']:
             print("\033[91m ERROR: Enrichment is too high \033[0m")
+            raise ValueError("Enrichment is too high")
         cost = cost_premium * unit_cost *pow(scaling_variable_value,exponent) 
     elif account == 711:
         cost_multiplier = params['FTEs Per Onsite Operator Per Year'] 
