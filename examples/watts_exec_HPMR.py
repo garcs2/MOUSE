@@ -168,11 +168,11 @@ update_params({
     # Assumed no guard vessel
     'Gap Between Vessel And Guard Vessel': 0,  
     'Guard Vessel Thickness': 0,  # cm
-    'Guard Vessel Material': 'low_alloy_steel',
-    'Gap Between Guard Vessel And Cooling Vessel': 1,  # cm
-    'Cooling Vessel Thickness': 0.5,  # cm # 
+    'Guard Vessel Material': 'low_alloy_steel', 
+    'Gap Between Guard Vessel And Cooling Vessel': 5,  # cm
+    'Cooling Vessel Thickness': 0.5,  # cm
     'Cooling Vessel Material': 'stainless_steel',
-    'Gap Between Cooling Vessel And Intake Vessel': 1,  # cm
+    'Gap Between Cooling Vessel And Intake Vessel': 4,  # cm
     'Intake Vessel Thickness': 0.5,  # cm
     'Intake Vessel Material': 'stainless_steel'
 })
