@@ -441,5 +441,8 @@ def build_openmc_model_LTMR(params):
     settings.source = source
     settings.batches = 100
     settings.inactive = 50
-    settings.particles = 1000
+    if 'Particles' in params.keys():
+        settings.particles = int(params['Particles'])#1000
+    else:
+        settings.particles = 1000 
     settings.export_to_xml()
