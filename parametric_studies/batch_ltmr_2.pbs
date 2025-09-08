@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Submit this script with: qsub thefilename
+
+#PBS -l select=1:ncpus=48:mem=150gb
+#PBS -l walltime=2:00:00
+#PBS -j oe
+#PBS -N openmc_eco
+#PBS -P ne_ldrd
+#PBS -m be
+#PBS -M paul.seurin@inl.gov
+
+#### Set the working directory and path.
+ 
+# This cd command tells Torque to execute your code in the same directory that
+# you submitted the job in.  So if the input files for your code are in
+# /home/bob/openmc_sims/sim5, make sure you cd into that directory before
+# running qsub.
+cd $PBS_O_WORKDIR
+ 
+# This command will tell Torque to use the same PATH that you were using when
+# you ran qsub.  It's commented out because it is not necessary in this case,
+# but you may need to uncomment it to get your code to run right.
+PATH=$PBS_O_PATH
+
+# Your job commands go here
+python run_study.py booster LTMR

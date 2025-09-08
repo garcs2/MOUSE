@@ -1,0 +1,169 @@
+Parameter,Value
+plotting,Y
+cross_sections_xml_location,/home/seurpr/Desktop/LDRD/LDRD_microreactor/Examples/libraries/endfb-viii.0-hdf5/cross_sections.xml
+simplified_chain_thermal_xml,/home/seurpr/Desktop/LDRD/LDRD_microreactor/Examples/libraries/chain_casl_pwr.xml
+cost database,/home/seurpr/Desktop/LDRD/LDRD_microreactor/MOUSE_dev/mouse/cost/
+reactor type,LTMR
+TRISO Fueled,No
+Fuel,TRIGA_fuel
+Enrichment,0.1975
+H_Zr_ratio,1.6
+U_met_wo,0.3
+Coolant,NaK
+Reflector,Graphite
+Moderator,YHx
+Control Drum Absorber,B4C_enriched
+Control Drum Reflector,Graphite
+Common Temperature,600
+HX Material,SS316
+Fuel Pin Materials,['Zr', None, 'TRIGA_fuel', None, 'SS304']
+Fuel Pin Radii,[0.28575, 0.3175, 1.5113, 1.5367, 1.5875]
+Moderator Pin Materials,['YHx', 'SS304']
+Moderator Pin Inner Radius,1.5367
+Moderator Pin Radii,[1.5367, 1.5875]
+Pin Gap Distance,0.1
+Pins Arrangement,[['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL'], ['MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL', 'MODERATOR', 'FUEL', 'FUEL'], ['FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR', 'FUEL', 'MODERATOR'], ['FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL', 'FUEL'], ['MODERATOR']]
+Number of Rings per Assembly,12
+Reflector Thickness,14
+Power MWt,20
+Thermal Efficiency,0.31
+Heat Flux Criteria,0.9
+Burnup Steps,[0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 60.0, 80.0, 100.0, 120.0, 140.0]
+Number of Samples,500
+Particles,1000
+Lattice Radius,39.199999999999996
+Active Height,78.4
+Axial Reflector Thickness,14
+Fuel Pin Count,300
+Moderator Pin Count,97
+Moderator Mass,241.4680201244161
+Core Radius,53.199999999999996
+Drum Radius,9.016
+Drum Absorber Thickness,1
+Drum Height,106.4
+Drum Count,12
+All Drums Volume,325896.974118912
+Control Drum Absorber Mass,57.35845656576004
+Control Drum Reflector Mass,515.3306591125504
+Control Drums Mass,572.6891156783104
+All Drums Area,3062.94148608
+Reflector Mass,331.3398537322497
+Axial Reflector Mass,211.6167763671242
+Power MWe,6.2
+Heat Flux,0.8525092029133607
+Fuel Lifetime,1734.0
+Mass U235,67539.10729119291
+Mass U238,277941.78481222526
+Uranium Mass,345.48089210341817
+Natural Uranium Mass,14645.385643514468
+Fuel Tail Waste Mass,14299.90475141105
+SWU,14197.443175446751
+Secondary HX Mass,0
+Primary Pump,Yes
+Secondary Pump,No
+Pump Isentropic Efficiency,0.8
+Primary Loop Inlet Temperature,703.15
+Primary Loop Outlet Temperature,793.15
+Secondary Loop Inlet Temperature,668.15
+Secondary Loop Outlet Temperature,768.15
+BoP Count,2
+BoP per loop load fraction,0.5
+Primary HX Mass,5208.225338730964
+BoP Power kWe,3100.0
+Coolant Mass Flow Rate,226.29554197782304
+Primary Loop Mass Flow Rate,226.29554197782304
+Primary Pump Mechanical Power,174.04480651731163
+In Vessel Shield Thickness,10.16
+In Vessel Shield Inner Radius,53.199999999999996
+In Vessel Shield Material,B4C_natural
+Out Of Vessel Shield Thickness,39.37
+Out Of Vessel Shield Material,WEP
+Out Of Vessel Shield Effective Density Factor,0.5
+In Vessel Shield Outer Radius,63.36
+Vessel Radius,63.36
+Vessel Thickness,1
+Vessel Lower Plenum Height,2.847999999999999
+Vessel Upper Plenum Height,47.152
+Vessel Upper Gas Gap,0
+Vessel Bottom Depth,32.129
+Vessel Material,stainless_steel
+Gap Between Vessel And Guard Vessel,2
+Guard Vessel Thickness,0.5
+Guard Vessel Material,stainless_steel
+Gap Between Guard Vessel And Cooling Vessel,5
+Cooling Vessel Thickness,0.5
+Cooling Vessel Material,stainless_steel
+Gap Between Cooling Vessel And Intake Vessel,3
+Intake Vessel Thickness,0.5
+Intake Vessel Material,stainless_steel
+Vessels Total Radius,74.86
+Vessel Height,156.4
+Vessels Total Height,200.529
+Guard Vessel Radius,66.36
+Cooling Vessel Radius,71.36
+Intake Vessel Radius,74.36
+Vessel Mass,642.2124735076585
+Guard Vessel Mass,340.0818152260852
+Cooling Vessel Mass,374.8762466592501
+Intake Vessel Mass,396.6231900984738
+Total Vessels Mass,1753.7937254914675
+In Vessel Shield Mass,1465.582208735233
+Outer Shield Outer Radius,114.22999999999999
+Out Of Vessel Shield Mass,3982.0853488711673
+Operation Mode,Autonomous
+Number of Operators,2
+Levelization Period,60
+Refueling Period,7
+Emergency Shutdowns Per Year,0.2
+Startup Duration after Refueling,2
+Startup Duration after Emergency Shutdown,14
+Reactors Monitored Per Operator,10
+Security Staff Per Shift,1
+Onsite Coolant Inventory,7045.371
+Replacement Coolant Inventory,0
+A75: Vessel Replacement Period (cycles),2.0
+A75: Core Barrel Replacement Period (cycles),2.0
+A75: Reflector Replacement Period (cycles),2.0
+A75: Drum Replacement Period (cycles),2.0
+Mainenance to Direct Cost Ratio,0.015
+A78: CAPEX to Decommissioning Cost Ratio,0.15
+Land Area,18
+Escalation Year,2024
+Excavation Volume,412.605
+Reactor Building Slab Roof Volume,95.0976
+Reactor Building Basement Volume,95.0976
+Reactor Building Exterior Walls Volume,129.9564
+Reactor Building Superstructure Area,77.0
+Integrated Heat Exchanger Building Slab Roof Volume,0
+Integrated Heat Exchanger Building Basement Volume,0
+Integrated Heat Exchanger Building Exterior Walls Volume,0
+Integrated Heat Exchanger Building Superstructure Area,0
+Turbine Building Slab Roof Volume,5.9448192
+Turbine Building Basement Volume,5.9448192
+Turbine Building Exterior Walls Volume,14.207232
+Control Building Slab Roof Volume,5.9448192
+Control Building Basement Volume,5.9448192
+Control Building Exterior Walls Volume,14.207232
+Manipulator Building Slab Roof Volume,4.756635648
+Manipulator Building Basement Volume,17.83738368
+Manipulator Building Exterior Walls Volume,15.9195008
+Refueling Building Slab Roof Volume,0
+Refueling Building Basement Volume,0
+Refueling Building Exterior Walls Volume,0
+Spent Fuel Building Slab Roof Volume,0
+Spent Fuel Building Basement Volume,0
+Spent Fuel Building Exterior Walls Volume,0
+Emergency Building Slab Roof Volume,0
+Emergency Building Basement Volume,0
+Emergency Building Exterior Walls Volume,0
+Storage Building Slab Roof Volume,11.76
+Storage Building Basement Volume,11.76
+Storage Building Exterior Walls Volume,15.768
+Radwaste Building Slab Roof Volume,0
+Radwaste Building Basement Volume,0
+Radwaste Building Exterior Walls Volume,0
+Interest Rate,0.07
+Construction Duration,12
+Debt To Equity Ratio,0.5
+Annual Return,0.0475
+NOAK Unit Number,100
