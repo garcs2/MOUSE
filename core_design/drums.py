@@ -9,8 +9,10 @@ def calculate_drums_volumes_and_masses(params):
     drum_height = params['Drum Height']
     absorber_thickness = params['Drum Absorber Thickness']
     drum_volume = 3.14*DRUM_RADIUS * DRUM_RADIUS *drum_height
-    
-    drum_absorp_vol = (3.14*( DRUM_RADIUS * DRUM_RADIUS - (DRUM_RADIUS-absorber_thickness)*(DRUM_RADIUS-absorber_thickness) )*drum_height)/3
+    if 'coating_angle' in params.keys():
+        drum_absorp_vol = (3.14*( DRUM_RADIUS * DRUM_RADIUS) - 3.14/180*params['coating_angle'](DRUM_RADIUS-absorber_thickness)*(DRUM_RADIUS-absorber_thickness) )*drum_height)/3
+    else:
+        drum_absorp_vol = (3.14*( DRUM_RADIUS * DRUM_RADIUS) - 3.14/180*params['coating_angle'](DRUM_RADIUS-absorber_thickness)*(DRUM_RADIUS-absorber_thickness) )*drum_height)/3    
     drum_refl_vol = drum_volume - drum_absorp_vol 
     if params['reactor type'] == "LTMR":
         number_of_drums = 12 
