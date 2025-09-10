@@ -114,7 +114,7 @@ def calculate_reflector_and_moderator_mass_HPMR(params):
     assembly_side_length =  params['Assembly FTF'] / (np.sqrt(3))
     big_hex_FTF = params['Number of Rings per Core'] *  assembly_long_diag  + (params['Number of Rings per Core'] - 1) * assembly_side_length
     big_hex_area = hexagonal_area_from_ftf(big_hex_FTF)
-    reflector_volume = ( circle_area(params['Core Radius']) - big_hex_area ) * params['Active Height']
+    reflector_volume = (circle_area(params['Core Radius']) - big_hex_area ) * params['Active Height']
     reflector_density = materials_database[params['Reflector']].density
     reflector_mass    = reflector_density * reflector_volume  / 1000 # Kg
     params['Reflector Mass'] = reflector_mass
@@ -124,9 +124,15 @@ def calculate_reflector_and_moderator_mass_HPMR(params):
     # moderator = big hex minus the fuel and heatpipes
     fuel_area     =  params['Fuel Pin Count']  * circle_area(params['Fuel Pin Radii'][-1])
     heatpipe_area =  params['Number of Heatpipes'] * circle_area(params['Heat Pipe Radii'][-1])
-    params['Moderator Total Area'] = big_hex_area - fuel_area - heatpipe_area
+    if 'Moderator Booster' in params.keys():# Some HPMR designs have a booster
+        moderator_booster_area = params['Number of Moderator Booster'] * circle_area(params['Moderator Booster Raddi'])
+        params['Moderator Booster Mass'] = moderator_booster_area * params['Active Height'] * materials_database[params['Moderator Booster']].density / 1000 #Kg
+    else:
+        moderator_booster_area = 0.0
+        params['Moderator Booster Mass'] = 0.0
+    params['Moderator Total Area'] = big_hex_area - fuel_area - heatpipe_area - moderator_booster_area
     params['Moderator Mass'] = params['Moderator Total Area'] * params['Active Height'] * materials_database[params['Moderator']].density / 1000 #Kg
-    
+    #sys.exit()
 
 def calculate_moderator_mass(params): 
     # for the moderator pins
