@@ -557,6 +557,10 @@ def build_openmc_model_HPMR(params):
     settings = openmc.Settings()
     settings.batches = 100
     settings.inactive = 20
-    settings.particles = 1000
+    #settings.particles = 1000
+    if 'Particles' in params.keys():
+        settings.particles = int(params['Particles'])#1000
+    else:
+        settings.particles = 1000 
     settings.temperature   = {'method': 'interpolation'}
     settings.export_to_xml()
