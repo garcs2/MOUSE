@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import watts; print('WATTS found')
+    ^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'watts'
+Traceback (most recent call last):
+  File "/home/garcsamu/OpenMC/MOUSE/examples/watts_exec_LTMR.py", line 9, in <module>
+    import watts  # Simulation workflows for one or multiple codes
+    ^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'watts'

@@ -17,6 +17,17 @@ from reactor_engineering_evaluation.vessels_calcs import *
 from reactor_engineering_evaluation.tools import *
 from cost.cost_estimation import detailed_bottom_up_cost_estimate
 
+import sys
+try:
+    number_processes = sys.argv[1]
+    mpi_args = ['mpiexec', '-np', f'{number_processes}']
+    print(f"\n\nDEBUG: Created mpi_args = {mpi_args}\n\n")
+    print(f"DEBUG: Type of each element: {[type(x) for x in mpi_args]}\n\n")
+    print(f"\n\nMPI enabled with {number_processes} processes")
+except IndexError:
+    mpi_args = None
+    print("\n\nMPI not used (no process count provided, running in serial)\n\n")
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -34,8 +45,8 @@ def update_params(updates):
 
 update_params({
     'plotting': "Y",  # "Y" or "N": Yes or No
-    'cross_sections_xml_location': '/projects/MRP_MOUSE/openmc_data/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
-    'simplified_chain_thermal_xml': '/projects/MRP_MOUSE/openmc_data/simplified_thermal_chain11.xml'       # on INL HPC
+    'cross_sections_xml_location': '/hpc-common/data/openmc/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
+    'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/data/chain_casl_pwr.xml'       # on INL HPC
 })
 
 # **************************************************************************************************************************
@@ -112,7 +123,7 @@ params['Heat Flux'] =  calculate_heat_flux(params)
 # ************************************************************************************************************************** 
 
 heat_flux_monitor = monitor_heat_flux(params)
-run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
+run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params, mpi_args)
 fuel_calculations(params)  # calculate the fuel mass and SWU
 
 # **************************************************************************************************************************

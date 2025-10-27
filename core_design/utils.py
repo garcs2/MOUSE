@@ -189,8 +189,12 @@ def openmc_depletion(params, lattice_geometry, settings):
     return fuel_lifetime_days, mass_U235, mass_U238
 
 
-def run_depletion_analysis(params):
-    openmc.run()
+def run_depletion_analysis(params, mpi_args=None):
+    print(f"\n\nDEBUG: mpi_args = {mpi_args}\n\n")
+    if mpi_args is not None:
+        openmc.run(mpi_args=mpi_args)
+    else:
+        openmc.run()
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
     depletion_results = openmc_depletion(params, lattice_geometry, settings)
@@ -210,14 +214,18 @@ def monitor_heat_flux(params):
         print(f"\033[91mERROR: HIGH HEAT FLUX IS TOO HIGH: {np.round(params['Heat Flux'],2)} MW/m^2.\033[0m")   
         return "High Heat Flux"
 
-def run_openmc(build_openmc_model, heat_flux_monitor, params):
+def run_openmc(build_openmc_model, heat_flux_monitor, params, mpi_args=None):
     if heat_flux_monitor == "High Heat Flux":
         print("ERROR: HIGH HEAT FLUX")
     else:    
         try:
             print(f"\n\nThe results/plots are saved at: {watts.Database().path}\n\n")
             openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-            openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+            run_kwargs = {}
+            if mpi_args is not None:
+                run_kwargs['mpi_args'] = mpi_args
+
+            openmc_plugin(params, function=lambda: run_depletion_analysis(params, **run_kwargs)) 
 
         except Exception as e:
             print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")

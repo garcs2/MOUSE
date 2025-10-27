@@ -1,0 +1,35 @@
+
+
+DEBUG: Created mpi_args = ['mpiexec', '-np', '32']
+
+
+DEBUG: Type of each element: [<class 'str'>, <class 'str'>, <class 'str'>]
+
+
+
+
+MPI enabled with 32 processes
+Reading the Materials Database
+Skipping UCO due to missing parameter: 'UO2 atom fraction'
+Reading the Materials Database
+Skipping UCO due to missing parameter: 'UO2 atom fraction'
+Reading the Materials Database
+Skipping UCO due to missing parameter: 'UO2 atom fraction'
+
+
+[92mHEAT FLUX is: 0.85 MW/m^2.[0m
+
+
+
+
+The results/plots are saved at: /home/garcsamu/.local/share/watts
+
+
+[watts] Calling OpenMC...
+Reading the Materials Database
+Skipping UCO due to missing parameter: 'UO2 atom fraction'
+
+
+[91mAn error occurred while running the OpenMC simulation:[0m
+
+
