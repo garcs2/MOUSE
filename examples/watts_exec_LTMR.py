@@ -16,17 +16,16 @@ from reactor_engineering_evaluation.BOP import *
 from reactor_engineering_evaluation.vessels_calcs import *
 from reactor_engineering_evaluation.tools import *
 from cost.cost_estimation import detailed_bottom_up_cost_estimate
-
+import os
 import sys
-try:
-    number_processes = sys.argv[1]
-    mpi_args = ['mpiexec', '-np', f'{number_processes}']
-    print(f"\n\nDEBUG: Created mpi_args = {mpi_args}\n\n")
-    print(f"DEBUG: Type of each element: {[type(x) for x in mpi_args]}\n\n")
-    print(f"\n\nMPI enabled with {number_processes} processes")
-except IndexError:
-    mpi_args = None
-    print("\n\nMPI not used (no process count provided, running in serial)\n\n")
+# Use shared working directory (KEEP THIS)
+# watts_workdir = os.path.join(
+#     os.path.expanduser('~'), 
+#     'watts_runs', 
+#     os.environ.get('SLURM_JOB_ID', 'serial_run')
+# )
+# os.makedirs(watts_workdir, exist_ok=True)
+# watts.Database(path=watts_workdir)
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -44,7 +43,7 @@ def update_params(updates):
 # **************************************************************************************************************************
 
 update_params({
-    'plotting': "Y",  # "Y" or "N": Yes or No
+    'plotting': "N",  # "Y" or "N": Yes or No
     'cross_sections_xml_location': '/hpc-common/data/openmc/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/data/chain_casl_pwr.xml'       # on INL HPC
 })
@@ -123,7 +122,7 @@ params['Heat Flux'] =  calculate_heat_flux(params)
 # ************************************************************************************************************************** 
 
 heat_flux_monitor = monitor_heat_flux(params)
-run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params, mpi_args)
+run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
 fuel_calculations(params)  # calculate the fuel mass and SWU
 
 # **************************************************************************************************************************
@@ -291,6 +290,6 @@ update_params({
 # **************************************************************************************************************************
 params['Number of Samples'] = 100 # Accounting for cost uncertainties
 # Estimate costs using the cost database file and save the output to an Excel file
-estimate = detailed_bottom_up_cost_estimate('cost/Cost_Database.xlsx', params, "examples/output_LTMR.xlsx")
+estimate = detailed_bottom_up_cost_estimate('/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx', params, "/home/garcsamu/OpenMC/MOUSE/examples/output_LTMR.xlsx")
 elapsed_time = (time.time() - time_start) / 60  # Calculate execution time
 print('Execution time:', np.round(elapsed_time, 1), 'minutes')

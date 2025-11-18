@@ -190,11 +190,7 @@ def openmc_depletion(params, lattice_geometry, settings):
 
 
 def run_depletion_analysis(params, mpi_args=None):
-    print(f"\n\nDEBUG: mpi_args = {mpi_args}\n\n")
-    if mpi_args is not None:
-        openmc.run(mpi_args=mpi_args)
-    else:
-        openmc.run()
+    openmc.run(mpi_args=['mpirun', '-np', '5'])
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
     depletion_results = openmc_depletion(params, lattice_geometry, settings)
@@ -220,12 +216,8 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params, mpi_args=None):
     else:    
         try:
             print(f"\n\nThe results/plots are saved at: {watts.Database().path}\n\n")
-            openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-            run_kwargs = {}
-            if mpi_args is not None:
-                run_kwargs['mpi_args'] = mpi_args
-
-            openmc_plugin(params, function=lambda: run_depletion_analysis(params, **run_kwargs)) 
+            openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True, show_stdout=True)  # running the LTMR Model
+            openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
 
         except Exception as e:
             print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")
