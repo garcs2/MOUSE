@@ -16,6 +16,15 @@ from reactor_engineering_evaluation.BOP import *
 from reactor_engineering_evaluation.vessels_calcs import *
 from reactor_engineering_evaluation.tools import *
 from cost.cost_estimation import parametric_studies
+import os
+import sys
+try:
+    number_processes = sys.argv[1]
+    mpi_args = ['mpirun', '-np', f'{number_processes}']
+    print(f"\n\nMPI enabled with {number_processes} processes")
+except IndexError:
+    mpi_args = None
+    print("\n\nMPI not used (no process count provided, running in serial)\n\n")
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -111,7 +120,7 @@ for params['Fuel'] in ['TRIGA_fuel', 'UO2']:
     # ************************************************************************************************************************** 
 
     heat_flux_monitor = monitor_heat_flux(params)
-    run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
+    run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params, mpi_args)
     fuel_calculations(params)  # calculate the fuel mass and SWU
 
     # **************************************************************************************************************************

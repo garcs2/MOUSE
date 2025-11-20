@@ -9,6 +9,7 @@ import matplotlib.patches as mpatches
 from core_design.correction_factor import corrected_keff_2d
 
 
+# if __name__ == "__main__":
 
 def circle_area(r):
     return (np.pi) * r **2
@@ -190,7 +191,8 @@ def openmc_depletion(params, lattice_geometry, settings):
 
 
 def run_depletion_analysis(params, mpi_args=None):
-    openmc.run(mpi_args=['mpirun', '-np', '5'])
+    print(mpi_args)
+    openmc.run(mpi_args=mpi_args)
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
     depletion_results = openmc_depletion(params, lattice_geometry, settings)
@@ -216,8 +218,11 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params, mpi_args=None):
     else:    
         try:
             print(f"\n\nThe results/plots are saved at: {watts.Database().path}\n\n")
-            openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True, show_stdout=True)  # running the LTMR Model
-            openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+            openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True, show_stdout=True)  # running the LTMR 
+            def run_with_current_params():
+                return run_depletion_analysis(params, mpi_args)
+            openmc_plugin(params, function=run_with_current_params)
+            # openmc_plugin(params, function = lambda: run_depletion_analysis(params, mpi_args)) 
 
         except Exception as e:
             print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")

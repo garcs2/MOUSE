@@ -18,14 +18,13 @@ from reactor_engineering_evaluation.tools import *
 from cost.cost_estimation import detailed_bottom_up_cost_estimate
 import os
 import sys
-# Use shared working directory (KEEP THIS)
-# watts_workdir = os.path.join(
-#     os.path.expanduser('~'), 
-#     'watts_runs', 
-#     os.environ.get('SLURM_JOB_ID', 'serial_run')
-# )
-# os.makedirs(watts_workdir, exist_ok=True)
-# watts.Database(path=watts_workdir)
+try:
+    number_processes = sys.argv[1]
+    mpi_args = ['mpirun', '-np', f'{number_processes}']
+    print(f"\n\nMPI enabled with {number_processes} processes")
+except IndexError:
+    mpi_args = None
+    print("\n\nMPI not used (no process count provided, running in serial)\n\n")
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -122,7 +121,7 @@ params['Heat Flux'] =  calculate_heat_flux(params)
 # ************************************************************************************************************************** 
 
 heat_flux_monitor = monitor_heat_flux(params)
-run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
+run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params, mpi_args)
 fuel_calculations(params)  # calculate the fuel mass and SWU
 
 # **************************************************************************************************************************
