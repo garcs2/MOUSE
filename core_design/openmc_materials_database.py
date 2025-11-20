@@ -63,6 +63,8 @@ def collect_materials_data(params):
         UO2.set_density('g/cm3', 10.41)
         UO2.add_element('U', 1.0, enrichment= 100 * params['Enrichment'])
         UO2.add_nuclide('O16', 2.0)
+        UO2.add_s_alpha_beta("c_U_in_UO2")
+        UO2.add_s_alpha_beta("c_O_in_UO2")
         materials.append(UO2)
         materials_database.update({ 'UO2': UO2})
     except KeyError as e:
@@ -95,10 +97,22 @@ def collect_materials_data(params):
         UN.set_density('g/cm3', 14.0)
         UN.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
         UN.add_element('N', 1.0) # This adds nitrogen (N) to the material.
+        UN.add_s_alpha_beta("c_U_in_UN")
+        UN.add_s_alpha_beta("c_N_in_UN")
         materials.append(UN)
         materials_database.update({ 'UN': UN})
     except KeyError as e:
         print(f"Skipping UN due to missing parameter: {e}") 
+    # U-10Zr
+    try:
+        UZr = openmc.Material(name='UZr') 
+        UZr.set_density('g/cm3', 16.0)
+        UZr.add_element('U', 10, 'wo', enrichment= 100 * params['Enrichment'])
+        UZr.add_element('Zr', 90, 'wo')
+        materials.append(UZr)
+        materials_database.update({ 'UZr': UZr})
+    except KeyError as e:
+        print(f"Skipping U-10Zr due to missing parameter: {e}")
 
     # Homogenized TRISO fuel
     try:
