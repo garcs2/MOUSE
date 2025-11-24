@@ -103,6 +103,7 @@ def collect_materials_data(params):
         materials_database.update({ 'UN': UN})
     except KeyError as e:
         print(f"Skipping UN due to missing parameter: {e}") 
+        
     # U-10Zr
     try:
         UZr = openmc.Material(name='UZr') 
@@ -249,10 +250,16 @@ def collect_materials_data(params):
     SiC.add_element('Si', 0.5) #  Adds silicon (Si) to the material with a fraction of 0.5.
     SiC.add_element('C', 0.5) # Adds carbon (C) to the material with a fraction of 0.5.
 
+    ZrC = openmc.Material(name='ZrC')
+    ZrC.set_density('g/cm3', 6.73)
+    ZrC.add_element('Zr', 1.0)
+    ZrC.add_element('C', 1.0)
+
     materials.extend([B4C_natural, B4C_enriched, SiC])
     materials_database.update({'B4C_natural':  B4C_natural, 
                                'B4C_enriched': B4C_enriched, 
-                               'SiC': SiC})
+                               'SiC': SiC,
+                               'ZrC':ZrC})
 
     # """""""""""""""""""""
     # Sec. 1.8 : Carbon Based Materials : Graphite (Buffer)  & pyrolytic carbon (PyC) 
@@ -282,7 +289,17 @@ def collect_materials_data(params):
     materials.extend([Graphite, buffer_graphite, PyC ])
     materials_database.update({'Graphite' : Graphite, 'buffer_graphite' : buffer_graphite, 'PyC': PyC})
 
-    # Sec. 1.9 : Heat Pipe Microreactor
+    # """""""""""""""""""""
+    # Sec. 1.9 : Magnesium Oxide
+    # """""""""""""""""""""
+    MgO = openmc.Material(name='MgO')
+    MgO.set_density('g/cm3', 3.58)
+    MgO.add_element('Mg', 1.0)
+    MgO.add_element('O', 1.0)
+    materials_database.update({'MgO': MgO})
+
+    # """""""""""""""""""""
+    # Sec. 1.10 : Heat Pipe Microreactor
     # """""""""""""""""""""
     
     # homogenized heat pipe
