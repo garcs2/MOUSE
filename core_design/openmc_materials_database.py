@@ -299,7 +299,33 @@ def collect_materials_data(params):
     materials_database.update({'MgO': MgO})
 
     # """""""""""""""""""""
-    # Sec. 1.10 : Heat Pipe Microreactor
+    # Sec. 1.10 : Tungsten Based Materials: WB, W2B, WB4, WC
+    # """""""""""""""""""""
+    WB = openmc.Material(name = 'WB')
+    WB.set_density('g/cm3', 15.43)
+    WB.add_element('W',1.0)
+    WB.add_element('B', 1.0)
+
+    W2B = openmc.Material(name = 'W2B')
+    W2B.set_density('g/cm3', 16.75) # doi.org/10.1016/j.jnucmat.2020.152062.
+    W2B.add_element('W',2.0)
+    W2B.add_element('B',1.0)
+
+    WB4 = openmc.Material(name = 'WB4')
+    WB4.set_density('g/cm3', 8.23)
+    WB4.add_element('W', 1.0)
+    WB4.add_element('B', 4.0)
+
+    WC = openmc.Material(name = 'WC')
+    WC.set_density('g/cm3', 15.32)
+    WC.add_element('W', 1.0)
+    WC.add_element('C', 1.0)
+
+
+    materials_database.update({'WB': WB, 'W2B' : W2B, 'WB4' : WB4, 'WC': WC})
+
+    # """""""""""""""""""""
+    # Sec. 1.11 : Heat Pipe Microreactor
     # """""""""""""""""""""
     
     # homogenized heat pipe
