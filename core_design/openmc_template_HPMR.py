@@ -52,9 +52,11 @@ def create_fuel_pin(params, materials_database):
     fuel_materials.append(materials_database[params['Moderator']])
     # creating the fuel pin universe
     fuel_cells = create_cells(fuel_pin_regions, fuel_materials)
+    # The fuel region cell (to be used in distribcell tally)
+    fuel_cell = fuel_cells['fuel_meat']
     fuel_pin_universe = openmc.Universe(cells=fuel_cells.values())
 
-    return fuel_pin_universe, fuel_materials
+    return fuel_pin_universe, fuel_materials, fuel_cell
 
 
 def create_htpipe_pin(params, materials_database):
@@ -456,7 +458,7 @@ def build_openmc_model_HPMR(params):
 
 
     # Create the fuel pin
-    fuel_pin_universe, fuel_materials = create_fuel_pin(params, materials_database)
+    fuel_pin_universe, fuel_materials, fuel_cell = create_fuel_pin(params, materials_database)
 
     # Create the heat pipe
     htpipe_universe, htpipe_materials = create_htpipe_pin(params, materials_database)
@@ -547,6 +549,13 @@ def build_openmc_model_HPMR(params):
     mgxs_lib.domains = [core]
     mgxs_lib.build_library()
     mgxs_lib.add_to_tallies_file(tallies_file, merge=False)
+    
+    # Peaking factor tally (pin power)
+    pin_filter = openmc.DistribcellFilter(fuel_cell)
+    pin_power = openmc.Tally(name='pin_power_kappa')
+    pin_power.scores  = ['kappa-fission']                
+    pin_power.filters = [pin_filter]
+    tallies_file.append(pin_power)
     tallies_file.export_to_xml()
 
 
