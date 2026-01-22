@@ -1,18 +1,21 @@
 #!/bin/bash
 
-# Submit this script with: qsub thefilename
+# Submit this script with: sbatch thefilename
 
-#PBS -l select=1:ncpus=16:mem=12gb
-#PBS -l walltime=00:20:00
-#PBS -j oe
-#PBS -N openmc_eco
-#PBS -P edu_class
-#PBS -m be
-#PBS -M botros.hanna@inl.gov
+#SBATCH --time=4:00:00 # walltime
+#SBATCH --ntasks-per-node=48 # number of processor cores (i.e. tasks)
+#SBATCH --nodes=1 # number of nodes
+#SBATCH --wckey edu_class # Project Code
+#SBATCH -J "exmple" # job name
+#SBATCH --mail-user=botros.hanna@inl.gov # email address
+#SBATCH --mail-type=BEGIN
+#SBATCH --mail-type=END
 
-cd /home/hannbn/projects/MARVEL_MRP/Github_repos/watts/examples/openmc_economics
+# MOUSE Directory
+cd /home/username/projects/MOUSE
 
-# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-source activate /home/hannbn/.conda/envs/openmc-env/envs/watts_openmc
+# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS (Pyton Environment where OpenMC and Watts are installed)
+source activate /home/username/mouse_env
+
 # Your job commands go here
-python watts_exec.py > output.txt
+python -m examples.watts_GCMR_Design_reflector > output_ref_GCMR.txt
