@@ -341,6 +341,10 @@ def create_control_drums(params, materials_database):
 
     # Adjust the control drums rotation
     rotation_angle          = 0
+    if params['SD Margin Calc']:
+        rotation_angle = 180
+    else:
+        rotation_angle = 0
     cr_000.rotation         = [0,  0,    0 + rotation_angle]
     cr_330.rotation         = [0,  0,    0 + rotation_angle]
     cr_030.rotation         = [0,  0,   60 + rotation_angle]
@@ -562,5 +566,10 @@ def build_openmc_model_HPMR(params):
         settings.particles = int(params['Particles'])#1000
     else:
         settings.particles = 1000 
-    settings.temperature   = {'method': 'interpolation'}
+    if params['Isothermal Temperature Coefficients']:
+        settings.temperature = {'default': params['Common Temperature'],
+                                 'method': 'interpolation',
+                                 'tolerance': 50.0}
+    else:
+        settings.temperature   = {'method': 'interpolation'}
     settings.export_to_xml()
