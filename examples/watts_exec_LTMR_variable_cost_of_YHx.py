@@ -111,12 +111,7 @@ params['Heat Flux'] =  calculate_heat_flux(params)
 # ************************************************************************************************************************** 
 
 heat_flux_monitor = monitor_heat_flux(params)
-# run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
-
-params['Fuel Lifetime'] =1305 # days
-params['Mass U235'] = 61975 # grams
-params['Mass U238'] = 263372.87  # grams
-params['Uranium Mass'] = (params['Mass U235'] + params['Mass U238'])/1000
+run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
 fuel_calculations(params)  # calculate the fuel mass and SWU
 
 # **************************************************************************************************************************
