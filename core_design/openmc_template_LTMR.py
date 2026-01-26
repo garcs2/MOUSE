@@ -78,7 +78,10 @@ def create_drums_universe(params, control_drum_absorber_material, control_drum_r
     absorber_arc = np.pi/3
     REFERENCE_ANGLE = 0
     rotation_angle = 180 
-
+    if params['SD Margin Calc']:
+        rotation_angle = 0
+    else:
+        rotation_angle = 180
     # Create cylindrical surfaces for the inner and outer shells of the control drum
     cd_inner_shell = openmc.ZCylinder(r= drum_radius - absorber_thickness)
     cd_outer_shell = openmc.ZCylinder(r= drum_radius)
@@ -445,4 +448,9 @@ def build_openmc_model_LTMR(params):
         settings.particles = int(params['Particles'])#1000
     else:
         settings.particles = 1000 
+    if params['Isothermal Temperature Coefficients']:
+        settings.temperature = {'default': params['Common Temperature'],
+                                 'method': 'interpolation',
+                                 'tolerance': 50.0}
+    
     settings.export_to_xml()

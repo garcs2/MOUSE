@@ -63,6 +63,8 @@ def collect_materials_data(params):
         UO2.set_density('g/cm3', 10.41)
         UO2.add_element('U', 1.0, enrichment= 100 * params['Enrichment'])
         UO2.add_nuclide('O16', 2.0)
+        UO2.add_s_alpha_beta("c_U_in_UO2")
+        UO2.add_s_alpha_beta("c_O_in_UO2")
         materials.append(UO2)
         materials_database.update({ 'UO2': UO2})
     except KeyError as e:
@@ -95,10 +97,23 @@ def collect_materials_data(params):
         UN.set_density('g/cm3', 14.0)
         UN.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
         UN.add_element('N', 1.0) # This adds nitrogen (N) to the material.
+        UN.add_s_alpha_beta("c_U_in_UN")
+        UN.add_s_alpha_beta("c_N_in_UN")
         materials.append(UN)
         materials_database.update({ 'UN': UN})
     except KeyError as e:
         print(f"Skipping UN due to missing parameter: {e}") 
+        
+    # U-10Zr
+    try:
+        UZr = openmc.Material(name='UZr') 
+        UZr.set_density('g/cm3', 16.0)
+        UZr.add_element('U', 10, 'wo', enrichment= 100 * params['Enrichment'])
+        UZr.add_element('Zr', 90, 'wo')
+        materials.append(UZr)
+        materials_database.update({ 'UZr': UZr})
+    except KeyError as e:
+        print(f"Skipping U-10Zr due to missing parameter: {e}")
 
     # Homogenized TRISO fuel
     try:
@@ -235,10 +250,16 @@ def collect_materials_data(params):
     SiC.add_element('Si', 0.5) #  Adds silicon (Si) to the material with a fraction of 0.5.
     SiC.add_element('C', 0.5) # Adds carbon (C) to the material with a fraction of 0.5.
 
+    ZrC = openmc.Material(name='ZrC')
+    ZrC.set_density('g/cm3', 6.73)
+    ZrC.add_element('Zr', 1.0)
+    ZrC.add_element('C', 1.0)
+
     materials.extend([B4C_natural, B4C_enriched, SiC])
     materials_database.update({'B4C_natural':  B4C_natural, 
                                'B4C_enriched': B4C_enriched, 
-                               'SiC': SiC})
+                               'SiC': SiC,
+                               'ZrC':ZrC})
 
     # """""""""""""""""""""
     # Sec. 1.8 : Carbon Based Materials : Graphite (Buffer)  & pyrolytic carbon (PyC) 
@@ -268,7 +289,43 @@ def collect_materials_data(params):
     materials.extend([Graphite, buffer_graphite, PyC ])
     materials_database.update({'Graphite' : Graphite, 'buffer_graphite' : buffer_graphite, 'PyC': PyC})
 
-    # Sec. 1.9 : Heat Pipe Microreactor
+    # """""""""""""""""""""
+    # Sec. 1.9 : Magnesium Oxide
+    # """""""""""""""""""""
+    MgO = openmc.Material(name='MgO')
+    MgO.set_density('g/cm3', 3.58)
+    MgO.add_element('Mg', 1.0)
+    MgO.add_element('O', 1.0)
+    materials_database.update({'MgO': MgO})
+
+    # """""""""""""""""""""
+    # Sec. 1.10 : Tungsten Based Materials: WB, W2B, WB4, WC
+    # """""""""""""""""""""
+    WB = openmc.Material(name = 'WB')
+    WB.set_density('g/cm3', 15.43)
+    WB.add_element('W',1.0)
+    WB.add_element('B', 1.0)
+
+    W2B = openmc.Material(name = 'W2B')
+    W2B.set_density('g/cm3', 16.75) # doi.org/10.1016/j.jnucmat.2020.152062.
+    W2B.add_element('W',2.0)
+    W2B.add_element('B',1.0)
+
+    WB4 = openmc.Material(name = 'WB4')
+    WB4.set_density('g/cm3', 8.23)
+    WB4.add_element('W', 1.0)
+    WB4.add_element('B', 4.0)
+
+    WC = openmc.Material(name = 'WC')
+    WC.set_density('g/cm3', 15.32)
+    WC.add_element('W', 1.0)
+    WC.add_element('C', 1.0)
+
+
+    materials_database.update({'WB': WB, 'W2B' : W2B, 'WB4' : WB4, 'WC': WC})
+
+    # """""""""""""""""""""
+    # Sec. 1.11 : Heat Pipe Microreactor
     # """""""""""""""""""""
     
     # homogenized heat pipe
