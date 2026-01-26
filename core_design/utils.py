@@ -225,14 +225,14 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params, mpi_args=None):
         try:
             print(f"\n\nThe results/plots are saved at: {watts.Database().path}\n\n")
             #openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-            #openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+            #openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
             if params['SD Margin Calc']:
                 if params['Isothermal Temperature Coefficients']:
                     params['SD Margin Calc'] = False
                     temp_T = copy.deepcopy(params['Common Temperature'])
                     params['Common Temperature'] = params['Common Temperature'] + 300
                     openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
 
                     params['keff 2D high temp'] = params['keff 2D']
                     params['keff 3D (2D corrected) high temp'] = params['keff 3D (2D corrected)']
@@ -240,18 +240,18 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params, mpi_args=None):
                     params['Common Temperature'] = temp_T
 
                     openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
                     params['ITC 2D'] = np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 2D'],params['keff 2D high temp'])])
                     params['ITC 3D (2D corrected)'] =  np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) high temp'])])#(params['keff 3D (2D corrected)'] - params['keff 3D (2D corrected) ARI'])*1e5
                     params['SD Margin Calc'] = True
                     
                 openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
                 params['keff 2D ARI'] = params['keff 2D']
                 params['keff 3D (2D corrected) ARI'] = params['keff 3D (2D corrected)']
                 params['SD Margin Calc'] = False
                 openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
                 params['SDM 2D'] = np.max([(y - x)*1e5 for x,y in zip(params['keff 2D'],params['keff 2D ARI'])])
                 params['SDM 3D (2D corrected)'] =  np.max([(y - x)*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) ARI'])])#(params['keff 3D (2D corrected)'] - params['keff 3D (2D corrected) ARI'])*1e5
             else:
@@ -261,7 +261,7 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params, mpi_args=None):
                     temp_T = copy.deepcopy(params['Common Temperature'])
                     params['Common Temperature'] = params['Common Temperature'] + 300
                     openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
 
                     params['keff 2D high temp'] = params['keff 2D']
                     params['keff 3D (2D corrected) high temp'] = params['keff 3D (2D corrected)']
@@ -269,14 +269,14 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params, mpi_args=None):
                     params['Common Temperature'] = temp_T
 
                     openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
                     params['ITC 2D'] = np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 2D'],params['keff 2D high temp'])])
                     params['ITC 3D (2D corrected)'] =  np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) high temp'])])#(params['keff 3D (2D corrected)'] - params['keff 3D (2D corrected) ARI'])*1e5
                 else:
                     params['ITC 2D'] = np.nan
                     params['ITC 3D (2D corrected)'] = np.nan
                     openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params, mpi_args)) 
         except Exception as e:
             print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")
             traceback.print_exc()
