@@ -85,7 +85,12 @@ def collect_materials_data(params):
 
     #UCO: Mixed uranium dioxide (UO2) and uranium carbide (UC)
     try:
-        UCO = openmc.Material.mix_materials([UO2, UC], [params['UO2 atom fraction'], 1- params['UO2 atom fraction']], 'ao') # mixing UO2 and UC by atom fraction
+        # create UO2 without S(a,b) tables for mixing
+        UO2_no_sab = openmc.Material(name = 'UO2_no_sab')
+        UO2_no_sab.set_density('g/cm3', 10.41)
+        UO2_no_sab.add_element('U', 1.0, enrichment= 100 * params['Enrichment'])
+        UO2_no_sab.add_nuclide('O16', 2.0)
+        UCO = openmc.Material.mix_materials([UO2_no_sab, UC], [params['UO2 atom fraction'], 1- params['UO2 atom fraction']], 'ao') # mixing UO2 and UC by atom fraction
         materials.append(UCO)
         materials_database.update({ 'UCO': UCO})
     except KeyError as e:
