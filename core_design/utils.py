@@ -111,7 +111,14 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
         'PyC': 'salmon',
         'homog_TRISO': 'maroon',
         'heatpipe': 'seashell',
-        'monolith_graphite': 'navy'
+        'monolith_graphite': 'navy',
+        'UZr': 'darkviolet',
+        'ZrC': 'darkorange',
+        'MgO': 'lightgreen',
+        'WB': 'darkslategray',
+        'W2B': 'dimgray',
+        'WB4': 'silver',
+        'WC': 'indigo'
     }
     
     # Check for materials in the database that do not have a color specified
