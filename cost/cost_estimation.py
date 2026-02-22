@@ -7,6 +7,7 @@ from cost.cost_escalation import escalate_cost_database
 from cost.code_of_account_processing import remove_irrelevant_account, get_estimated_cost_column, find_children_accounts, create_cost_dictionary
 from cost.cost_scaling import scale_cost, scale_redundant_BOP_and_primary_loop
 from cost.non_direct_cost import validate_tax_credit_params, calculate_accounts_31_32_75_82_cost, calculate_decommissioning_cost, calculate_high_level_capital_costs, calculate_TCI, energy_cost_levelized
+from cost.params_registry import PARAMS_REGISTRY, GROUP_ORDER
 from reactor_engineering_evaluation.operation import reactor_operation
 
 
@@ -29,7 +30,6 @@ def calculate_high_level_accounts_cost(df, target_level, option, FOAK_or_NOAK):
         if str(row["Account"]).startswith(valid_prefixes):
             if row["Level"] == target_level and pd.isna(row[cost_column]):
                 children_accounts = row["Children Accounts"]
-                
                 if not pd.isna(children_accounts):
                     children_accounts_list = children_accounts.split(",")
                     total_sum = 0
@@ -76,9 +76,122 @@ def update_high_level_costs(scaled_cost, option, sample):
 
 
 def save_params_to_excel_file(excel_file, params):
+    """
+    Saves the params dictionary to the 'Parameters' sheet of the output Excel file.
+    Parameters are organized into labeled groups, sorted alphabetically within each group,
+    with units, descriptions, and source (User Input vs Calculated) for each parameter.
+    Array parameters are summarized (BOL, EOL, min, max) rather than shown as raw lists.
+    Parameters not found in the registry are placed in an 'Uncategorized' group with a warning.
+    """
+
+    def format_value(val):
+        """Format a single scalar value for display."""
+        if isinstance(val, float) and np.isnan(val):
+            return 'N/A'
+        if isinstance(val, bool):
+            return str(val).upper()
+        return val
+
+    def handle_array(name, val, mode, units, description, source):
+        """
+        Expand an array parameter into multiple display rows based on mode:
+          'summary' → BOL, EOL, min, max
+          'steps'   → first step, last step, number of steps
+          'as_is'   → single row with the list as a string
+        Returns a list of (display_name, value, units, description, source) tuples.
+        """
+        rows = []
+        if not isinstance(val, (list, tuple)) or len(val) == 0:
+            rows.append((name, format_value(val), units, description, source))
+            return rows
+
+        if mode == 'summary':
+            rows.append((f'{name} (BOL)',   round(val[0], 6),   units, f'{description} — beginning of life', source))
+            rows.append((f'{name} (EOL)',   round(val[-1], 6),  units, f'{description} — end of life',       source))
+            rows.append((f'{name} (min)',   round(min(val), 6), units, f'{description} — minimum value',     source))
+            rows.append((f'{name} (max)',   round(max(val), 6), units, f'{description} — maximum value',     source))
+        elif mode == 'steps':
+            rows.append((f'{name} (first)', format_value(val[0]),  units, f'{description} — first step',     source))
+            rows.append((f'{name} (last)',  format_value(val[-1]), units, f'{description} — last step',      source))
+            rows.append((f'{name} (count)', len(val),              '',    f'{description} — number of steps', source))
+        elif mode == 'as_is':
+            rows.append((name, str(val), units, description, source))
+        else:
+            rows.append((name, str(val), units, description, source))
+        return rows
+
+    # ---------------------------------------------------------------
+    # Build grouped rows from params using the registry
+    # ---------------------------------------------------------------
+    groups = {g: [] for g in GROUP_ORDER}
     params_dict = dict(params)
-    df = pd.DataFrame(list(params_dict.items()), columns=['Parameter', 'Value'])
+
+    for param_name, value in sorted(params_dict.items()):  # alphabetical within each group
+        entry = PARAMS_REGISTRY.get(param_name)
+
+        if entry is None:
+            # Not in registry — place in Uncategorized with a warning marker
+            if isinstance(value, (list, tuple)) and len(value) > 10:
+                display_value = f'[list of {len(value)} items — see input file]'
+            else:
+                display_value = format_value(value)
+            groups['Uncategorized'].append((
+                param_name,
+                display_value,
+                '',
+                '--- Not in params registry. Please add to cost/params_registry.py ---',
+                'Unknown'
+            ))
+            continue
+
+        # Skip hidden parameters
+        if entry.get('hidden', False):
+            continue
+
+        units       = entry.get('units', '')
+        description = entry.get('description', '')
+        source      = entry.get('source', '')
+        array_mode  = entry.get('array_mode', None)
+        group       = entry.get('group', 'Uncategorized')
+
+        if group not in groups:
+            group = 'Uncategorized'
+
+        if array_mode is not None and isinstance(value, (list, tuple)):
+            rows = handle_array(param_name, value, array_mode, units, description, source)
+            groups[group].extend(rows)
+        else:
+            groups[group].append((param_name, format_value(value), units, description, source))
+
+    # ---------------------------------------------------------------
+    # Build the final list of rows with group headers and separators
+    # ---------------------------------------------------------------
+    all_rows = []
+    columns = ['Group', 'Parameter', 'Value', 'Units', 'Description', 'Source']
+
+    for group_name in GROUP_ORDER:
+        rows = groups.get(group_name, [])
+        if not rows:
+            continue  # skip empty groups
+
+        # Group header row
+        all_rows.append([f'=== {group_name.upper()} ===', '', '', '', '', ''])
+
+        for (pname, pval, punits, pdesc, psource) in rows:
+            all_rows.append([group_name, pname, pval, punits, pdesc, psource])
+
+        # Blank separator row between groups
+        all_rows.append(['', '', '', '', '', ''])
+
+    # ---------------------------------------------------------------
+    # Write to the Parameters sheet using the existing ExcelWriter
+    # ---------------------------------------------------------------
+    df = pd.DataFrame(all_rows, columns=columns)
     df.to_excel(excel_file, sheet_name='Parameters', index=False)
+
+    total_params = sum(len(rows) for rows in groups.values())
+    active_groups = sum(1 for g in GROUP_ORDER if groups.get(g))
+    print(f"\n\nParameters saved — {total_params} entries across {active_groups} groups.\n\n")
 
 
 def transform_dataframe(df):
