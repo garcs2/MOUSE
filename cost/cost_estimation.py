@@ -85,7 +85,21 @@ def save_params_to_excel_file(excel_file, params):
     """
 
     def format_value(val):
-        """Format a single scalar value for display."""
+        """
+        Format a single scalar value for display.
+        Converts numpy scalar types to native Python types to prevent
+        Excel file corruption when openpyxl serializes the values.
+        """
+        # Handle numpy scalars first (before float check, since np.float64 is a subclass of float)
+        if isinstance(val, np.floating):
+            if np.isnan(val):
+                return 'N/A'
+            return float(val)
+        if isinstance(val, np.integer):
+            return int(val)
+        if isinstance(val, np.bool_):
+            return str(bool(val)).upper()
+        # Handle native Python types
         if isinstance(val, float) and np.isnan(val):
             return 'N/A'
         if isinstance(val, bool):
@@ -106,10 +120,10 @@ def save_params_to_excel_file(excel_file, params):
             return rows
 
         if mode == 'summary':
-            rows.append((f'{name} (BOL)',   round(val[0], 6),   units, f'{description} — beginning of life', source))
-            rows.append((f'{name} (EOL)',   round(val[-1], 6),  units, f'{description} — end of life',       source))
-            rows.append((f'{name} (min)',   round(min(val), 6), units, f'{description} — minimum value',     source))
-            rows.append((f'{name} (max)',   round(max(val), 6), units, f'{description} — maximum value',     source))
+            rows.append((f'{name} (BOL)',   float(round(val[0], 6)),   units, f'{description} — beginning of life', source))
+            rows.append((f'{name} (EOL)',   float(round(val[-1], 6)),  units, f'{description} — end of life',       source))
+            rows.append((f'{name} (min)',   float(round(min(val), 6)), units, f'{description} — minimum value',     source))
+            rows.append((f'{name} (max)',   float(round(max(val), 6)), units, f'{description} — maximum value',     source))
         elif mode == 'steps':
             rows.append((f'{name} (first)', format_value(val[0]),  units, f'{description} — first step',     source))
             rows.append((f'{name} (last)',  format_value(val[-1]), units, f'{description} — last step',      source))
