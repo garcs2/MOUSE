@@ -19,7 +19,7 @@ and then used later to simplify and organize the code
 def create_pin_regions(params, pin_type):
     """
     Creating the pin regions
-    @ In, params, dict, The parameters that are used to “fill in” input files with placeholders.
+    @ In, params, dict, The parameters that are used to "fill in" input files with placeholders.
     @ In, pin_type, str, The type of pin ('moderator' or 'fuel').
     @ out, regions, dict, regions of the specified pin
     """
@@ -64,7 +64,7 @@ def create_pin_regions(params, pin_type):
 def create_drums_universe(params, control_drum_absorber_material, control_drum_reflector_material):
     """
     Creating the universe of control drums
-    @ In, params, dict, The parameters that are used to “fill in” input files with placeholders.
+    @ In, params, dict, The parameters that are used to "fill in" input files with placeholders.
     @ In, control_drum_absorber_material, openmc.material.Material, The control drum material (absorber)
     @ In, control_drum_reflector_material, openmc.material.Material, The control drum material (reflector)
     @ out,list, list of universes for control drums
@@ -123,7 +123,7 @@ def create_drums_universe(params, control_drum_absorber_material, control_drum_r
 def create_assembly_universe(params, fuel_pin_universe, moderator_pin_universe, pin_pitch, reflector_material, outer_coolant_universe):
     """
     Creating the universe of the fuel assembly
-    @ In, params, dict, The parameters that are used to “fill in” input files with placeholders.
+    @ In, params, dict, The parameters that are used to "fill in" input files with placeholders.
     @ In, fuel_pin_universe, openmc.universe.Universe, 
     @ In, moderator_pin_universe, openmc.universe.Universe, 
     @ In, pin_pitch, float, the center-to-center distance between adjacent fuel/moderator pins 
@@ -208,7 +208,7 @@ def create_core_geometry(params, drums, drums_positions, assembly_universe):
 
     """
     Creating the geometry for the entire core
-    @ In, params, dict, The parameters that are used to “fill in” input files with placeholders.
+    @ In, params, dict, The parameters that are used to "fill in" input files with placeholders.
     @ In, drums, list, universes of the drums
     @ In, drums_positions, list of control drum positions
     @ In, assembly_universe, openmc.universe.Universet, fuel assembly universe
@@ -260,9 +260,12 @@ and generates the necessary XMl files
 def build_openmc_model_LTMR(params):
     """
     OpenMC Model
-    @ In, params, watts.parameters.Parameters, The parameters that are used to “fill in” 
+    @ In, params, watts.parameters.Parameters, The parameters that are used to "fill in" 
     input files with placeholders. params mostly behaves like a Python dictionary with a few extra capabilities
     """
+
+    params.setdefault('SD Margin Calc', False)
+    params.setdefault('Isothermal Temperature Coefficients', False)
     # **************************************************************************************************************************
     #                                                Sec. 1.1 : MATERIALS
     # **************************************************************************************************************************
@@ -273,7 +276,7 @@ def build_openmc_model_LTMR(params):
     # reading the materials properties for the fuel, coolant, refelctor, control drum (the drum includes two materials: absoerber and reflector)   
     fuel = materials_database[params['Fuel']]
     coolant = materials_database[params['Coolant']]
-    reflector = materials_database[params['Reflector']]
+    reflector = materials_database[params['Radial Reflector']]
     control_drum_absorber = materials_database[params['Control Drum Absorber']]
     control_drum_reflector = materials_database[params['Control Drum Reflector']]
     
@@ -452,5 +455,7 @@ def build_openmc_model_LTMR(params):
         settings.temperature = {'default': params['Common Temperature'],
                                  'method': 'interpolation',
                                  'tolerance': 50.0}
+    else:
+        settings.temperature = {'method': 'interpolation'}  # added missing else branch
     
     settings.export_to_xml()

@@ -11,6 +11,10 @@ and generates the necessary XMl files
 """
 
 def build_openmc_model_GCMR(params):
+    
+    params.setdefault('SD Margin Calc', False)
+    params.setdefault('Isothermal Temperature Coefficients', False)
+
     # **************************************************************************************************************************
     #                                                Sec. 0 : Helper Functions
     # **************************************************************************************************************************
@@ -171,7 +175,7 @@ def build_openmc_model_GCMR(params):
     # **************************************************************************************************************************
     materials_database = collect_materials_data(params)
     fuel = materials_database[params['Fuel']]
-    reflector = materials_database[params['Reflector']]
+    reflector = materials_database[params['Radial Reflector']]
     moderator = materials_database[params['Moderator']]
     moderator_booster = materials_database[params['Moderator Booster']]
 
@@ -340,7 +344,7 @@ def build_openmc_model_GCMR(params):
     active_core.center = (0., 0.)  
     # the height of the hexagonal of one fuel assembly
     active_core.pitch = (params['Assembly FTF'],)
-    active_core.outer = openmc.Universe(cells=[openmc.Cell(fill= materials_database[params['Reflector']])])  # reflector Area
+    active_core.outer = openmc.Universe(cells=[openmc.Cell(fill= materials_database[params['Radial Reflector']])])  # reflector Area
 
     rings = [[assembly_universe]]
     assembly_number = 1
@@ -352,7 +356,7 @@ def build_openmc_model_GCMR(params):
     rings.insert(0, flatten_list([[ca] + [ea]*( params['Core Rings']-2)\
         for (ca, ea) in zip(corner_assembly_universe, edge_assembly_universe)]))
     rings.insert(0, flatten_list([[openmc.Universe(cells =\
-        [openmc.Cell(fill= materials_database[params['Reflector']])])] +\
+        [openmc.Cell(fill= materials_database[params['Radial Reflector']])])] +\
             [cd]*( params['Core Rings']-1) for cd in drums]))
     params['number of drums'] = (params['Core Rings']-1) * len(drums)
     active_core.universes = rings
@@ -441,9 +445,12 @@ def build_openmc_model_GCMR(params):
     settings_file.inactive = inactive
     settings_file.particles = particles
     settings_file.output = {'tallies': True}
-    settings_file.temperature = {'default': params['Common Temperature'],
-                                 'method': 'interpolation',
-                                 'tolerance': 50.0}
+    if params['Isothermal Temperature Coefficients']:
+        settings_file.temperature = {'default': params['Common Temperature'],
+                                     'method': 'interpolation',
+                                     'tolerance': 50.0}
+    else:
+        settings_file.temperature = {'method': 'interpolation'}
 
     # Define a cylindrical source distribution
     r = openmc.stats.Uniform(0, params['Core Radius'])

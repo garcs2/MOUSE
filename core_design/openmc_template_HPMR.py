@@ -321,7 +321,7 @@ def create_control_drums(params, materials_database):
     cr_drum.fill            = materials_database[params['Control Drum Absorber']]
     cr_refl.fill            = materials_database[params['Control Drum Reflector']]
     cr_gpp.fill             = materials_database[params['Secondary Coolant']]
-    cr_ass.fill             = materials_database[params['Reflector']]
+    cr_ass.fill             = materials_database[params['Radial Reflector']]
     # Define a universe for the control drum 
     control_drum_uni = openmc.Universe(cells=[cr_drum,cr_refl,cr_gpp,cr_ass])
 
@@ -440,6 +440,10 @@ An OpenMC function that accepts an instance of "parameters"
 and generates the necessary XMl files
 """
 def build_openmc_model_HPMR(params):
+
+    params.setdefault('SD Margin Calc', False)
+    params.setdefault('Isothermal Temperature Coefficients', False)
+    
     # **************************************************************************************************************************
     #                                                Sec. 1.1 : MATERIALS
     # **************************************************************************************************************************
@@ -449,7 +453,7 @@ def build_openmc_model_HPMR(params):
 
     fuel = materials_database[params['Fuel']]
     coolant = materials_database[params['Cooling Device']]
-    reflector = materials_database[params['Reflector']]
+    reflector = materials_database[params['Radial Reflector']]
     moderator = materials_database[params['Moderator']]
     gap = materials_database[params['Secondary Coolant']]
     control_drum_absorber = materials_database[params['Control Drum Absorber']]
