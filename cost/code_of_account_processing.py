@@ -92,7 +92,7 @@ def create_cost_dictionary(df, params, tracked_params_list):
         'OCC excl. fuel', 'OCC excl. fuel per kW',
         'TCI', 'TCI per kW',
         'AC', 'AC per MWh',
-        'LCOE', 'LCOE_cap', 'LCOE_oandm', 'LCOE_fuel'
+        'LCOE'
     ]
 
     # Physics safety metrics — tracked from params directly (not from the cost dataframe)
@@ -105,9 +105,9 @@ def create_cost_dictionary(df, params, tracked_params_list):
 
     # ITC-related accounts — only present if user provided 'ITC credit level' in params
     itc_accounts = [
-        'OCC with ITC', 'OCC with ITC per kW',
-        'TCI with ITC', 'TCI with ITC per kW',
-        'LCOE with ITC', 'LCOE_cap_withitc'
+        'OCC (ITC-adjusted)', 'OCC (ITC-adjusted) per kW',
+        'TCI (ITC-adjusted)', 'TCI (ITC-adjusted) per kW',
+        'LCOE (ITC-adjusted)'
     ] if 'ITC credit level' in params.keys() else []
 
     # PTC-related accounts — only present if user provided 'PTC credit value' in params
@@ -139,4 +139,3 @@ def create_cost_dictionary(df, params, tracked_params_list):
     filtered_params.update(cost_dict)
 
     return filtered_params
-
