@@ -25,69 +25,75 @@ def collect_materials_data(params):
     try:
         U_met = openmc.Material(name="U_met")
         U_met.set_density("g/cm3", 19.05)
-
         U_met.add_nuclide("U235", params['Enrichment'])
         U_met.add_nuclide("U238", 1 - params['Enrichment'])
 
         ZrH_fuel = openmc.Material(name="ZrH_fuel")
         ZrH_fuel.set_density("g/cm3", 5.63)
-
         ZrH_fuel.add_element("zirconium", 1.0)
         ZrH_fuel.add_nuclide("H1", params["H_Zr_ratio"]) # The proportion of hydrogen atoms relative to zirconium atoms
 
-
         # Now we mix the components in the right weight %
         # The NRC seems to license up to TRIGA fuel with up to 45% weight Uranium
-
+        # Note: S(α,β) is added AFTER mixing — OpenMC cannot mix materials that
+        # already have S(α,β) tables attached
         TRIGA_fuel = openmc.Material.mix_materials(
             [U_met, ZrH_fuel], [params['U_met_wo'], 1 - params['U_met_wo']], "wo", name="UZrH"
         )
-
         TRIGA_fuel.temperature = params['Common Temperature']
         TRIGA_fuel.add_s_alpha_beta("c_H_in_ZrH")
         materials.append(TRIGA_fuel)
-        materials_database.update({ 'TRIGA_fuel': TRIGA_fuel})
+        materials_database.update({'TRIGA_fuel': TRIGA_fuel})
     
     except KeyError as e:
         print(f"Skipping TRIGA_fuel due to missing parameter: {e}")    
-    
-    # # Let's also make a version with 3% Erbium in the meat
-    # Er = openmc.Material(name="Er", temperature= params['Common Temperature'])
-    # Er.set_density("g/cm3", 9.2)
-    # Er.add_element("erbium", 1.0)
 
-
-    #UO2
+    # UO2
     try:
         UO2 = openmc.Material(name='UO2')
         UO2.set_density('g/cm3', 10.41)
-        UO2.add_element('U', 1.0, enrichment= 100 * params['Enrichment'])
+        UO2.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
         UO2.add_nuclide('O16', 2.0)
         UO2.add_s_alpha_beta("c_U_in_UO2")
         UO2.add_s_alpha_beta("c_O_in_UO2")
         materials.append(UO2)
-        materials_database.update({ 'UO2': UO2})
+        materials_database.update({'UO2': UO2})
     except KeyError as e:
         print(f"Skipping UO2 due to missing parameter: {e}")     
 
-    
     # Uranium Carbide
     try:
         UC = openmc.Material(name='UC')
         UC.set_density('g/cm3', 13.0)
-        UC.add_element('U', 1.0,  enrichment= 100 * params['Enrichment'])
+        UC.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
         UC.add_element('N', 1.0)
         materials.append(UC)
-        materials_database.update({ 'UC': UC})
+        materials_database.update({'UC': UC})
     except KeyError as e:
         print(f"Skipping UC due to missing parameter: {e}")    
 
-
-    #UCO: Mixed uranium dioxide (UO2) and uranium carbide (UC)
+    # UCO: Mixed uranium dioxide (UO2) and uranium carbide (UC)
+    # OpenMC cannot mix materials that already have S(α,β) tables attached.
+    # To work around this, a separate UO2_for_mix material is created without
+    # S(α,β) tables for mixing purposes only. The S(α,β) tables are then added
+    # to the resulting UCO material after mixing.
+    # The standalone UO2 material (used directly as fuel) is unaffected.
     try:
-        UCO = openmc.Material.mix_materials([UO2, UC], [params['UO2 atom fraction'], 1- params['UO2 atom fraction']], 'ao') # mixing UO2 and UC by atom fraction
+        UO2_for_mix = openmc.Material(name='UO2_for_mix')
+        UO2_for_mix.set_density('g/cm3', 10.41)
+        UO2_for_mix.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
+        UO2_for_mix.add_nuclide('O16', 2.0)
+        # Note: S(α,β) intentionally NOT added here — will be added to UCO after mixing
+
+        UCO = openmc.Material.mix_materials(
+            [UO2_for_mix, UC],
+            [params['UO2 atom fraction'], 1 - params['UO2 atom fraction']], 'ao'
+        )
+        # Add S(α,β) to the mixed UCO material after mixing
+        UCO.add_s_alpha_beta("c_U_in_UO2")
+        UCO.add_s_alpha_beta("c_O_in_UO2")
         materials.append(UCO)
-        materials_database.update({ 'UCO': UCO})
+        materials_database.update({'UCO': UCO})
     except KeyError as e:
         print(f"Skipping UCO due to missing parameter: {e}") 
     
@@ -100,7 +106,7 @@ def collect_materials_data(params):
         UN.add_s_alpha_beta("c_U_in_UN")
         UN.add_s_alpha_beta("c_N_in_UN")
         materials.append(UN)
-        materials_database.update({ 'UN': UN})
+        materials_database.update({'UN': UN})
     except KeyError as e:
         print(f"Skipping UN due to missing parameter: {e}") 
         
@@ -108,10 +114,10 @@ def collect_materials_data(params):
     try:
         UZr = openmc.Material(name='UZr') 
         UZr.set_density('g/cm3', 16.0)
-        UZr.add_element('U', 10, 'wo', enrichment= 100 * params['Enrichment'])
+        UZr.add_element('U', 10, 'wo', enrichment=100 * params['Enrichment'])
         UZr.add_element('Zr', 90, 'wo')
         materials.append(UZr)
-        materials_database.update({ 'UZr': UZr})
+        materials_database.update({'UZr': UZr})
     except KeyError as e:
         print(f"Skipping U-10Zr due to missing parameter: {e}")
 
@@ -136,7 +142,7 @@ def collect_materials_data(params):
         homog_TRISO.add_nuclide('C13', 7.58819416E-04, 'ao')
         homog_TRISO.add_s_alpha_beta('c_Graphite')
         materials.append(homog_TRISO)
-        materials_database.update({ 'homog_TRISO': homog_TRISO})
+        materials_database.update({'homog_TRISO': homog_TRISO})
     except KeyError as e:
         print(f"Skipping homog_TRISO due to missing parameter: {e}")  
 
@@ -144,31 +150,30 @@ def collect_materials_data(params):
     # Sec. 1.2 : Hydrides: Zirconium Hydride and yttrium hydride (YHx)
     # """""""""""""""""""""
        
-    ZrH = openmc.Material(name="ZrH", temperature= params['Common Temperature'])
+    ZrH = openmc.Material(name="ZrH", temperature=params['Common Temperature'])
     ZrH.set_density("g/cm3", 5.6)
-
     ZrH.add_nuclide("H1", 1.85)
     ZrH.add_element("zirconium", 1.0)
     ZrH.add_s_alpha_beta("c_H_in_ZrH")
 
-    #Yttrium hydride (YHx) 
+    # Yttrium hydride (YHx) 
     YHx = openmc.Material(name="YHx")
     YHx.set_density("g/cm3", 4.28)
     YHx.add_nuclide("H1", 1.5) # This adds hydrogen-1 (H-1) nuclide to the material with an atomic ratio of 1.5.
-    YHx.add_element("yttrium", 1.0) #  This adds yttrium to the material with an atomic ratio of 1.0.
+    YHx.add_element("yttrium", 1.0) # This adds yttrium to the material with an atomic ratio of 1.0.
     # Adding thermal scattering data for hydrogen in yttrium hydride (YH2). 
     # The add_s_alpha_beta method is used to specify the S(α,β) thermal scattering treatment for specific materials. 
     YHx.add_s_alpha_beta("c_H_in_YH2")
     YHx.temperature = params['Common Temperature']
 
     materials.extend([ZrH, YHx])
-    materials_database.update({ 'ZrH': ZrH, 'YHx' :YHx})
+    materials_database.update({'ZrH': ZrH, 'YHx': YHx})
 
     # """""""""""""""""""""
     # Sec. 1.3 : Coolants: NaK and Helium
     # """""""""""""""""""""
     
-    NaK = openmc.Material(name="NaK", temperature= params['Common Temperature'])
+    NaK = openmc.Material(name="NaK", temperature=params['Common Temperature'])
     NaK.set_density("g/cm3", 0.75)
     NaK.add_nuclide("Na23", 2.20000e-01)
     NaK.add_nuclide("K39", 7.27413e-01)
@@ -180,7 +185,7 @@ def collect_materials_data(params):
     Helium.add_element('He', 1.0)
     
     materials.extend([NaK, Helium])
-    materials_database.update({ 'NaK': NaK, 'Helium' :Helium})
+    materials_database.update({'NaK': NaK, 'Helium': Helium})
 
     # """""""""""""""""""""
     # Sec. 1.4 : Beryllium and Beryllium Oxide
@@ -189,22 +194,23 @@ def collect_materials_data(params):
     Be.add_element("beryllium", 1.0)
     Be.add_s_alpha_beta("c_Be")
     Be.set_density("g/cm3", 1.84)
-    Be.temperature =  params['Common Temperature']
+    Be.temperature = params['Common Temperature']
     Be.add_s_alpha_beta('c_Be')
-    BeO = openmc.Material(name="BeO", temperature= params['Common Temperature'])
+
+    BeO = openmc.Material(name="BeO", temperature=params['Common Temperature'])
     BeO.set_density("g/cm3", 3.01)
     BeO.add_element("beryllium", 1.0)
     BeO.add_element("oxygen", 1.0)
     BeO.add_s_alpha_beta("c_Be_in_BeO")
 
     materials.extend([Be, BeO])
-    materials_database.update({ 'Be': Be, 'BeO': BeO})
+    materials_database.update({'Be': Be, 'BeO': BeO})
 
     # """""""""""""""""""""
     # Sec. 1.5 : Zirconium
     # """""""""""""""""""""
     
-    Zr = openmc.Material(name="Zr", temperature= params['Common Temperature'])
+    Zr = openmc.Material(name="Zr", temperature=params['Common Temperature'])
     Zr.set_density("g/cm3", 6.49)
     Zr.add_element("zirconium", 1.0)
 
@@ -215,7 +221,7 @@ def collect_materials_data(params):
     # Sec. 1.6 : SS304
     # """""""""""""""""""""
     
-    SS304 = openmc.Material(name="SS304", temperature= params['Common Temperature'])
+    SS304 = openmc.Material(name="SS304", temperature=params['Common Temperature'])
     SS304.set_density("g/cm3", 7.98)
     SS304.add_element("carbon", 0.04)
     SS304.add_element("silicon", 0.50)
@@ -234,21 +240,21 @@ def collect_materials_data(params):
     # """""""""""""""""""""  
 
     # Natural B4C
-    B4C_natural = openmc.Material(name="B4C_natural", temperature= params['Common Temperature'])
+    B4C_natural = openmc.Material(name="B4C_natural", temperature=params['Common Temperature'])
     B4C_natural.add_element("boron", 4)
     B4C_natural.add_element("carbon", 1)
     B4C_natural.set_density("g/cm3", 2.52)
 
     # Enriched B4C
-    B4C_enriched = openmc.Material(name="B4C_enriched", temperature= params['Common Temperature'])
+    B4C_enriched = openmc.Material(name="B4C_enriched", temperature=params['Common Temperature'])
     B4C_enriched.add_element("boron", 4, enrichment=0.9, enrichment_target='B10', enrichment_type='ao')
     B4C_enriched.add_element("carbon", 1)
     B4C_enriched.set_density("g/cm3", 2.52)
 
-    SiC = openmc.Material(name='SiC') # Creates a new material named 'SiC'.
+    SiC = openmc.Material(name='SiC')
     SiC.set_density('g/cm3', 3.18)
-    SiC.add_element('Si', 0.5) #  Adds silicon (Si) to the material with a fraction of 0.5.
-    SiC.add_element('C', 0.5) # Adds carbon (C) to the material with a fraction of 0.5.
+    SiC.add_element('Si', 0.5)
+    SiC.add_element('C', 0.5)
 
     ZrC = openmc.Material(name='ZrC')
     ZrC.set_density('g/cm3', 6.73)
@@ -259,35 +265,33 @@ def collect_materials_data(params):
     materials_database.update({'B4C_natural':  B4C_natural, 
                                'B4C_enriched': B4C_enriched, 
                                'SiC': SiC,
-                               'ZrC':ZrC})
+                               'ZrC': ZrC})
 
     # """""""""""""""""""""
-    # Sec. 1.8 : Carbon Based Materials : Graphite (Buffer)  & pyrolytic carbon (PyC) 
+    # Sec. 1.8 : Carbon Based Materials : Graphite (Buffer) & pyrolytic carbon (PyC) 
     # """""""""""""""""""""
    
     # Graphite
     Graphite = openmc.Material(name='Graphite')
     Graphite.set_density('g/cm3', 1.7)
     Graphite.add_element('C', 1.0)
-    #This adds thermal scattering data for graphite. The add_S(α,β) thermal scattering treatment for carbon in graphite form.
+    # This adds thermal scattering data for graphite.
     Graphite.add_s_alpha_beta('c_Graphite')
 
     # Graphite of lower density (buffer_graphite)
-    buffer_graphite = openmc.Material(name='Buffer') # This creates a new material named 'Buffer'.
+    buffer_graphite = openmc.Material(name='Buffer')
     buffer_graphite.set_density('g/cm3', 0.95)
-    buffer_graphite.add_element('C', 1.0) #This adds carbon (C) 
-    #This adds thermal scattering data for graphite. The add_S(α,β) thermal scattering treatment for carbon in graphite form.
+    buffer_graphite.add_element('C', 1.0)
     buffer_graphite.add_s_alpha_beta('c_Graphite') 
 
-    # pyrolytic carbon (PyC) 
-    PyC = openmc.Material(name='PyC') # Creates a new material named 'PyC'.
+    # Pyrolytic carbon (PyC) 
+    PyC = openmc.Material(name='PyC')
     PyC.set_density('g/cm3', 1.9)
-    PyC.add_element('C', 1.0) #  Adds carbon (C) to the material with a fraction of 1.0
-    
-    #This adds thermal scattering data for graphite. The add_S(α,β) thermal scattering treatment for carbon in graphite form.
+    PyC.add_element('C', 1.0)
     PyC.add_s_alpha_beta('c_Graphite') 
-    materials.extend([Graphite, buffer_graphite, PyC ])
-    materials_database.update({'Graphite' : Graphite, 'buffer_graphite' : buffer_graphite, 'PyC': PyC})
+
+    materials.extend([Graphite, buffer_graphite, PyC])
+    materials_database.update({'Graphite': Graphite, 'buffer_graphite': buffer_graphite, 'PyC': PyC})
 
     # """""""""""""""""""""
     # Sec. 1.9 : Magnesium Oxide
@@ -301,34 +305,33 @@ def collect_materials_data(params):
     # """""""""""""""""""""
     # Sec. 1.10 : Tungsten Based Materials: WB, W2B, WB4, WC
     # """""""""""""""""""""
-    WB = openmc.Material(name = 'WB')
+    WB = openmc.Material(name='WB')
     WB.set_density('g/cm3', 15.43)
-    WB.add_element('W',1.0)
+    WB.add_element('W', 1.0)
     WB.add_element('B', 1.0)
 
-    W2B = openmc.Material(name = 'W2B')
+    W2B = openmc.Material(name='W2B')
     W2B.set_density('g/cm3', 16.75) # doi.org/10.1016/j.jnucmat.2020.152062.
-    W2B.add_element('W',2.0)
-    W2B.add_element('B',1.0)
+    W2B.add_element('W', 2.0)
+    W2B.add_element('B', 1.0)
 
-    WB4 = openmc.Material(name = 'WB4')
+    WB4 = openmc.Material(name='WB4')
     WB4.set_density('g/cm3', 8.23)
     WB4.add_element('W', 1.0)
     WB4.add_element('B', 4.0)
 
-    WC = openmc.Material(name = 'WC')
+    WC = openmc.Material(name='WC')
     WC.set_density('g/cm3', 15.32)
     WC.add_element('W', 1.0)
     WC.add_element('C', 1.0)
 
-
-    materials_database.update({'WB': WB, 'W2B' : W2B, 'WB4' : WB4, 'WC': WC})
+    materials_database.update({'WB': WB, 'W2B': W2B, 'WB4': WB4, 'WC': WC})
 
     # """""""""""""""""""""
     # Sec. 1.11 : Heat Pipe Microreactor
     # """""""""""""""""""""
     
-    # homogenized heat pipe
+    # Homogenized heat pipe (SS316 + sodium mixture)
     heatpipe = openmc.Material(name='heatpipe')
     heatpipe.set_density('atom/b-cm', 2.74917E-02)
     heatpipe.temperature = params['Common Temperature']
@@ -361,18 +364,14 @@ def collect_materials_data(params):
     materials.append(heatpipe)
     materials_database.update({'heatpipe': heatpipe})
 
-    # Monolith
+    # Monolith graphite
     monolith_graphite = openmc.Material(name='monolith_graphite')
     monolith_graphite.set_density('g/cm3', 1.63)
     monolith_graphite.temperature = params['Common Temperature']
-    monolith_graphite.add_nuclide('C12' , 0.9893, 'ao')
-    monolith_graphite.add_nuclide('C13' , 0.0107, 'ao')
+    monolith_graphite.add_nuclide('C12', 0.9893, 'ao')
+    monolith_graphite.add_nuclide('C13', 0.0107, 'ao')
     monolith_graphite.add_s_alpha_beta('c_Graphite')
     materials.append(monolith_graphite)
     materials_database.update({'monolith_graphite': monolith_graphite})
-    
-    
-    
-    return materials_database ##
 
-
+    return materials_database
