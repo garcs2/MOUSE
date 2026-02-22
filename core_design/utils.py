@@ -88,37 +88,86 @@ def calculate_heat_flux_TRISO(params):
 
 
 def create_universe_plot(materials_database, universe, plot_width, num_pixels, font_size, title, fig_size, output_file_name):
-    # Define potential colors for materials
+    import matplotlib.colors as mcolors
+
+    # -----------------------------------------------------------------------------------------
+    # Known material colors — each material must have a UNIQUE color.
+    # If you add a new material to the materials database, add a corresponding
+    # unique color here. If you forget, the code will automatically assign one
+    # and warn you (see auto-assignment logic below).
+    #
+    # IMPORTANT: Do not use color aliases that resolve to the same hex value.
+    # For example, 'cyan' and 'aqua' are identical in matplotlib (#00FFFF).
+    # Always verify new colors are visually distinct from existing ones.
+    # -----------------------------------------------------------------------------------------
     potential_colors = {
-        'TRIGA_fuel': 'red',
-        'ZrH': 'yellow',
-        'UO2': 'green',
-        'UC': 'purple',
-        'UCO': 'orange',
-        'UN': 'cyan',
-        'YHx': 'magenta',
-        'NaK': 'blue',
-        'Helium': 'grey',
-        'Be': 'brown',
-        'BeO': 'pink',
-        'Zr': 'lime',
-        'SS304': 'black',
-        'B4C_natural': 'olive',
-        'B4C_enriched': 'aqua',
-        'SiC': 'teal',
-        'Graphite': 'coral',
-        'buffer_graphite': 'gold',
-        'PyC': 'salmon',
-        'homog_TRISO': 'maroon',
-        'heatpipe': 'seashell',
-        'monolith_graphite': 'navy'
+        'TRIGA_fuel':       'red',
+        'ZrH':              'yellow',
+        'UO2':              'green',
+        'UC':               'purple',
+        'UCO':              'orange',
+        'UN':               'cyan',          # #00FFFF
+        'YHx':              'magenta',
+        'NaK':              'blue',
+        'Helium':           'grey',          # #808080
+        'Be':               'brown',
+        'BeO':              'pink',
+        'Zr':               'lime',
+        'SS304':            'black',
+        'B4C_natural':      'olive',
+        'B4C_enriched':     'deepskyblue',   # was 'aqua' — FIXED: 'aqua'=='cyan', now unique
+        'SiC':              'teal',
+        'Graphite':         'coral',
+        'buffer_graphite':  'gold',
+        'PyC':              'salmon',
+        'homog_TRISO':      'maroon',
+        'heatpipe':         'seashell',
+        'monolith_graphite':'navy',
+        'UZr':              'darkred',
+        'ZrC':              'slategray',
+        'MgO':              'lightyellow',
+        'WB':               'darkgray',
+        'W2B':              'dimgray',
+        'WB4':              'lightgray',
+        'WC':               'silver',        # was 'gray' — FIXED: 'gray'=='grey', now unique
     }
-    
-    # Check for materials in the database that do not have a color specified
-    undefined_colors = [mat_name for mat_name in materials_database if mat_name not in potential_colors]
-    if undefined_colors:
-        raise ValueError(f"\033[91m\n\nError: The following materials do not have colors specified in the potential_colors dictionary:\n {', '.join(undefined_colors)}\n\n\033[0m")
-    
+
+    # -----------------------------------------------------------------------------------------
+    # Auto-color assignment for materials not in potential_colors.
+    # If a material exists in the database but has no assigned color, the code
+    # automatically picks a unique color from a pool of distinct CSS4 colors,
+    # avoiding all colors already in use. A warning is printed so the developer
+    # knows to add a permanent color entry above.
+    # -----------------------------------------------------------------------------------------
+
+    # Build a pool of candidate colors — all CSS4 named colors not already used
+    used_colors = set(mcolors.to_hex(c) for c in potential_colors.values())
+    color_pool = [
+        name for name, hex_val in mcolors.CSS4_COLORS.items()
+        if mcolors.to_hex(hex_val) not in used_colors
+    ]
+
+    # Check for any materials in the database that are missing from potential_colors
+    for mat_name in materials_database:
+        if mat_name not in potential_colors:
+            if not color_pool:
+                raise ValueError(
+                    f"Could not auto-assign a color for material '{mat_name}': "
+                    f"no unique colors remaining in the CSS4 pool. "
+                    f"Please manually add a color for this material in potential_colors."
+                )
+            # Assign the first available unique color from the pool
+            auto_color = color_pool.pop(0)
+            potential_colors[mat_name] = auto_color
+            # Update used_colors so the next auto-assignment is also unique
+            used_colors.add(mcolors.to_hex(auto_color))
+            print(
+                f"\033[93m--- WARNING: Material '{mat_name}' does not have a color specified "
+                f"in potential_colors. Automatically assigned color: '{auto_color}'. "
+                f"Please add a permanent entry for this material in the potential_colors "
+                f"dictionary in create_universe_plot (utils.py) to suppress this warning.\033[0m"
+            )
+
     # Create the plot_colors dictionary only with existing materials
     colors = {materials_database[mat_name]: color for mat_name, color in potential_colors.items() if mat_name in materials_database}
 
@@ -219,64 +268,84 @@ def monitor_heat_flux(params):
         return "High Heat Flux"
 
 def run_openmc(build_openmc_model, heat_flux_monitor, params):
+
+    # These are set to False by default unless the user specify them
+    params.setdefault('SD Margin Calc', False)
+    params.setdefault('Isothermal Temperature Coefficients', False)
+    # Temperature perturbation used for isothermal temperature coefficient calculation.
+    # Must be large enough to produce a keff difference above OpenMC's Monte Carlo
+    # statistical noise, but small enough to stay in the linear reactivity regime.
+    # Typical range: 50-300K. This must always be specified by the user in their params.
+    if params['Isothermal Temperature Coefficients']:
+        if 'Temperature Perturbation' not in params.keys():
+            raise ValueError(
+                "\n\n--- INPUT ERROR ---\n"
+                "'Temperature Perturbation' is not defined in params.\n"
+                "This parameter is required when 'Isothermal Temperature Coefficients' is True.\n"
+                "Please add it to your params (e.g. 'Temperature Perturbation': 100  # Kelvin)\n"
+                "Typical range: 50-300K depending on your Monte Carlo statistical noise level.\n"
+            )
+
     if heat_flux_monitor == "High Heat Flux":
         print("ERROR: HIGH HEAT FLUX")
     else:    
         try:
             print(f"\n\nThe results/plots are saved at: {watts.Database().path}\n\n")
-            #openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-            #openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
             if params['SD Margin Calc']:
                 if params['Isothermal Temperature Coefficients']:
                     params['SD Margin Calc'] = False
                     temp_T = copy.deepcopy(params['Common Temperature'])
-                    params['Common Temperature'] = params['Common Temperature'] + 300
-                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    params['Common Temperature'] = params['Common Temperature'] + params['Temperature Perturbation']
+                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
 
                     params['keff 2D high temp'] = params['keff 2D']
                     params['keff 3D (2D corrected) high temp'] = params['keff 3D (2D corrected)']
 
                     params['Common Temperature'] = temp_T
 
-                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
-                    params['ITC 2D'] = np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 2D'],params['keff 2D high temp'])])
-                    params['ITC 3D (2D corrected)'] =  np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) high temp'])])#(params['keff 3D (2D corrected)'] - params['keff 3D (2D corrected) ARI'])*1e5
+                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
+                    params['Temp Coeff 2D'] = np.max([(y - x) / (y*x) / (params['Temperature Perturbation'])*1e5 for x,y in zip(params['keff 2D'],params['keff 2D high temp'])])
+                    params['Temp Coeff 3D (2D corrected)'] = np.max([(y - x) / (y*x) / (params['Temperature Perturbation'])*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) high temp'])])
                     params['SD Margin Calc'] = True
-                    
-                openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                else:
+                    # Isothermal Temperature Coefficients not requested — set to nan so downstream code doesn't get a KeyError
+                    params['Temp Coeff 2D'] = np.nan
+                    params['Temp Coeff 3D (2D corrected)'] = np.nan
+
+                openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+                openmc_plugin(params, function=lambda: run_depletion_analysis(params))
                 params['keff 2D ARI'] = params['keff 2D']
                 params['keff 3D (2D corrected) ARI'] = params['keff 3D (2D corrected)']
                 params['SD Margin Calc'] = False
-                openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+                openmc_plugin(params, function=lambda: run_depletion_analysis(params))
                 params['SDM 2D'] = np.max([(y - x)*1e5 for x,y in zip(params['keff 2D'],params['keff 2D ARI'])])
-                params['SDM 3D (2D corrected)'] =  np.max([(y - x)*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) ARI'])])#(params['keff 3D (2D corrected)'] - params['keff 3D (2D corrected) ARI'])*1e5
+                params['SDM 3D (2D corrected)'] = np.max([(y - x)*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) ARI'])])
             else:
                 params['SDM 2D'] = np.nan
                 params['SDM 3D (2D corrected)'] = np.nan
                 if params['Isothermal Temperature Coefficients']:
                     temp_T = copy.deepcopy(params['Common Temperature'])
-                    params['Common Temperature'] = params['Common Temperature'] + 300
-                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    params['Common Temperature'] = params['Common Temperature'] + params['Temperature Perturbation']
+                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
 
                     params['keff 2D high temp'] = params['keff 2D']
                     params['keff 3D (2D corrected) high temp'] = params['keff 3D (2D corrected)']
 
                     params['Common Temperature'] = temp_T
 
-                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
-                    params['ITC 2D'] = np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 2D'],params['keff 2D high temp'])])
-                    params['ITC 3D (2D corrected)'] =  np.max([(y - x) / (y*x) / (300)*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) high temp'])])#(params['keff 3D (2D corrected)'] - params['keff 3D (2D corrected) ARI'])*1e5
+                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
+                    params['Temp Coeff 2D'] = np.max([(y - x) / (y*x) / (params['Temperature Perturbation'])*1e5 for x,y in zip(params['keff 2D'],params['keff 2D high temp'])])
+                    params['Temp Coeff 3D (2D corrected)'] = np.max([(y - x) / (y*x) / (params['Temperature Perturbation'])*1e5 for x,y in zip(params['keff 3D (2D corrected)'],params['keff 3D (2D corrected) high temp'])])
                 else:
-                    params['ITC 2D'] = np.nan
-                    params['ITC 3D (2D corrected)'] = np.nan
-                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)  # running the LTMR Model
-                    openmc_plugin(params, function=lambda: run_depletion_analysis(params)) 
+                    params['Temp Coeff 2D'] = np.nan
+                    params['Temp Coeff 3D (2D corrected)'] = np.nan
+                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+                    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
         except Exception as e:
             print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")
             traceback.print_exc()
