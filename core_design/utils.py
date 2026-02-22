@@ -272,6 +272,11 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
     # These are set to False by default unless the user specify them
     params.setdefault('SD Margin Calc', False)
     params.setdefault('Isothermal Temperature Coefficients', False)
+    # Save the original user-specified values so we can restore them at the end.
+    # The workflow temporarily flips these flags during intermediate runs, and we
+    # must restore them so the parameters sheet correctly reflects the user's intent.
+    original_sd_margin_calc = params['SD Margin Calc']
+    original_itc = params['Isothermal Temperature Coefficients']
     # Temperature perturbation used for isothermal temperature coefficient calculation.
     # Must be large enough to produce a keff difference above OpenMC's Monte Carlo
     # statistical noise, but small enough to stay in the linear reactivity regime.
@@ -349,7 +354,12 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
         except Exception as e:
             print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")
             traceback.print_exc()
-
+        finally:
+            # Restore original user-specified values regardless of whether the run
+            # succeeded or failed — so the parameters sheet always reflects the
+            # user's intent, not the internal intermediate state of the workflow.
+            params['SD Margin Calc'] = original_sd_margin_calc
+            params['Isothermal Temperature Coefficients'] = original_itc
 
 def cyclic_rotation(input_array, k):
     return input_array[-k:] + input_array[:-k]
