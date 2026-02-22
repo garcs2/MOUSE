@@ -86,8 +86,38 @@ def create_cost_dictionary(df, params, tracked_params_list):
     # start with params we are tracking
     filtered_params = {key: params[key] for key in tracked_params_list if key in params}
 
-    # Initialize the dictionary with all required accounts and default values
-    accounts = ['OCC', 'OCC per kW', 'OCC excl. fuel', 'OCC excl. fuel per kW', 'TCI', 'TCI per kW', 'AC', 'AC per MWh', 'LCOE']
+    # Base accounts that are always tracked regardless of tax credit selection
+    base_accounts = [
+        'OCC', 'OCC per kW',
+        'OCC excl. fuel', 'OCC excl. fuel per kW',
+        'TCI', 'TCI per kW',
+        'AC', 'AC per MWh',
+        'LCOE', 'LCOE_cap', 'LCOE_oandm', 'LCOE_fuel'
+    ]
+
+    # Physics safety metrics — tracked from params directly (not from the cost dataframe)
+    # These are always included if present in params; set to nan if not calculated
+    # (e.g. when SD Margin Calc or Isothermal Temperature Coefficients are False)
+    physics_metrics = ['Temp Coeff 3D (2D corrected)', 'SDM 3D (2D corrected)']
+    for metric in physics_metrics:
+        if metric in params.keys():
+            filtered_params[metric] = params[metric]
+
+    # ITC-related accounts — only present if user provided 'ITC credit level' in params
+    itc_accounts = [
+        'OCC with ITC', 'OCC with ITC per kW',
+        'TCI with ITC', 'TCI with ITC per kW',
+        'LCOE with ITC', 'LCOE_cap_withitc'
+    ] if 'ITC credit level' in params.keys() else []
+
+    # PTC-related accounts — only present if user provided 'PTC credit value' in params
+    ptc_accounts = [
+        'LCOE with PTC'
+    ] if 'PTC credit value' in params.keys() else []
+
+    # Combine all accounts to track
+    accounts = base_accounts + itc_accounts + ptc_accounts
+
     cost_dict = {}
     
     for account in accounts:
@@ -97,6 +127,7 @@ def create_cost_dictionary(df, params, tracked_params_list):
         cost_dict[f"{account}_NOAK Estimated Cost std"] = None
     
     # Populate the dictionary with values from the dataframe
+    # If an account doesn't exist in the dataframe (e.g. ITC/PTC not used), it stays None
     for _, row in df.iterrows():
         account = row['Account']
         if account in accounts:
@@ -104,7 +135,6 @@ def create_cost_dictionary(df, params, tracked_params_list):
             cost_dict[f"{account}_NOAK Estimated Cost"] =     row[get_estimated_cost_column(df, 'N')]
             cost_dict[f"{account}_FOAK Estimated Cost std"] = row[get_estimated_cost_column(df, 'F std')]
             cost_dict[f"{account}_NOAK Estimated Cost std"] = row[get_estimated_cost_column(df, 'N std')]  
-    
     
     filtered_params.update(cost_dict)
 
