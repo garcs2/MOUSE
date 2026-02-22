@@ -50,7 +50,8 @@ update_params({
     "H_Zr_ratio": 1.6,  # Proportion of hydrogen to zirconium atoms
     'U_met_wo': 0.3,  # Weight ratio of Uranium to total fuel weight (less than 1)
     'Coolant': 'NaK',
-    'Reflector': 'Graphite',
+    'Radial Reflector': 'Graphite',
+    'Axial Reflector': 'Graphite',
     'Moderator': 'ZrH',
     'Control Drum Absorber': 'B4C_enriched',
     'Control Drum Reflector': 'Graphite',
@@ -71,16 +72,16 @@ update_params({
     "Pin Gap Distance": 0.1,  # cm
     'Pins Arrangement': LTMR_pins_arrangement,
     'Number of Rings per Assembly': 12, # the number of rings can be 12 or lower as long as the heat flux criteria is not violated
-    'Reflector Thickness': 14,  # cm
+    'Radial Reflector Thickness': 14,  # cm
 })
 
 params['Lattice Radius'] = calculate_lattice_radius(params)
 params['Active Height']  =   78.4  # Or it is 2 * params['Lattice Radius']
-params['Axial Reflector Thickness'] = params['Reflector Thickness'] # cm
+params['Axial Reflector Thickness'] = params['Radial Reflector Thickness'] # cm
 params['Fuel Pin Count'] = calculate_pins_in_assembly(params, "FUEL")
 params['Moderator Pin Count'] =  calculate_pins_in_assembly(params, "MODERATOR")
 params['Moderator Mass'] = calculate_moderator_mass(params)
-params['Core Radius'] = params['Lattice Radius'] + params['Reflector Thickness']
+params['Core Radius'] = params['Lattice Radius'] + params['Radial Reflector Thickness']
 
 # **************************************************************************************************************************
 #                                           Sec. 3: Control Drums
@@ -107,9 +108,37 @@ update_params({
 })
 params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux'] =  calculate_heat_flux(params)
+
 # **************************************************************************************************************************
 #                                           Sec. 5: Running OpenMC
-# ************************************************************************************************************************** 
+# **************************************************************************************************************************
+
+# --- Shutdown Margin (SDM) ---
+# When True, an additional OpenMC simulation is run with all control drums rotated
+# to the fully inserted (ARI - All Rods In) position. The SDM is then calculated
+# as the difference in reactivity (in pcm) between the ARO and ARI configurations.
+# A positive SDM means the reactor can be safely shut down with all drums inserted.
+# Recommended: True for final design verification; can be set to False to save
+# computation time during early design exploration.
+params['SD Margin Calc'] = True  # True or False
+
+# --- Isothermal Temperature Coefficient ---
+# When True, two additional OpenMC simulations are run: one at 'Common Temperature'
+# and one at 'Common Temperature' + 'Temperature Perturbation'. The temperature
+# coefficient is then calculated in units of pcm/K.
+# A negative coefficient indicates the reactor is self-stabilizing (desired behavior).
+# Recommended: True for safety analysis; can be set to False to save computation time.
+params['Isothermal Temperature Coefficients'] = True  # True or False
+
+# --- Temperature Perturbation ---
+# The temperature step (in Kelvin) used for the isothermal temperature coefficient calculation.
+# Must be large enough to produce a keff difference above OpenMC Monte Carlo statistical
+# noise, but small enough to stay in the linear reactivity regime.
+# Typical range: 50–300 K. 100 K is chosen here as a balance between accuracy and
+# avoiding nonlinear effects. 
+# Units: Kelvin
+# This parameter is REQUIRED only when 'Isothermal Temperature Coefficients' is True.
+params['Temperature Perturbation'] = 100  # K
 
 heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
@@ -212,6 +241,7 @@ params['A75: Drum Replacement Period (cycles)']          = np.floor(10/total_ref
 params['Mainenance to Direct Cost Ratio']                = 0.015
 # A78: Annualized Decommisioning Cost
 params['A78: CAPEX to Decommissioning Cost Ratio'] = 0.15
+
 # **************************************************************************************************************************
 #                                           Sec. 10: Buildings & Economic Parameters
 # **************************************************************************************************************************
@@ -274,6 +304,20 @@ update_params({
     'Annual Return': 0.0475,  # Annual return on decommissioning costs
     'NOAK Unit Number': 100
 })
+
+# --- ITC (Investment Tax Credit) ---
+# The ITC is a one-time credit applied to the Overnight Capital Cost (OCC) of the plant.
+# Under the IRA (Inflation Reduction Act), advanced nuclear facilities placed in service
+# after Dec 31, 2024 may qualify for the Clean Electricity ITC (Section 48E).
+# The ITC level depends on whether the project meets certain requirements:
+#   - Base rate (no prevailing wage): 6% of OCC
+#   - With prevailing wage + apprenticeship requirements: 30% of OCC
+#   - With prevailing wage + domestic content bonus: 40% of OCC
+#   - With prevailing wage + domestic content + energy community bonus: 50% of OCC
+# Typical values: 0.06, 0.30, 0.40, 0.50
+# Note: ITC and PTC are mutually exclusive — only one can be selected per project.
+# To disable ITC, remove or comment out this parameter.
+params['ITC credit level'] = 0.30  # fraction — assumes prevailing wage requirements are met
 
 # **************************************************************************************************************************
 #                                           Sec. 11: Post Processing

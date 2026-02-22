@@ -46,8 +46,9 @@ update_params({
     'Fuel': 'UN',
     'Enrichment': 0.1975,  # The enrichment is a fraction. It has to be between 0 and 1
     'UO2 atom fraction': 0.7,  # Mixing UO2 and UC by atom fraction
-    'Reflector': 'Graphite',
-    'Matrix Material': 'Graphite', # matrix material is a background material  within the compact fuel element between the TRISO particles
+    'Radial Reflector': 'Graphite',
+    'Axial Reflector': 'Graphite',
+    'Matrix Material': 'Graphite', # matrix material is a background material within the compact fuel element between the TRISO particles
     'Moderator': 'Graphite', # The moderator is outside this compact fuel region 
     'Moderator Booster': 'ZrH',
     'Coolant': 'Helium',
@@ -56,6 +57,7 @@ update_params({
     'Control Drum Reflector': 'Graphite',  # The reflector material in the control drums
     'HX Material': 'SS316', 
 })
+
 # **************************************************************************************************************************
 #                                           Sec. 2: Geometry: Fuel Pins, Moderator Pins, Coolant, Hexagonal Lattice
 # **************************************************************************************************************************  
@@ -70,26 +72,28 @@ update_params({
     # Coolant channel and booster dimensions
     'Coolant Channel Radius': 0.35,  # cm
     'Moderator Booster Radius': 0.55, # cm
-      'Lattice Pitch'  : 2.25,
-      'Assembly Rings' : 6,
-      'Core Rings' : 5,
+    'Lattice Pitch': 2.25,
+    'Assembly Rings': 6,
+    'Core Rings': 5,
 })
 params['Assembly FTF'] = params['Lattice Pitch']*(params['Assembly Rings']-1)*np.sqrt(3)
-params['Reflector Thickness'] = 27.393 # cm # radial reflector
-params['Axial Reflector Thickness'] = params['Reflector Thickness'] # cm
-params['Core Radius'] = params['Assembly FTF']*params['Core Rings'] +  params['Reflector Thickness']
-params['Active Height'] = 250 
+params['Radial Reflector Thickness'] = 27.393 # cm # radial reflector
+params['Axial Reflector Thickness'] = params['Radial Reflector Thickness'] # cm
+params['Core Radius'] = params['Assembly FTF']*params['Core Rings'] +  params['Radial Reflector Thickness']
+params['Active Height'] = 250
+
 # **************************************************************************************************************************
 #                                           Sec. 3: Control Drums
 # ************************************************************************************************************************** 
 update_params({
-    'Drum Radius' : 9, # cm   
+    'Drum Radius': 9, # cm   
     'Drum Absorber Thickness': 1, # cm
     'Drum Height': params['Active Height'] + 2*params['Axial Reflector Thickness'],
     })
 calculate_drums_volumes_and_masses(params)
 calculate_reflector_mass_GCMR(params)          
 calculate_moderator_mass_GCMR(params) 
+
 # **************************************************************************************************************************
 #                                           Sec. 4: Overall System
 # ************************************************************************************************************************** 
@@ -98,17 +102,47 @@ update_params({
     'Thermal Efficiency': 0.4,
     'Heat Flux Criteria': 0.9,  # MW/m^2 (This one needs to be reviewed)
     'Burnup Steps': [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0,
-                                     30.0, 40.0, 50.0, 60.0, 80.0, 100.0, 120.0]  # MWd_per_Kg
+                     30.0, 40.0, 50.0, 60.0, 80.0, 100.0, 120.0]  # MWd_per_Kg
     })
 
 params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency'] 
-params['Heat Flux'] =  calculate_heat_flux_TRISO(params) # MW/m^2
+params['Heat Flux'] = calculate_heat_flux_TRISO(params) # MW/m^2
+
 # **************************************************************************************************************************
 #                                           Sec. 5: Running OpenMC
-# ************************************************************************************************************************** 
+# **************************************************************************************************************************
+
+# --- Shutdown Margin (SDM) ---
+# When True, an additional OpenMC simulation is run with all control drums rotated
+# to the fully inserted (ARI - All Rods In) position. The SDM is then calculated
+# as the difference in reactivity (in pcm) between the ARO and ARI configurations.
+# A positive SDM means the reactor can be safely shut down with all drums inserted.
+# Recommended: True for final design verification; can be set to False to save
+# computation time during early design exploration.
+params['SD Margin Calc'] = False  # True or False
+
+# --- Isothermal Temperature Coefficient ---
+# When True, two additional OpenMC simulations are run: one at 'Common Temperature'
+# and one at 'Common Temperature' + 'Temperature Perturbation'. The temperature
+# coefficient is then calculated in units of pcm/K.
+# A negative coefficient indicates the reactor is self-stabilizing (desired behavior).
+# Recommended: True for safety analysis; can be set to False to save computation time.
+params['Isothermal Temperature Coefficients'] = True  # True or False
+
+# --- Temperature Perturbation ---
+# The temperature step (in Kelvin) used for the isothermal temperature coefficient calculation.
+# Must be large enough to produce a keff difference above OpenMC Monte Carlo statistical
+# noise, but small enough to stay in the linear reactivity regime.
+# Typical range: 50–300 K. 100 K is chosen here as a balance between accuracy and
+# avoiding nonlinear effects. 
+# Units: Kelvin
+# This parameter is REQUIRED only when 'Isothermal Temperature Coefficients' is True.
+params['Temperature Perturbation'] = 100  # K
+
 heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_GCMR, heat_flux_monitor, params)
 fuel_calculations(params)  # calculate the fuel mass and SWU
+
 # **************************************************************************************************************************
 #                                         Sec. 6: Primary Loop + Balance of Plant
 # ************************************************************************************************************************** 
@@ -138,44 +172,39 @@ params.update({
 params['BoP Power kWe'] = 1000 * params['Power MWe'] * params['BoP per loop load fraction']
 
 # Integrated Heat Transfer Vessel
-# Assumed no Integrated Heat Transfer Vessel in this design
-
 params.update({
     'Integrated Heat Transfer Vessel Thickness': 0, # cm
     'Integrated Heat Transfer Vessel Material': 'SA508',
 })
 GCMR_integrated_heat_transfer_vessel(params)
 
-# # **************************************************************************************************************************
-# #                                           Sec. 7 : Shielding
-# # ************************************************************************************************************************** 
+# **************************************************************************************************************************
+#                                           Sec. 7 : Shielding
+# ************************************************************************************************************************** 
 update_params({
     'In Vessel Shield Thickness': 0,  # cm (no shield in vessel for GCMR)
     'In Vessel Shield Inner Radius': params['Core Radius'],
     'In Vessel Shield Material': 'B4C_natural',
     'Out Of Vessel Shield Thickness': 39.37,  # cm
     'Out Of Vessel Shield Material': 'WEP',
-    'Out Of Vessel Shield Effective Density Factor': 0.5 # The out of vessel shield is not fully made of the out of vessel material (e.g. WEP) so we use an effective density factor
+    'Out Of Vessel Shield Effective Density Factor': 0.5
 })
-params['In Vessel Shield Outer Radius'] =  params['Core Radius'] + params['In Vessel Shield Thickness']
+params['In Vessel Shield Outer Radius'] = params['Core Radius'] + params['In Vessel Shield Thickness']
 
 # **************************************************************************************************************************
 #                                           Sec. 8 : Vessels Calculations
 # ************************************************************************************************************************** 
 update_params({
-    # Assume to be the Core Barrel
-    'Vessel Radius': params['Core Radius'] +  params['In Vessel Shield Thickness'],
+    'Vessel Radius': params['Core Radius'] + params['In Vessel Shield Thickness'],
     'Vessel Thickness': 1,  # cm
-    'Vessel Lower Plenum Height': 42.848 - 40,  # cm, based on Reflecting Barrel~RPV Liner (-Reflector Thickness, which is currently missing in CAD)
-    'Vessel Upper Plenum Height': 47.152,       # cm, based on Reflector Ends~RPV Liner distance
-    'Vessel Upper Gas Gap': 0,                  # cm, assumed non-existed for GCMRv1
-    'Vessel Bottom Depth': 32.129,              # cm, bot/top head (ellipsoid): 32.129 cm (not exact match with CAD, estimated to match RPV Height)
+    'Vessel Lower Plenum Height': 42.848 - 40,  # cm
+    'Vessel Upper Plenum Height': 47.152,       # cm
+    'Vessel Upper Gas Gap': 0,
+    'Vessel Bottom Depth': 32.129,
     'Vessel Material': 'stainless_steel',
-    # Assumed no guard vessel
     'Gap Between Vessel And Guard Vessel': 0,  
     'Guard Vessel Thickness': 0,  # cm
     'Guard Vessel Material': 'low_alloy_steel',
-    
     'Gap Between Guard Vessel And Cooling Vessel': 5,  # cm
     'Cooling Vessel Thickness': 0.5,  # cm
     'Cooling Vessel Material': 'stainless_steel',
@@ -184,14 +213,14 @@ update_params({
     'Intake Vessel Material': 'stainless_steel'
 })
 
-vessels_specs(params)  # calculate the volumes and masses of the vessels
-calculate_shielding_masses(params)  # calculate the masses of the shieldings
+vessels_specs(params)
+calculate_shielding_masses(params)
 
-# # **************************************************************************************************************************
-# #                                           Sec. 9 : Operation
-# # **************************************************************************************************************************
+# **************************************************************************************************************************
+#                                           Sec. 9 : Operation
+# **************************************************************************************************************************
 update_params({
-    'Operation Mode': "Autonomous", # "Non-Autonomous" or "Autonomous"
+    'Operation Mode': "Autonomous",
     'Number of Operators': 2,
     'Levelization Period': 60,  # years
     'Refueling Period': 7,
@@ -202,38 +231,23 @@ update_params({
     'Security Staff Per Shift': 1
 })
 
-# A721: Coolant Refill
-## 20 Tanks total are on-site. 
-## Assuming ~50% are used for fresh coolant, 50% are used for dirty
-## Calculated based on 10 tanks w/ 291 cuft ea @ 2400psi, 30°C
-## Density=24.417 kg/m3, Volume=8.2402 m3 (standard tank size?)
-## Refill Frequency: 1 /yr if purified, 6 /yr if not purified
 params['Onsite Coolant Inventory'] = 10 * 24.417 * 8.2402 # kg
 params['Replacement Coolant Inventory'] = params['Onsite Coolant Inventory'] / 4
 params['Annual Coolant Supply Frequency'] = 1 if params['Primary Loop Purification'] else 6
 
-# A75: Annualized Capital Expenditures
-## Input for replacement of large capital equipments. Replacements are made during refueling cycles
-## Components to be replaced:
-## If the period is 0, it is assumed to never be replaced throughout Levelization period
 total_refueling_period = params['Fuel Lifetime'] + params['Refueling Period'] + params['Startup Duration after Refueling'] # days
 total_refueling_period_yr = total_refueling_period/365
-params['A75: Vessel Replacement Period (cycles)']        = np.floor(10/total_refueling_period_yr) # change each 10 years similar to the ATR
+params['A75: Vessel Replacement Period (cycles)']        = np.floor(10/total_refueling_period_yr)
 params['A75: Core Barrel Replacement Period (cycles)']   = np.floor(10/total_refueling_period_yr)
 params['A75: Reflector Replacement Period (cycles)']     = np.floor(10/total_refueling_period_yr)
 params['A75: Drum Replacement Period (cycles)']          = np.floor(10/total_refueling_period_yr)
 params['Mainenance to Direct Cost Ratio']                = 0.015
-
-# A78: Annualized Decommisioning Cost
 params['A78: CAPEX to Decommissioning Cost Ratio'] = 0.15
 
 # **************************************************************************************************************************
 #                                           Sec. 10 : Economic Parameters
 # **************************************************************************************************************************
 update_params({
-    # A conservative estimate for the land area 
-    # Ref: McDowell, B., and D. Goodman. "Advanced Nuclear Reactor Plant Parameter Envelope and
-    #Guidance." National Reactor Innovation Center (NRIC), NRIC-21-ENG-0001 (2021). 
     'Land Area': 18,  # acres
     'Escalation Year': 2024,
     'Excavation Volume': 412.605,  # m^3
@@ -241,55 +255,84 @@ update_params({
     'Reactor Building Basement Volume': (9750*6502.4*1500)/1e9,  # m^3
     'Reactor Building Exterior Walls Volume': ((2*9750*3500*1500)+(3502.4*3500*(1500+750)))/1e9,  # m^3
     'Reactor Building Superstructure Area': ((2*3500*3500)+(2*7500*3500))/1e6, # m^2
-    
-    # Connected to the Reactor Building (contains steel liner)
     'Integrated Heat Exchanger Building Slab Roof Volume': 0,  # m^3
     'Integrated Heat Exchanger Building Basement Volume': 0,  # m^3
     'Integrated Heat Exchanger Building Exterior Walls Volume': 0,  # m^3
     'Integrated Heat Exchanger Building Superstructure Area': 0, # m^2
-    
-    # Assumed to be High 40' CONEX Container with 20 cm wall thickness (including conex wall)
     'Turbine Building Slab Roof Volume': (12192*2438*200)/1e9,  # m^3
     'Turbine Building Basement Volume': (12192*2438*200)/1e9,  # m^3
     'Turbine Building Exterior Walls Volume': ((12192*2496*200)+(2038*2496*200))*2/1e9,  # m^3
-    
-    # Assumed to be High 40' CONEX Container with 20 cm wall thickness (including conex wall)
     'Control Building Slab Roof Volume': (12192*2438*200)/1e9,  # m^3
     'Control Building Basement Volume': (12192*2438*200)/1e9,  # m^3
     'Control Building Exterior Walls Volume': ((12192*2496*200)+(2038*2496*200))*2/1e9,  # m^3
-    
-    # Manipulator Building
     'Manipulator Building Slab Roof Volume': (4876.8*2438.4*400)/1e9, # m^3
     'Manipulator Building Basement Volume': (4876.8*2438.4*1500)/1e9, # m^3
     'Manipulator Building Exterior Walls Volume': ((4876.8*4445*400)+(2038.4*4445*400*2))/1e9, # m^3
-
     'Refueling Building Slab Roof Volume': 0,  # m^3
     'Refueling Building Basement Volume': 0,  # m^3
     'Refueling Building Exterior Walls Volume': 0,  # m^3
-    
     'Spent Fuel Building Slab Roof Volume': 0,  # m^3
     'Spent Fuel Building Basement Volume': 0,  # m^3
     'Spent Fuel Building Exterior Walls Volume': 0,  # m^3
-    
     'Emergency Building Slab Roof Volume': 0,  # m^3
     'Emergency Building Basement Volume': 0,  # m^3
     'Emergency Building Exterior Walls Volume': 0,  # m^3
-    
-    # Building to host operational spares (CO2, He, filters, etc.)
     'Storage Building Slab Roof Volume': (8400*3500*400)/1e9, # m^3
     'Storage Building Basement Volume': (8400*3500*400)/1e9, # m^3
     'Storage Building Exterior Walls Volume': ((8400*2700*400)+(3100*2700*400*2))/1e9, # m^3
-    
     'Radwaste Building Slab Roof Volume': 0,  # m^3
     'Radwaste Building Basement Volume': 0,  # m^3
     'Radwaste Building Exterior Walls Volume': 0,  # m^3,
-    
     'Interest Rate': 0.07,
     'Construction Duration': 12,  # months
     'Debt To Equity Ratio': 0.5,
-    'Annual Return': 0.0475,  # Annual return on decommissioning costs
+    'Annual Return': 0.0475,
     'NOAK Unit Number': 100,
 })
+
+# --- PTC (Production Tax Credit) ---
+# The PTC is a per-MWh credit earned for every MWh of electricity produced and sold
+# during the credit period. Under the IRA (Section 45Y), advanced nuclear facilities
+# placed in service after Dec 31, 2024 may qualify for the Clean Electricity PTC.
+# Note: ITC and PTC are mutually exclusive — only one can be selected per project.
+
+# Base credit rate ($/MWh):
+#   - $3/MWh  if prevailing wage requirements are NOT met
+#   - $15/MWh if prevailing wage + apprenticeship requirements ARE met (5x multiplier)
+# Assumed here: $15/MWh (prevailing wage requirements met)
+# Units: $/MWh
+params['PTC credit value'] = 15.0  # $/MWh
+
+# Duration of the PTC credit period.
+# Under the IRA Section 45Y, the credit is available for 10 years after the facility
+# is placed in service.
+# Units: years
+# Typical value: 10 years
+params['PTC credit period'] = 10  # years
+
+# --- PTC Bonus Multipliers (optional, stackable) ---
+# Under the IRA, additional bonus credits can be stacked on top of the base PTC
+# if the project meets certain criteria. Each bonus is expressed as a fraction
+# added to the base multiplier of 1.0.
+# - domestic_content_bonus: +10% if the facility uses US-made iron, steel, and
+#   manufactured products (Section 45Y domestic content adder)
+#   Typical value: 0.10 (10%)
+# - energy_community_bonus: +10% if the facility is sited in an "energy community"
+#   (areas affected by coal plant closures or fossil fuel employment decline)
+#   Typical value: 0.10 (10%)
+# To disable bonuses, set both to 0.0 or remove them entirely.
+params['domestic_content_bonus'] = 0.10   # fraction — assumes domestic content standard is met
+params['energy_community_bonus'] = 0.10   # fraction — assumes facility is in an energy community
+
+# --- Corporate Tax Rate ---
+# The US federal corporate tax rate used to gross up the PTC tax credit to its
+# before-tax revenue equivalent in the LCOE calculation. Since MOUSE uses a
+# before-tax LCOE, the PTC must be converted to a before-tax equivalent.
+# The current US federal corporate tax rate is 21% (as of 2024).
+# Municipal utilities and non-profit cooperatives may use 0.0 (tax-exempt).
+# Units: fraction (e.g. 0.21 for 21%)
+# Typical values: 0.21 (federal only), 0.27 (federal + average state)
+params['Tax Rate'] = 0.21  # fraction
 
 # **************************************************************************************************************************
 #                                           Sec. 11: Post Processing
