@@ -162,6 +162,11 @@ def save_params_to_excel_file(excel_file, params):
         if entry.get('hidden', False):
             continue
 
+        # Tax Rate is only relevant when PTC is used (needed for gross-up calculation)
+        # Skip it if PTC is not defined in params
+        if param_name == 'Tax Rate' and 'PTC credit value' not in params_dict:
+            continue
+
         units       = entry.get('units', '')
         description = entry.get('description', '')
         source      = entry.get('source', '')
