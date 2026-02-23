@@ -1036,6 +1036,25 @@ PARAMS_REGISTRY = {
         'description': 'Nth-of-a-kind unit number used to calculate the learning curve cost multiplier',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
+    # --- Central Facility Parameters ---
+    'Estimate Central Facility': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Whether to include central facility cost estimation (True/False). '
+                       'Central facility is shared infrastructure supporting multiple reactor units.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Maximum Number of Operating Reactors': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Maximum number of reactor units the central facility is designed to support. '
+                       'Used to normalize central facility costs per kW of total fleet capacity.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Central Facility Construction Duration': {
+        'group': 'Economic Parameters', 'units': 'months',
+        'description': 'Duration of central facility construction used for financing cost calculation. '
+                       'May differ from individual reactor construction duration.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
     'Assumed Number Of Units For Onsite Learning': {
         'group': 'Economic Parameters', 'units': '',
         'description': 'Number of units assumed for onsite learning (typically 2 × NOAK Unit Number)',
