@@ -199,7 +199,7 @@ def save_params_to_excel_file(excel_file, params):
             continue  # skip empty groups
 
         # Group header row
-        all_rows.append([f'=== {group_name.upper()} ===', '', '', '', '', ''])
+        all_rows.append([f'--- {group_name.upper()} ---', '', '', '', '', ''])
 
         for (pname, pval, punits, pdesc, psource) in rows:
             all_rows.append([group_name, pname, pval, punits, pdesc, psource])
