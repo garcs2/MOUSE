@@ -9,10 +9,23 @@ import numpy as np
 
 def calculate_inflation_multiplier(file_path, base_dollar_year, cost_type, escalation_year):
     
-    base_dollar_year = int(base_dollar_year)   # ← add this
-    escalation_year  = int(escalation_year)    # ← add this for consistency
+    base_dollar_year = int(base_dollar_year)
+    escalation_year  = int(escalation_year)
     
     df = pd.read_excel(file_path, sheet_name="Inflation Adjustment")
+    # print("Shape:", df.shape)
+    # print("First 5 rows raw:")
+    # print(df.head(5))
+    # print("\nYear column raw values:")
+    # print(df['Year'].tolist())
+
+    df = df.dropna(subset=['Year'])
+    df['Year'] = df['Year'].astype(int)
+
+    # --- DEBUG: remove after fixing ---
+    # print("Year column dtype:", df['Year'].dtype)
+    # print("Year values:", df['Year'].values)
+    # print("Looking for:", base_dollar_year, type(base_dollar_year))
 
     if base_dollar_year not in df['Year'].values:
         print(f"\033[91mBase Year : {base_dollar_year} not found in the Excel file.\033[0m")
