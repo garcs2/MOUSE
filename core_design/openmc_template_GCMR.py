@@ -425,11 +425,20 @@ def build_openmc_model_GCMR(params):
     mgxs_lib.build_library()
     mgxs_lib.add_to_tallies_file(tallies_file, merge=False)
 
-    # Peaking factor tally (compact power)
-    pin_filter = openmc.DistribcellFilter(compact_cell)
+    # Peaking factor tally (mesh-based for GCMR to avoid slow distribcell on stochastic TRISO geometry)
+    # Uses a 20x20 mesh with material filter on the fuel kernel for accurate spatial power distribution
+    mesh = openmc.RegularMesh()
+    mesh.dimension = [20, 20, 1]
+    mesh.lower_left = [-params['Core Radius'], -params['Core Radius'], -2]
+    mesh.upper_right = [params['Core Radius'], params['Core Radius'], 2]
+
+    mesh_filter = openmc.MeshFilter(mesh)
+    kernel_material = fuel_materials[0]  # First material is the fuel kernel (e.g., UN, UCO)
+    material_filter = openmc.MaterialFilter([kernel_material])
+
     pin_power = openmc.Tally(name='pin_power_kappa')
     pin_power.scores = ['kappa-fission']
-    pin_power.filters = [pin_filter]
+    pin_power.filters = [mesh_filter, material_filter]
     tallies_file.append(pin_power)
     tallies_file.export_to_xml()
     # **************************************************************************************************************************

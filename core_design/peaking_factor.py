@@ -66,11 +66,20 @@ def compute_pin_peaking_factors(current_dir="."):
         # Avoid needing summary.h5 for distribcell paths
         df = t.get_pandas_dataframe(paths=False)
 
-        # Pick distribcell index column (or fallback to first)
-        id_col = "distribcell" if "distribcell" in df.columns else df.columns[0]
+        # Pick index column: distribcell for pin-based, or mesh index for mesh-based tallies
+        if "distribcell" in df.columns:
+            id_col = "distribcell"
+        elif "mesh 1" in df.columns:
+            id_col = "mesh 1"
+        else:
+            id_col = df.columns[0]
 
-        # Per-pin power and PF
+        # Per-pin/cell power and PF
         per_pin = df.groupby(id_col)["mean"].sum()
+
+        # Filter out zero-power cells (e.g., mesh cells with no fuel)
+        per_pin = per_pin[per_pin > 0]
+
         pf = per_pin / per_pin.mean()
 
         # Per-step PF
