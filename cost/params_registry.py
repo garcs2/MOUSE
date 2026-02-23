@@ -34,6 +34,7 @@ GROUP_ORDER = [
     'Vessels',
     'Operation',
     'Economic Parameters',
+    'Central Facility',
     'Learning Rates',
     'Tax Credits',
     'Debug / Intermediate Values',
@@ -1036,23 +1037,184 @@ PARAMS_REGISTRY = {
         'description': 'Nth-of-a-kind unit number used to calculate the learning curve cost multiplier',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
-    # --- Central Facility Parameters ---
+    # =========================================================================
+    # CENTRAL FACILITY PARAMETERS
+    # =========================================================================
+    # Central facility is shared infrastructure supporting multiple reactor units,
+    # including servicing, manufacturing, new reactor testing, and waste management.
+
+    # --- Overall Central Facility ---
     'Estimate Central Facility': {
-        'group': 'Economic Parameters', 'units': '',
-        'description': 'Whether to include central facility cost estimation (True/False). '
-                       'Central facility is shared infrastructure supporting multiple reactor units.',
+        'group': 'Central Facility', 'units': '',
+        'description': 'Enable central facility cost estimation (True/False). '
+                       'When True, reads from Central Facility Database sheet.',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
     'Maximum Number of Operating Reactors': {
-        'group': 'Economic Parameters', 'units': '',
-        'description': 'Maximum number of reactor units the central facility is designed to support. '
-                       'Used to normalize central facility costs per kW of total fleet capacity.',
+        'group': 'Central Facility', 'units': '',
+        'description': 'Maximum number of reactor units the central facility supports. '
+                       'Used to normalize costs per kW of total fleet capacity.',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
     'Central Facility Construction Duration': {
-        'group': 'Economic Parameters', 'units': 'months',
-        'description': 'Duration of central facility construction used for financing cost calculation. '
-                       'May differ from individual reactor construction duration.',
+        'group': 'Central Facility', 'units': 'months',
+        'description': 'Construction duration for central facility. '
+                       'Used for financing cost (interest during construction).',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Central Facility Power MWe': {
+        'group': 'Central Facility', 'units': 'MWe',
+        'description': 'Electrical capacity of the central facility for its own operations.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Site Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of entire central facility site for security fencing.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Maintenance Staff Per Shift': {
+        'group': 'Central Facility', 'units': 'FTEs',
+        'description': 'Number of maintenance staff per shift at the central facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Power Mwt of Operating Fleet': {
+        'group': 'Central Facility', 'units': 'MWt',
+        'description': 'Total thermal power of operating reactor fleet '
+                       '(Power MWt × Maximum Number of Operating Reactors).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    # --- Servicing Facility ---
+    'Servicing Facility Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of servicing facility for security fencing.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Total Servicing Rate': {
+        'group': 'Central Facility', 'units': 'reactors/year',
+        'description': 'Number of reactors serviced (refueled/maintained) per year.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Servicing Hot Cell Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of hot cells for reactor servicing operations.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Servicing Hot Cell Volume': {
+        'group': 'Central Facility', 'units': 'm^3',
+        'description': 'Volume of each servicing hot cell.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Total Servicing Hot Cell Volume': {
+        'group': 'Central Facility', 'units': 'm^3',
+        'description': 'Total volume of all servicing hot cells '
+                       '(Servicing Hot Cell Count × Servicing Hot Cell Volume).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Defueling/Refueling Line Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of defueling/refueling lines in servicing facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Power Mwt Processed by Servicing': {
+        'group': 'Central Facility', 'units': 'MWt',
+        'description': 'Thermal power processed by servicing facility '
+                       '(assumes 5% power for low-power testing per hot cell).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    # --- Manufacturing/Factory Facility ---
+    'Factory Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of manufacturing/factory facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Production Rate': {
+        'group': 'Central Facility', 'units': 'reactors/year',
+        'description': 'Number of new reactors produced per year.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- New Reactor Facility ---
+    'New Reactor Facility Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of new reactor fueling and testing facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Fueling Line Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of fueling lines for new reactors.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Testing Line Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of testing lines for new reactors.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Testing Hot Cell Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of hot cells for new reactor testing.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Testing Hot Cell Volume': {
+        'group': 'Central Facility', 'units': 'm^3',
+        'description': 'Total volume of all new reactor testing hot cells.',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Power Mwe Processed by New Reactor Facility': {
+        'group': 'Central Facility', 'units': 'MWe',
+        'description': 'Electrical capacity processed by new reactor facility '
+                       '(Power MWe × New Reactor Production Rate).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    # --- Radioactive Waste Management Facility ---
+    'Radioactive Waste Management Facility Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of radioactive waste management facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Radioactive Waste Processing Building Volume': {
+        'group': 'Central Facility', 'units': 'm^3',
+        'description': 'Total volume of radioactive waste processing building.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Radioactive Waste Storage Building Volume': {
+        'group': 'Central Facility', 'units': 'm^3',
+        'description': 'Total volume of radioactive waste storage building.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- Transportation ---
+    'Local Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of local transport vehicles within central facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Reactor Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of vehicles for transporting reactor units to/from field sites.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Spares/Waste Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of vehicles for transporting spare parts and radioactive waste.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'General Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of general purpose transport vehicles.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- Casks ---
+    'Annual Spent Fuel Cask Replacement': {
+        'group': 'Central Facility', 'units': 'casks/year',
+        'description': 'Annual replacement rate for spent fuel transport casks.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Annual Reactor Cask Replacement': {
+        'group': 'Central Facility', 'units': 'casks/year',
+        'description': 'Annual replacement rate for reactor transport casks.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Annual Rad Waste Cask Replacement': {
+        'group': 'Central Facility', 'units': 'casks/year',
+        'description': 'Annual replacement rate for radioactive waste transport casks.',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
     'Assumed Number Of Units For Onsite Learning': {

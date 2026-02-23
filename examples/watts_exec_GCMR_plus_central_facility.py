@@ -304,30 +304,250 @@ update_params({
     'NOAK Unit Number': 100,
 })
 
-# --- Central Facility Cost Estimation ---
+# **************************************************************************************************************************
+#                                           Sec. 11: Central Facility Costing
+# **************************************************************************************************************************
 # A central facility is shared infrastructure that supports multiple reactor units
-# deployed at the same site or region. This includes facilities such as:
-#   - Central control room for fleet monitoring
-#   - Fuel handling and storage facilities
-#   - Waste processing and storage
-#   - Shared maintenance and support buildings
+# deployed at the same site or region. This includes:
+#   - Servicing Facility: reactor refueling, defueling, and maintenance hot cells
+#   - Manufacturing/Factory Facility: reactor component fabrication
+#   - New Reactor Facility: fresh fuel storage, reactor fueling, and testing
+#   - Radioactive Waste Management Facility: waste processing and storage
+#   - Transportation infrastructure: vehicles and casks for reactor/fuel transport
 #
-# When enabled, the cost estimation will read from the "Central Facility Database"
-# sheet in Cost_Database.xlsx and produce a separate cost breakdown in the output.
+# When 'Estimate Central Facility' is True, the cost estimation reads from the
+# "Central Facility Database" sheet in Cost_Database.xlsx and produces a separate
+# cost breakdown sheet in the output Excel file.
+#
+# All capacity/rate parameters for facilities and operations are assumed to be YEARLY
+# unless otherwise specified.
 
-# Enable central facility cost estimation
-params['Estimate Central Facility'] = True
+# --- Overall Central Facility Parameters ---
+update_params({
+    'Estimate Central Facility': True,  # Enable central facility cost estimation
 
-# Maximum number of reactor units the central facility is designed to support.
-# This is used to normalize central facility costs per kW of total fleet capacity.
-# Example: If each reactor is 6 MWe and the facility supports 10 reactors,
-# the total fleet capacity is 60 MWe.
-params['Maximum Number of Operating Reactors'] = 10  # number of reactor units
+    # Maximum number of reactor units the central facility is designed to support.
+    # Used to calculate fleet-wide metrics and normalize costs per kW.
+    'Maximum Number of Operating Reactors': 100,  # number of reactor units
 
-# Construction duration for the central facility (may differ from reactor construction).
-# Used for calculating financing costs (interest during construction).
-# Units: months
-params['Central Facility Construction Duration'] = 24  # months
+    # Construction duration for the central facility (may differ from reactor construction).
+    # Used for calculating financing costs (interest during construction).
+    'Central Facility Construction Duration': 120,  # months
+
+    # Total electrical capacity of the central facility itself (for its own operations).
+    'Central Facility Power MWe': 50,  # MWe
+
+    # Perimeter of the entire central facility site (for security fencing, etc.).
+    'Site Perimeter': 20000,  # meters
+
+    # Number of maintenance staff per shift at the central facility.
+    'Maintenance Staff Per Shift': 40,  # FTEs per shift
+})
+
+# Derived parameter: total thermal power of the operating reactor fleet
+params['Power Mwt of Operating Fleet'] = params['Power MWt'] * params['Maximum Number of Operating Reactors']
+
+# --- Servicing Facility Parameters ---
+# The servicing facility handles reactor refueling, defueling, inspection, and maintenance.
+# It includes hot cells for handling irradiated components.
+update_params({
+    # Building volumes for servicing facility structures (concrete volumes in m^3)
+    'Servicing Building Roof Volume': 500,  # m^3
+    'Servicing Building Basement Volume': 500,  # m^3
+    'Servicing Building Walls Volume': 300,  # m^3
+    'Servicing Building Volume': 5000,  # m^3 (total enclosed volume)
+
+    'Helium Purification and Storage Building Roof Volume': 100,  # m^3
+    'Helium Purification and Storage Building Basement Volume': 100,  # m^3
+    'Helium Purification and Storage Building Walls Volume': 80,  # m^3
+    'Helium Purification and Storage Building Volume': 1000,  # m^3
+
+    'Servicing Facility Integrated Control Room Roof Volume': 50,  # m^3
+    'Servicing Facility Integrated Control Room Basement Volume': 50,  # m^3
+    'Servicing Facility Integrated Control Room Walls Volume': 40,  # m^3
+    'Servicing Facility Integrated Control Room Volume': 500,  # m^3
+
+    'Servicing Facility Admin Building Roof Volume': 80,  # m^3
+    'Servicing Facility Admin Building Basement Volume': 80,  # m^3
+    'Servicing Facility Admin Building Walls Volume': 60,  # m^3
+    'Servicing Facility Admin Building Volume': 800,  # m^3
+
+    'Servicing Facility Security Building Roof Volume': 30,  # m^3
+    'Servicing Facility Security Building Basement Volume': 30,  # m^3
+    'Servicing Facility Security Building Walls Volume': 25,  # m^3
+    'Servicing Facility Security Building Volume': 300,  # m^3
+
+    # Perimeter of the servicing facility (for security fencing)
+    'Servicing Facility Perimeter': 2000,  # meters
+
+    # Number of reactors serviced per year
+    'Total Servicing Rate': 50,  # reactors/year
+
+    # Number of hot cells for reactor servicing operations
+    'Servicing Hot Cell Count': 10,  # number of hot cells
+
+    # Volume of each servicing hot cell
+    'Servicing Hot Cell Volume': 500,  # m^3 per hot cell
+
+    # Number of defueling/refueling lines (typically equals hot cell count)
+    'Defueling/Refueling Line Count': 10,  # number of lines
+})
+
+# Total volume of all servicing hot cells combined
+params['Total Servicing Hot Cell Volume'] = params['Servicing Hot Cell Count'] * params['Servicing Hot Cell Volume']
+
+# Thermal power processed by servicing facility (assumes 5% power for low-power testing per hot cell)
+params['Power Mwt Processed by Servicing'] = 0.05 * params['Power MWt'] * params['Servicing Hot Cell Count']
+
+# --- Manufacturing/Factory Facility Parameters ---
+# The manufacturing facility fabricates reactor components and assembles new reactors.
+update_params({
+    # Building volumes for manufacturing facility structures
+    'Fabrication Building Roof Volume': 400,  # m^3
+    'Fabrication Building Basement Volume': 400,  # m^3
+    'Fabrication Building Walls Volume': 300,  # m^3
+    'Fabrication Building Volume': 4000,  # m^3
+
+    'Feed and Product Warehouse Building Roof Volume': 200,  # m^3
+    'Feed and Product Warehouse Building Basement Volume': 200,  # m^3
+    'Feed and Product Warehouse Building Walls Volume': 150,  # m^3
+    'Feed and Product Warehouse Building Volume': 2000,  # m^3
+
+    'Manufacturing Facility Integrated Control Building Roof Volume': 50,  # m^3
+    'Manufacturing Facility Integrated Control Building Basement Volume': 50,  # m^3
+    'Manufacturing Facility Integrated Control Building Walls Volume': 40,  # m^3
+    'Manufacturing Facility Integrated Control Building Volume': 500,  # m^3
+
+    'Manufacturing Facility Admin Building Roof Volume': 80,  # m^3
+    'Manufacturing Facility Admin Building Basement Volume': 80,  # m^3
+    'Manufacturing Facility Admin Building Walls Volume': 60,  # m^3
+    'Manufacturing Facility Admin Building Volume': 800,  # m^3
+
+    'Manufacturing Facility Security Building Roof Volume': 30,  # m^3
+    'Manufacturing Facility Security Building Basement Volume': 30,  # m^3
+    'Manufacturing Facility Security Building Walls Volume': 25,  # m^3
+    'Manufacturing Facility Security Building Volume': 300,  # m^3
+
+    # Perimeter of the manufacturing/factory facility
+    'Factory Perimeter': 3000,  # meters
+
+    # Number of new reactors produced per year
+    'New Reactor Production Rate': 20,  # reactors/year
+})
+
+# --- New Reactor Facility Parameters ---
+# The new reactor facility handles fresh fuel storage, initial fueling, and reactor testing
+# before deployment to field sites.
+update_params({
+    # Building volumes for new reactor facility structures
+    'Fresh Fuel Storage and Inspection Building Roof Volume': 150,  # m^3
+    'Fresh Fuel Storage and Inspection Building Basement Volume': 150,  # m^3
+    'Fresh Fuel Storage and Inspection Building Walls Volume': 120,  # m^3
+    'Fresh Fuel Storage and Inspection Building Volume': 1500,  # m^3
+
+    'Reactor Fueling Building Roof Volume': 200,  # m^3
+    'Reactor Fueling Building Basement Volume': 200,  # m^3
+    'Reactor Fueling Building Walls Volume': 150,  # m^3
+    'Reactor Fueling Building Volume': 2000,  # m^3
+
+    'Reactor Testing Building Roof Volume': 300,  # m^3
+    'Reactor Testing Building Basement Volume': 300,  # m^3
+    'Reactor Testing Building Walls Volume': 250,  # m^3
+    'Reactor Testing Building Volume': 3000,  # m^3
+
+    'New Reactor Fuel and Testing Facility Admin Building Roof Volume': 80,  # m^3
+    'New Reactor Fuel and Testing Facility Admin Building Basement Volume': 80,  # m^3
+    'New Reactor Fuel and Testing Facility Admin Building Walls Volume': 60,  # m^3
+    'New Reactor Fuel and Testing Facility Admin Building Volume': 800,  # m^3
+
+    'New Reactor Fuel and Testing Facility Security Building Roof Volume': 30,  # m^3
+    'New Reactor Fuel and Testing Facility Security Building Basement Volume': 30,  # m^3
+    'New Reactor Fuel and Testing Facility Security Building Walls Volume': 25,  # m^3
+    'New Reactor Fuel and Testing Facility Security Building Volume': 300,  # m^3
+
+    # Perimeter of the new reactor facility
+    'New Reactor Facility Perimeter': 2500,  # meters
+
+    # Number of fueling lines for new reactors
+    'New Reactor Fueling Line Count': 5,  # number of lines
+
+    # Number of testing lines/hot cells for new reactors
+    'New Reactor Testing Line Count': 10,  # number of lines
+
+    # Hot cell specifications for reactor testing
+    'New Reactor Testing Hot Cell Count': 10,  # number of hot cells
+    'New Reactor Testing Hot Cell Volume': 500,  # m^3 per hot cell
+})
+
+# Total volume of all new reactor testing hot cells
+params['New Reactor Testing Hot Cell Volume'] = params['New Reactor Testing Hot Cell Count'] * params['New Reactor Testing Hot Cell Volume']
+
+# Total electrical capacity processed by new reactor facility (production rate × reactor power)
+params['Power Mwe Processed by New Reactor Facility'] = params['Power MWe'] * params['New Reactor Production Rate']
+
+# --- Radioactive Waste Management Facility Parameters ---
+# The radioactive waste management facility handles processing and storage of
+# radioactive waste from reactor operations and servicing.
+update_params({
+    # Building volumes for waste management facility structures
+    'Radioactive Waste Processing Building Roof Volume': 200,  # m^3
+    'Radioactive Waste Processing Building Basement Volume': 200,  # m^3
+    'Radioactive Waste Processing Building Walls Volume': 150,  # m^3
+    'Radioactive Waste Processing Building Volume': 2000,  # m^3
+
+    'Radioactive Waste Storage Building Roof Volume': 300,  # m^3
+    'Radioactive Waste Storage Building Basement Volume': 300,  # m^3
+    'Radioactive Waste Storage Building Walls Volume': 250,  # m^3
+    'Radioactive Waste Storage Building Volume': 3000,  # m^3
+
+    'Radioactive Waste Management Facility Integrated Control Room Roof Volume': 50,  # m^3
+    'Radioactive Waste Management Facility Integrated Control Room Basement Volume': 50,  # m^3
+    'Radioactive Waste Management Facility Integrated Control Room Walls Volume': 40,  # m^3
+    'Radioactive Waste Management Facility Integrated Control Room Volume': 500,  # m^3
+
+    'Radioactive Waste Management Facility Admin Building Roof Volume': 80,  # m^3
+    'Radioactive Waste Management Facility Admin Building Basement Volume': 80,  # m^3
+    'Radioactive Waste Management Facility Admin Building Walls Volume': 60,  # m^3
+    'Radioactive Waste Management Facility Admin Building Volume': 800,  # m^3
+
+    'Radioactive Waste Management Facility Security Building Roof Volume': 30,  # m^3
+    'Radioactive Waste Management Facility Security Building Basement Volume': 30,  # m^3
+    'Radioactive Waste Management Facility Security Building Walls Volume': 25,  # m^3
+    'Radioactive Waste Management Facility Security Building Volume': 300,  # m^3
+
+    # Perimeter of the radioactive waste management facility
+    'Radioactive Waste Management Facility Perimeter': 2000,  # meters
+})
+
+# --- Transportation Parameters ---
+# Vehicles and equipment for transporting reactors, fuel, and waste between facilities.
+update_params({
+    # Local transport vehicles (within central facility complex)
+    'Local Transport Vehicle Count': 80,  # number of vehicles
+
+    # Vehicles for transporting complete reactor units to/from field sites
+    'Reactor Transport Vehicle Count': 20,  # number of vehicles
+
+    # Vehicles for transporting spare parts and radioactive waste
+    'Spares/Waste Transport Vehicle Count': 50,  # number of vehicles
+
+    # General purpose transport vehicles
+    'General Transport Vehicle Count': 100,  # number of vehicles
+})
+
+# --- Cask Parameters ---
+# Specialized containers for transporting spent fuel, reactors, and radioactive waste.
+# These are consumable items that need periodic replacement.
+update_params({
+    # Annual replacement rate for spent fuel transport casks
+    'Annual Spent Fuel Cask Replacement': 20,  # casks/year
+
+    # Annual replacement rate for reactor transport casks
+    'Annual Reactor Cask Replacement': 10,  # casks/year
+
+    # Annual replacement rate for radioactive waste transport casks
+    'Annual Rad Waste Cask Replacement': 50,  # casks/year
+})
 
 # --- PTC (Production Tax Credit) ---
 # The PTC is a per-MWh credit earned for every MWh of electricity produced and sold
@@ -374,7 +594,7 @@ params['energy_community_bonus'] = 0.10   # fraction — assumes facility is in 
 params['Tax Rate'] = 0.21  # fraction
 
 # **************************************************************************************************************************
-#                                           Sec. 11: Post Processing
+#                                           Sec. 12: Post Processing
 # **************************************************************************************************************************
 params['Number of Samples'] = 100 # Accounting for cost uncertainties
 # Estimate costs using the cost database file and save the output to an Excel file
