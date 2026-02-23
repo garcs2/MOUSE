@@ -125,7 +125,7 @@ params['Heat Flux'] = calculate_heat_flux_TRISO(params) # MW/m^2
 # **************************************************************************************************************************
 #                                           Sec. 5: Running OpenMC
 # **************************************************************************************************************************
-
+params['Particles'] = 2000
 # --- Shutdown Margin (SDM) ---
 # When True, an additional OpenMC simulation is run with all control drums rotated
 # to the fully inserted (ARI - All Rods In) position. The SDM is then calculated

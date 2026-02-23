@@ -8,27 +8,25 @@ import numpy as np
 
 
 def calculate_inflation_multiplier(file_path, base_dollar_year, cost_type, escalation_year):
- 
-    # Read the Excel file
-    df = pd.read_excel(file_path, sheet_name = "Inflation Adjustment")
+    
+    base_dollar_year = int(base_dollar_year)   # ← add this
+    escalation_year  = int(escalation_year)    # ← add this for consistency
+    
+    df = pd.read_excel(file_path, sheet_name="Inflation Adjustment")
 
-     # Check if the target year exists in the dataframe
     if base_dollar_year not in df['Year'].values:
         print(f"\033[91mBase Year : {base_dollar_year} not found in the Excel file.\033[0m")
-        
 
     if escalation_year not in df['Year'].values:
         print(f"\033[91mEscalation Year:  {escalation_year} not found in the Excel file.\033[0m")
 
-
-
-    if cost_type =='NA':
+    if cost_type == 'NA':
         multiplier = 1
     else:    
-        # Get the multiplier for the target year
-        multiplier = df.loc[df['Year'] == base_dollar_year, cost_type].values[0] / df.loc[df['Year'] == escalation_year, cost_type].values[0]
+        multiplier = df.loc[df['Year'] == base_dollar_year, cost_type].values[0] / \
+                     df.loc[df['Year'] == escalation_year, cost_type].values[0]
 
-    return multiplier 
+    return multiplier
 
 
 # # **************************************************************************************************************************
