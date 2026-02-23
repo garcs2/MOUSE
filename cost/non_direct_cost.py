@@ -86,6 +86,37 @@ def calculate_accounts_31_32_75_82_cost(df, params):
     return df
 
 
+def calculate_accounts_31_32_75_central_facility_cost(df, params):
+    """
+    Calculate indirect costs for central facility accounts (31, 32, 75).
+    Similar to calculate_accounts_31_32_75_82_cost but for central facility.
+    """
+    estimated_cost_col_F = get_estimated_cost_column(df, 'F')
+    estimated_cost_col_N = get_estimated_cost_column(df, 'N')
+
+    for estimated_cost_col in [estimated_cost_col_F, estimated_cost_col_N]:
+        # Filter for accounts 21, 22, 23, 24, 25, 27
+        filtered_df = df[df['Account'].isin([21, 22, 23, 24, 25, 27])]
+        tot_field_direct_cost = filtered_df[estimated_cost_col].sum()
+
+        acct_31_cost = params['indirect to direct field-related cost'] * tot_field_direct_cost
+        df.loc[df['Account'] == 31, estimated_cost_col] = acct_31_cost
+
+        # Calculate Account 32 using ratio of Account 31 to reactor systems cost
+        df.loc[df['Account'] == 32, estimated_cost_col] = (
+            df.loc[df['Account'] == 21, estimated_cost_col].values[0]
+            * (df.loc[df['Account'] == 31, estimated_cost_col].values[0]
+               / df.loc[df['Account'].isin([22, 23, 24, 25]), estimated_cost_col].values[0])
+        )
+
+        # A75: Maintenance costs as percentage of direct costs
+        df.loc[df['Account'] == 75, estimated_cost_col] = (
+            df.loc[df['Account'] == 20, estimated_cost_col].values[0] * params['Maintenance to Direct Cost Ratio']
+        )
+
+    return df
+
+
 def calculate_decommissioning_cost(df, params):
     estimated_cost_col_F = get_estimated_cost_column(df, 'F')
     estimated_cost_col_N = get_estimated_cost_column(df, 'N')
@@ -116,6 +147,17 @@ def calculate_interest_cost(params, OCC):
     return Interest_expenses
 
 
+def calculate_interest_cost_central(params, OCC):
+    """Calculate interest cost for central facility using its construction duration."""
+    interest_rate = params['Interest Rate']
+    construction_duration = params['Central Facility Construction Duration']
+    debt_to_equity_ratio = params['Debt To Equity Ratio']
+    B = (1 + np.exp((np.log(1 + interest_rate)) * construction_duration / 12))
+    C = ((np.log(1 + interest_rate) * (construction_duration / 12) / 3.14)**2 + 1)
+    Interest_expenses = debt_to_equity_ratio * OCC * ((0.5 * B / C) - 1)
+    return Interest_expenses
+
+
 def calculate_high_level_capital_costs(df, params):
     power_kWe = 1000 * params['Power MWe']
     accounts_to_sum = [10, 20, 30, 40, 50]
@@ -138,6 +180,43 @@ def calculate_high_level_capital_costs(df, params):
         df.loc[df['Account'] == 'OCC excl. fuel per kW', cost_column] = occ_excl_fuel/ power_kWe
 
         df.loc[df['Account'] == 62, cost_column] = calculate_interest_cost(params, occ_cost)
+    return df
+
+
+def calculate_high_level_capital_costs_central_facility(df, params):
+    """Calculate OCC and interest costs for central facility."""
+    power_kWe = 1000 * params['Power MWe'] * params['Maximum Number of Operating Reactors']
+    accounts_to_sum = [10, 20, 30, 40, 50]
+
+    df = df._append({'Account': 'OCC', 'Account Title': 'Overnight Capital Cost'}, ignore_index=True)
+
+    cost_column_F = get_estimated_cost_column(df, 'F')
+    cost_column_N = get_estimated_cost_column(df, 'N')
+
+    for cost_column in [cost_column_F, cost_column_N]:
+        occ_cost = df[df['Account'].isin(accounts_to_sum)][cost_column].sum()
+        df.loc[df['Account'] == 'OCC', cost_column] = occ_cost
+        df.loc[df['Account'] == 'OCC per kW', cost_column] = occ_cost / power_kWe
+        df.loc[df['Account'] == 62, cost_column] = calculate_interest_cost_central(params, occ_cost)
+    return df
+
+
+def calculate_TCI_central(df, params):
+    """Calculate Total Capital Investment for central facility."""
+    power_kWe = 1000 * params['Power MWe'] * params['Maximum Number of Operating Reactors']
+
+    df = df._append({'Account': 'TCI', 'Account Title': 'Total Capital Investment'}, ignore_index=True)
+    df = df._append({'Account': 'TCI per kW', 'Account Title': 'Total Capital Investment per kW'}, ignore_index=True)
+
+    accounts_to_sum = ['OCC', 60]
+    cost_column_F = get_estimated_cost_column(df, 'F')
+    cost_column_N = get_estimated_cost_column(df, 'N')
+
+    for cost_column in [cost_column_F, cost_column_N]:
+        tci_cost = df[df['Account'].isin(accounts_to_sum)][cost_column].sum()
+        df.loc[df['Account'] == 'TCI', cost_column] = tci_cost
+        df.loc[df['Account'] == 'TCI per kW', cost_column] = tci_cost / power_kWe
+
     return df
 
 

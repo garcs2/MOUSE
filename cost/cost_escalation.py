@@ -54,14 +54,14 @@ def resolve_value(val, params):
     return np.nan
 
 
-def escalate_cost_database(file_name, escalation_year, params):
+def escalate_cost_database(file_name, escalation_year, params, sheet_name="Cost Database"):
     """
     Reads an Excel file with a specified sheet name into a Pandas DataFrame.
     Escalates fixed and unit costs, allowing cost fields to reference params.
     """
 
     # Read the Excel file into a Pandas DataFrame
-    df = pd.read_excel(file_name, sheet_name="Cost Database")
+    df = pd.read_excel(file_name, sheet_name=sheet_name)
 
     # Helper function to resolve numeric or parameter-based values
     def resolve_value(val, params):

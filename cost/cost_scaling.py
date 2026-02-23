@@ -168,4 +168,107 @@ def scale_cost(initial_database, params):
 
             # Assign the calculated value to the corresponding row in the new DataFrame
             scaled_cost.at[index, f'FOAK Estimated Cost (${escalation_year })'] = estimated_cost
-    return scaled_cost 
+    return scaled_cost
+
+
+def scale_central_facility_cost(initial_database, params):
+    """
+    Scale costs for central facility accounts.
+    Similar to scale_cost() but includes Count Scaling Variable support.
+    """
+    scaled_cost = initial_database[['Account', 'Level', 'Account Title', 'FOAK to NOAK Multiplier Type',
+                                    "Fixed Cost Low End", "Fixed Cost High End", "Fixed Cost Distribution",
+                                    "Unit Cost Low End", "Unit Cost High End", "Unit Cost Distribution",
+                                    "Exponent std", "Exponent Max", "Exponent Min", "Exponent Distribution"]]
+
+    escalation_year = params['Escalation Year']
+    params['Constant'] = 1
+
+    for index, row in initial_database.iterrows():
+
+        if row['Fixed Cost ($)'] > 0 or row['Unit Cost'] > 0:
+
+            scaling_variable_value = params[row['Scaling Variable']] if pd.notna(row['Scaling Variable']) else 0
+            count_variable_value = (params[row['Count Scaling Variable']] * row['Count per Variable']
+                                    if pd.notna(row['Count Scaling Variable']) else 0)
+
+            fixed_cost_0 = row['Adjusted Fixed Cost ($)']
+            fixed_cost_lo = row['Adjusted Fixed Cost Low End ($)']
+            fixed_cost_hi = row['Adjusted Fixed Cost High End ($)']
+            fixed_cost_dist = row['Fixed Cost Distribution']
+
+            if pd.notna(row['Fixed Cost ($)']):
+                if params['Number of Samples'] > 1:
+                    if fixed_cost_dist == 'Lognormal':
+                        fixed_cost = sampler("Lognormal", low_cost=fixed_cost_lo, high_cost=fixed_cost_hi, class3_cost=fixed_cost_0)
+                    elif fixed_cost_dist == 'Uniform':
+                        fixed_cost = sampler('Uniform', low=fixed_cost_lo, high=fixed_cost_hi)
+                    else:
+                        fixed_cost = fixed_cost_0
+                else:
+                    fixed_cost = fixed_cost_0
+            else:
+                fixed_cost = 0
+
+            unit_cost_0 = row['Adjusted Unit Cost ($)']
+            unit_cost_lo = row['Adjusted Unit Cost Low End ($)']
+            unit_cost_hi = row['Adjusted Unit Cost High End ($)']
+            unit_cost_dist = row['Unit Cost Distribution']
+
+            if pd.notna(row['Unit Cost']):
+                if params['Number of Samples'] > 1:
+                    if unit_cost_dist == 'Lognormal':
+                        unit_cost = sampler("Lognormal", low_cost=unit_cost_lo, high_cost=unit_cost_hi, class3_cost=unit_cost_0)
+                    elif unit_cost_dist == 'Uniform':
+                        unit_cost = sampler('Uniform', low=unit_cost_lo, high=unit_cost_hi)
+                    else:
+                        unit_cost = unit_cost_0
+                else:
+                    unit_cost = unit_cost_0
+            else:
+                unit_cost = 0
+
+            scaling_variable_ref_value = row['Scaling Variable Ref Value']
+            exponent_0 = row['Exponent']
+            exponent_min = row['Exponent Min']
+            exponent_max = row['Exponent Max']
+            exponent_std = row['Exponent std']
+            exponent_dist = row['Exponent Distribution']
+
+            if pd.notna(row['Exponent']):
+                if params['Number of Samples'] > 1:
+                    if exponent_dist == 'Truncated Normal':
+                        exponent = sampler("Truncated Normal", mean=exponent_0, std=exponent_std, lower_bound=exponent_min, upper_bound=exponent_max)
+                    else:
+                        exponent = exponent_0
+                else:
+                    exponent = exponent_0
+
+            if row['Standard Cost Equation?'] == 'standard':
+
+                if pd.notna(row['Scaling Variable']) and scaling_variable_value == 0:
+                    estimated_cost = 0
+                else:
+                    if row['Scaling Variable Ref Value'] > 0:
+                        estimated_cost = (fixed_cost
+                                          + unit_cost * pow(scaling_variable_value, exponent)
+                                          / (pow(scaling_variable_ref_value, exponent - 1)))
+                    else:
+                        estimated_cost = fixed_cost + unit_cost * scaling_variable_value
+
+                # Apply count scaling if specified
+                if pd.notna(row['Count Scaling Variable']):
+                    if count_variable_value == 0:
+                        estimated_cost = 0
+                    else:
+                        estimated_cost = estimated_cost * count_variable_value
+
+            elif row['Standard Cost Equation?'] == 'nonstandard':
+                if pd.notna(row['Scaling Variable']) and scaling_variable_value == 0:
+                    estimated_cost = 0
+                else:
+                    estimated_cost = non_standard_cost_scale(row['Account'],
+                                                             unit_cost, scaling_variable_value, exponent, params)
+
+            scaled_cost.at[index, f'FOAK Estimated Cost (${escalation_year })'] = estimated_cost
+    return scaled_cost

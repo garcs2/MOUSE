@@ -5,8 +5,12 @@ import numpy as np
 import csv
 from cost.cost_escalation import escalate_cost_database
 from cost.code_of_account_processing import remove_irrelevant_account, get_estimated_cost_column, find_children_accounts, create_cost_dictionary
-from cost.cost_scaling import scale_cost, scale_redundant_BOP_and_primary_loop
-from cost.non_direct_cost import validate_tax_credit_params, calculate_accounts_31_32_75_82_cost, calculate_decommissioning_cost, calculate_high_level_capital_costs, calculate_TCI, energy_cost_levelized
+from cost.cost_scaling import scale_cost, scale_redundant_BOP_and_primary_loop, scale_central_facility_cost
+from cost.non_direct_cost import (validate_tax_credit_params, calculate_accounts_31_32_75_82_cost,
+                                   calculate_decommissioning_cost, calculate_high_level_capital_costs,
+                                   calculate_TCI, energy_cost_levelized,
+                                   calculate_accounts_31_32_75_central_facility_cost,
+                                   calculate_high_level_capital_costs_central_facility, calculate_TCI_central)
 from cost.params_registry import PARAMS_REGISTRY, GROUP_ORDER
 from reactor_engineering_evaluation.operation import reactor_operation
 
@@ -346,6 +350,64 @@ def bottom_up_cost_estimate(cost_database_filename, params):
     return reordered_df
 
 
+def bottom_up_cost_estimate_central(cost_database_filename, params):
+    """
+    Bottom-up cost estimate for central facility.
+    Only runs if params['Estimate Central Facility'] is True.
+    """
+    get_central_facility_cost = params.get('Estimate Central Facility', False)
+
+    if not get_central_facility_cost:
+        return None
+
+    escalated_central = escalate_cost_database(cost_database_filename,
+                                                params['Escalation Year'],
+                                                params,
+                                                sheet_name='Central Facility Database')
+    escalated_central_cleaned = remove_irrelevant_account(escalated_central, params)
+
+    COA_list = []
+    for i in range(params['Number of Samples']):
+        if (i + 1) % 100 == 0:
+            print(f"\n\nSample # {i+1}")
+
+        scaled_cost = scale_central_facility_cost(escalated_central_cleaned, params)
+        NOAK_COA = FOAK_to_NOAK(scaled_cost, params)
+
+        updated_cost = update_high_level_costs(scaled_cost, 'base', i)
+        updated_cost_with_indirect_cost = calculate_accounts_31_32_75_central_facility_cost(updated_cost, params)
+        cost_with_decommissioning = calculate_decommissioning_cost(updated_cost_with_indirect_cost, params)
+        updated_accounts_10_40 = update_high_level_costs(cost_with_decommissioning, 'other', i)
+        high_Level_capital_cost = calculate_high_level_capital_costs_central_facility(updated_accounts_10_40, params)
+
+        updated_accounts_10_60 = update_high_level_costs(high_Level_capital_cost, 'finance', i)
+        TCI = calculate_TCI_central(updated_accounts_10_60, params)
+        updated_accounts_70_80 = update_high_level_costs(TCI, 'annual', i)
+
+        FOAK_column = get_estimated_cost_column(updated_accounts_70_80, 'F')
+        NOAK_column = get_estimated_cost_column(updated_accounts_70_80, 'N')
+        Final_COA = updated_accounts_70_80[['Account', 'Account Title', FOAK_column, NOAK_column]]
+
+        COA_list.append(Final_COA)
+
+    concatenated_df = pd.concat(COA_list)
+    numeric_columns = concatenated_df.select_dtypes(include='number').columns
+    mean_df = concatenated_df[numeric_columns].groupby(concatenated_df.index).mean()
+
+    if params["Number of Samples"] > 1:
+        std_df = concatenated_df[numeric_columns].groupby(concatenated_df.index).std()
+    else:
+        std_df = concatenated_df[numeric_columns].groupby(concatenated_df.index).std(ddof=0)
+
+    mean_df[FOAK_column.replace('Cost', 'Cost std')] = std_df[FOAK_column]
+    mean_df[NOAK_column.replace('Cost', 'Cost std')] = std_df[NOAK_column]
+
+    non_numeric_columns = concatenated_df.select_dtypes(exclude='number').groupby(concatenated_df.index).first()
+    result_df = mean_df.join(non_numeric_columns)
+    reordered_df = reorder_dataframe(result_df)
+    return reordered_df
+
+
 def parametric_studies(cost_database_filename, params, tracked_params_list, output_csv_filename):
     detatiled_cost_table = bottom_up_cost_estimate(cost_database_filename, params)
     tracked_costs = create_cost_dictionary(detatiled_cost_table, params, tracked_params_list)
@@ -364,11 +426,16 @@ def parametric_studies(cost_database_filename, params, tracked_params_list, outp
 
 
 def detailed_bottom_up_cost_estimate(cost_database_filename, params, output_filename):
-    detatiled_cost_table = bottom_up_cost_estimate(cost_database_filename, params)
-    pretty_df = transform_dataframe(detatiled_cost_table)
+    detailed_cost_table = bottom_up_cost_estimate(cost_database_filename, params)
+    detailed_central_cost_table = bottom_up_cost_estimate_central(cost_database_filename, params)
+    pretty_df = transform_dataframe(detailed_cost_table)
+
     with pd.ExcelWriter(output_filename) as writer:
         pretty_df.to_excel(writer, sheet_name="cost estimate", index=False)
+        if detailed_central_cost_table is not None:
+            pretty_central_df = transform_dataframe(detailed_central_cost_table)
+            pretty_central_df.to_excel(writer, sheet_name="central facility cost estimate", index=False)
         save_params_to_excel_file(writer, params)
-        
-    print(f"\n\nThe cost estimate and all the paramters are saved at {output_filename}\n\n")
-    return detatiled_cost_table
+
+    print(f"\n\nThe cost estimate and all the parameters are saved at {output_filename}\n\n")
+    return detailed_cost_table
