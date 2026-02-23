@@ -548,6 +548,34 @@ PARAMS_REGISTRY = {
                        'Use this value for safety analysis.',
         'source': 'Calculated', 'hidden': False, 'array_mode': None},
 
+    'Max Peaking Factor': {
+        'group': 'Physics Results', 'units': 'unitless',
+        'description': 'Maximum pin peaking factor across all depletion steps — the most limiting value over the fuel lifetime',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Step with Max Peaking Factor': {
+        'group': 'Physics Results', 'units': 'unitless',
+        'description': 'Depletion step number at which the maximum peaking factor occurs',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Rod ID with Max Peaking Factor': {
+        'group': 'Physics Results', 'units': 'unitless',
+        'description': 'Pin/rod ID with the highest peaking factor across all depletion steps',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Max Peaking Factors per Step': {
+        'group': 'Physics Results', 'units': 'unitless',
+        'description': 'List of the maximum pin peaking factor at each depletion step, in step order',
+        'source': 'Calculated', 'hidden': False, 'array_mode': 'as_is'},
+
+    # PF Summary is a nested dict — hidden from the Parameters sheet.
+    # The key scalars above (Max Peaking Factor, Step with Max Peaking Factor,
+    # Rod ID with Max Peaking Factor) carry the actionable information.
+    'PF Summary': {
+        'group': 'Physics Results', 'units': '',
+        'description': 'Full peaking factor summary table across all depletion steps — see log output for per-pin results',
+        'source': 'Calculated', 'hidden': True, 'array_mode': None},
+
     'keff 2D': {
         'group': 'Physics Results', 'units': '',
         'description': 'keff at each burnup step from 2D OpenMC simulation',

@@ -237,6 +237,16 @@ def openmc_depletion(params, lattice_geometry, settings):
     # Compute pin peaking factors
     try:
         pf_summary, pf_per_step = compute_pin_peaking_factors(".")
+        # Store peaking factor results in params for Excel output
+        idx_max = pf_summary['Max_PF'].idxmax()
+        params['Max Peaking Factor']             = pf_summary.loc[idx_max, 'Max_PF']
+        params['Step with Max Peaking Factor']   = pf_summary.loc[idx_max, 'Step']
+        params['Rod ID with Max Peaking Factor'] = pf_summary.loc[idx_max, 'Rod_ID_Max']
+        params['Max Peaking Factors per Step']   = pf_summary['Max_PF'].tolist()
+        params['PF Summary']                     = pf_summary.to_dict(orient='list')
+
+
+
     except Exception as e:
         print("[PF] WARNING: compute_pin_peaking_factors failed:", e)
         pf_summary = None
@@ -267,7 +277,6 @@ def run_depletion_analysis(params):
     params['Mass U235'] = mass_U235  # grams
     params['Mass U238'] = mass_U238  # grams
     params['Uranium Mass'] = (mass_U235 + mass_U238) / 1000  # kg
-    params['PF Summary'] = pf_summary.to_dict(orient="list") if pf_summary is not None else None
 
 
 def monitor_heat_flux(params):
