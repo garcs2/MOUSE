@@ -304,6 +304,8 @@ def build_openmc_model_LTMR(params):
     
     # creating the fuel pin universe
     fuel_cells = create_cells(fuel_pin_regions, fuel_materials)
+    # The fuel region cell (to be used in distribcell tally)
+    fuel_cell = fuel_cells['fuel_meat']
     fuel_pin_universe = openmc.Universe(cells=fuel_cells.values())
 
     if params['plotting'] == "Y":
@@ -435,6 +437,13 @@ def build_openmc_model_LTMR(params):
     mgxs_lib.domains = [core]
     mgxs_lib.build_library()
     mgxs_lib.add_to_tallies_file(tallies_file, merge=False)
+
+    # Peaking factor tally (pin power)
+    pin_filter = openmc.DistribcellFilter(fuel_cell)
+    pin_power = openmc.Tally(name='pin_power_kappa')
+    pin_power.scores = ['kappa-fission']
+    pin_power.filters = [pin_filter]
+    tallies_file.append(pin_power)
     tallies_file.export_to_xml()
 
     # # **************************************************************************************************************************

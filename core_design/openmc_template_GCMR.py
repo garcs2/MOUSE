@@ -74,7 +74,7 @@ def build_openmc_model_GCMR(params):
         outer_fuel_cell = openmc.Cell(fill= materials_database[params['Moderator']], region=outer_fuel_region)
 
         fuel_universe = openmc.Universe(cells=[compact_cell, outer_fuel_cell])
-        return active_core_maxz, active_core_minz,  fuel_universe,  compact_triso_particles_number 
+        return active_core_maxz, active_core_minz, fuel_universe, compact_triso_particles_number, compact_cell 
 
     def create_universe_from_core_top_and_bottom_planes(radius, active_core_maxz, active_core_minz, material_inside, material_outside):
         surf = openmc.ZCylinder(r=radius)
@@ -200,7 +200,7 @@ def build_openmc_model_GCMR(params):
     assert len(fuel_pin_region) == len(fuel_materials), "The number of regions, {len(fuel_pin_region)} should be\
         the same as the number of introduced materials, {len(fuel_materials)}"  
     
-    triso_cells = create_cells(fuel_pin_region, fuel_materials) 
+    triso_cells = create_cells(fuel_pin_region, fuel_materials)
     triso_universe = openmc.Universe(cells=triso_cells.values())  
 
     if params['plotting'] == "Y":
@@ -214,7 +214,8 @@ def build_openmc_model_GCMR(params):
                         output_file_name = "TRISO_Particle.png")
 
     # The Fuel Universe (TRISO particles with background material in between and moderator material around the TRISO)
-    active_core_maxz, active_core_minz, fuel_universe, compact_triso_particles_number  = create_TRISO_particles_lattice_universe(params, triso_universe, materials_database)
+    # compact_cell is the fuel compact cell (to be used in distribcell tally for peaking factor)
+    active_core_maxz, active_core_minz, fuel_universe, compact_triso_particles_number, compact_cell = create_TRISO_particles_lattice_universe(params, triso_universe, materials_database)
    
                             
     # # ## coolat channels & Booster Pins & Burnable Poison
@@ -423,6 +424,13 @@ def build_openmc_model_GCMR(params):
     mgxs_lib.domains = [core]
     mgxs_lib.build_library()
     mgxs_lib.add_to_tallies_file(tallies_file, merge=False)
+
+    # Peaking factor tally (compact power)
+    pin_filter = openmc.DistribcellFilter(compact_cell)
+    pin_power = openmc.Tally(name='pin_power_kappa')
+    pin_power.scores = ['kappa-fission']
+    pin_power.filters = [pin_filter]
+    tallies_file.append(pin_power)
     tallies_file.export_to_xml()
     # **************************************************************************************************************************
     #                                                Sec. 7 : SIMULATION

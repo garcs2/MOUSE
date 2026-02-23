@@ -297,7 +297,7 @@ for params['Radial Reflector'] in ['Graphite', 'BeO']:
         # **************************************************************************************************************************
         params['Number of Samples'] = 100
         # FIXED: 'Reflector' renamed to 'Radial Reflector' to match updated params key
-        tracked_params_list = ["Radial Reflector", "Reflector Thickness", "Core Radius", "Heat Flux", "Fuel Lifetime"]
+        tracked_params_list = ["Radial Reflector", "Reflector Thickness", "Core Radius", "Heat Flux", "Fuel Lifetime", "Max Peaking Factor"]
         
         parametric_studies('cost/Cost_Database.xlsx', params, tracked_params_list, 'examples/output_parametric_CGMR_design_reflector.csv')
         

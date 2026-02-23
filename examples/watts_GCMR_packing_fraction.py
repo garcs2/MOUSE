@@ -296,7 +296,7 @@ for params['Packing Fraction'] in np.linspace(0.25, 0.35, 2):
     params['Number of Samples'] = 100
     tracked_params_list = ["Packing Fraction", "Lattice Pitch", "Number Of TRISO Particles Per Compact Fuel",
                            "Total Number of TRISO Particles", "Core Radius", "Heat Flux", "Fuel Lifetime",
-                           "Mass U235", "Mass U238", "Uranium Mass"]
+                           "Mass U235", "Mass U238", "Uranium Mass", "Max Peaking Factor"]
 
     parametric_studies('cost/Cost_Database.xlsx', params, tracked_params_list, 'examples/output_parametric_CGMR_packing_fraction.csv')
 
