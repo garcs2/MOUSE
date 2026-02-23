@@ -7,6 +7,7 @@ import traceback # tracing errors
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from core_design.correction_factor import corrected_keff_2d
+from core_design.peaking_factor import compute_pin_peaking_factors
 
 import pandas,copy
 
@@ -230,8 +231,17 @@ def openmc_depletion(params, lattice_geometry, settings):
     print("End Depletion")
 
     depletion_2d_results_file = openmc.deplete.Results("./depletion_results.h5")  # Example file path
- 
-    fuel_lifetime_days,keff_2d_values,keff_2d_values_corrected = corrected_keff_2d(depletion_2d_results_file, params['Active Height'] + 2 * params['Axial Reflector Thickness'])
+
+    fuel_lifetime_days, keff_2d_values, keff_2d_values_corrected = corrected_keff_2d(depletion_2d_results_file, params['Active Height'] + 2 * params['Axial Reflector Thickness'])
+
+    # Compute pin peaking factors
+    try:
+        pf_summary, pf_per_step = compute_pin_peaking_factors(".")
+    except Exception as e:
+        print("[PF] WARNING: compute_pin_peaking_factors failed:", e)
+        pf_summary = None
+        pf_per_step = None
+
     orig_material = depletion_2d_results_file.export_to_materials(0)
     mass_U235 = orig_material[0].get_mass('U235')
     mass_U238 = orig_material[0].get_mass('U238')
@@ -242,19 +252,22 @@ def openmc_depletion(params, lattice_geometry, settings):
 
     params['keff 2D'] = keff_2d_values
     params['keff 3D (2D corrected)'] = keff_2d_values_corrected
-    
-    return fuel_lifetime_days, mass_U235, mass_U238
+
+    return fuel_lifetime_days, mass_U235, mass_U238, pf_summary
 
 
 def run_depletion_analysis(params):
     openmc.run()
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
-    depletion_results = openmc_depletion(params, lattice_geometry, settings)
-    params['Fuel Lifetime'] = depletion_results[0]  # days
-    params['Mass U235'] = depletion_results[1]  # grams
-    params['Mass U238'] = depletion_results[2]  # grams
-    params['Uranium Mass'] = (params['Mass U235']  + params['Mass U238']) / 1000 # Kg
+    fuel_lifetime_days, mass_U235, mass_U238, pf_summary = \
+        openmc_depletion(params, lattice_geometry, settings)
+
+    params['Fuel Lifetime'] = fuel_lifetime_days  # days
+    params['Mass U235'] = mass_U235  # grams
+    params['Mass U238'] = mass_U238  # grams
+    params['Uranium Mass'] = (mass_U235 + mass_U238) / 1000  # kg
+    params['PF Summary'] = pf_summary.to_dict(orient="list") if pf_summary is not None else None
 
 
 def monitor_heat_flux(params):
