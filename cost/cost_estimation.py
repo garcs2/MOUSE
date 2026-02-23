@@ -90,6 +90,11 @@ def save_params_to_excel_file(excel_file, params):
         Converts numpy scalar types to native Python types to prevent
         Excel file corruption when openpyxl serializes the values.
         """
+        # Handle complex types that openpyxl can't serialize
+        if isinstance(val, dict):
+            return str(val)
+        if isinstance(val, np.ndarray):
+            return str(val.tolist())
         # Handle numpy scalars first (before float check, since np.float64 is a subclass of float)
         if isinstance(val, np.floating):
             if np.isnan(val):
