@@ -271,4 +271,8 @@ def scale_central_facility_cost(initial_database, params):
                                                              unit_cost, scaling_variable_value, exponent, params)
 
             scaled_cost.at[index, f'FOAK Estimated Cost (${escalation_year })'] = estimated_cost
+        else:
+                # Explicitly assign 0 so these rows don't remain NaN
+                # and cause parent account aggregation to fail
+                scaled_cost.at[index, f'FOAK Estimated Cost (${escalation_year })'] = 0
     return scaled_cost

@@ -432,9 +432,17 @@ def detailed_bottom_up_cost_estimate(cost_database_filename, params, output_file
 
     with pd.ExcelWriter(output_filename) as writer:
         pretty_df.to_excel(writer, sheet_name="cost estimate", index=False)
+        
         if detailed_central_cost_table is not None:
+            numerical_columns = detailed_central_cost_table.select_dtypes(include=[np.number]).columns
+            nan_mask = detailed_central_cost_table[numerical_columns].isna().any(axis=1)
+            if nan_mask.any():
+                print("WARNING: NaN values in central facility accounts:")
+                print(detailed_central_cost_table[nan_mask][['Account', 'Account Title'] + list(numerical_columns)])
             pretty_central_df = transform_dataframe(detailed_central_cost_table)
             pretty_central_df.to_excel(writer, sheet_name="central facility cost estimate", index=False)
+      
+        
         save_params_to_excel_file(writer, params)
 
     print(f"\n\nThe cost estimate and all the parameters are saved at {output_filename}\n\n")
