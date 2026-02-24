@@ -695,6 +695,11 @@ PARAMS_REGISTRY = {
         'description': 'Mechanical power required to drive the primary coolant pump',
         'source': 'Calculated', 'hidden': False, 'array_mode': None},
 
+    'Primary Loop Compressor Power': {
+        'group': 'Primary Loop & Balance of Plant', 'units': 'W',
+        'description': 'Mechanical power required to drive the primary loop gas compressor (GCMR)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
     'Integrated Heat Transfer Vessel Thickness': {
         'group': 'Primary Loop & Balance of Plant', 'units': 'cm',
         'description': 'Wall thickness of the integrated heat transfer vessel (GCMR, 0 if none)',
@@ -804,6 +809,26 @@ PARAMS_REGISTRY = {
     'Vessel Mass': {
         'group': 'Vessels', 'units': 'kg',
         'description': 'Total mass of the reactor pressure vessel',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'RPV Outer Radius': {
+        'group': 'Vessels', 'units': 'cm',
+        'description': 'Outer radius of the reactor pressure vessel (inner radius + wall thickness)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'RPV Outer Height': {
+        'group': 'Vessels', 'units': 'cm',
+        'description': 'Total outer height of the reactor pressure vessel including heads',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Integrated Heat Transfer Vessel Mass': {
+        'group': 'Vessels', 'units': 'kg',
+        'description': 'Total mass of the integrated heat transfer vessel (GCMR, 0 if none)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Integrated Heat Transfer Vessel Outer Volume': {
+        'group': 'Vessels', 'units': 'cm³',
+        'description': 'Outer volume of the integrated heat transfer vessel (GCMR, 0 if none)',
         'source': 'Calculated', 'hidden': False, 'array_mode': None},
 
     'Gap Between Vessel And Guard Vessel': {
@@ -1037,186 +1062,6 @@ PARAMS_REGISTRY = {
         'description': 'Nth-of-a-kind unit number used to calculate the learning curve cost multiplier',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
-    # =========================================================================
-    # CENTRAL FACILITY PARAMETERS
-    # =========================================================================
-    # Central facility is shared infrastructure supporting multiple reactor units,
-    # including servicing, manufacturing, new reactor testing, and waste management.
-
-    # --- Overall Central Facility ---
-    'Estimate Central Facility': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Enable central facility cost estimation (True/False). '
-                       'When True, reads from Central Facility Database sheet.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Maximum Number of Operating Reactors': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Maximum number of reactor units the central facility supports. '
-                       'Used to normalize costs per kW of total fleet capacity.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Central Facility Construction Duration': {
-        'group': 'Central Facility', 'units': 'months',
-        'description': 'Construction duration for central facility. '
-                       'Used for financing cost (interest during construction).',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Central Facility Power MWe': {
-        'group': 'Central Facility', 'units': 'MWe',
-        'description': 'Electrical capacity of the central facility for its own operations.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Site Perimeter': {
-        'group': 'Central Facility', 'units': 'm',
-        'description': 'Perimeter of entire central facility site for security fencing.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Maintenance Staff Per Shift': {
-        'group': 'Central Facility', 'units': 'FTEs',
-        'description': 'Number of maintenance staff per shift at the central facility.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Power Mwt of Operating Fleet': {
-        'group': 'Central Facility', 'units': 'MWt',
-        'description': 'Total thermal power of operating reactor fleet '
-                       '(Power MWt × Maximum Number of Operating Reactors).',
-        'source': 'Calculated', 'hidden': False, 'array_mode': None},
-
-    # --- Servicing Facility ---
-    'Servicing Facility Perimeter': {
-        'group': 'Central Facility', 'units': 'm',
-        'description': 'Perimeter of servicing facility for security fencing.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Total Servicing Rate': {
-        'group': 'Central Facility', 'units': 'reactors/year',
-        'description': 'Number of reactors serviced (refueled/maintained) per year.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Servicing Hot Cell Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of hot cells for reactor servicing operations.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Servicing Hot Cell Volume': {
-        'group': 'Central Facility', 'units': 'm^3',
-        'description': 'Volume of each servicing hot cell.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Total Servicing Hot Cell Volume': {
-        'group': 'Central Facility', 'units': 'm^3',
-        'description': 'Total volume of all servicing hot cells '
-                       '(Servicing Hot Cell Count × Servicing Hot Cell Volume).',
-        'source': 'Calculated', 'hidden': False, 'array_mode': None},
-
-    'Defueling/Refueling Line Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of defueling/refueling lines in servicing facility.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Power Mwt Processed by Servicing': {
-        'group': 'Central Facility', 'units': 'MWt',
-        'description': 'Thermal power processed by servicing facility '
-                       '(assumes 5% power for low-power testing per hot cell).',
-        'source': 'Calculated', 'hidden': False, 'array_mode': None},
-
-    # --- Manufacturing/Factory Facility ---
-    'Factory Perimeter': {
-        'group': 'Central Facility', 'units': 'm',
-        'description': 'Perimeter of manufacturing/factory facility.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'New Reactor Production Rate': {
-        'group': 'Central Facility', 'units': 'reactors/year',
-        'description': 'Number of new reactors produced per year.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    # --- New Reactor Facility ---
-    'New Reactor Facility Perimeter': {
-        'group': 'Central Facility', 'units': 'm',
-        'description': 'Perimeter of new reactor fueling and testing facility.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'New Reactor Fueling Line Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of fueling lines for new reactors.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'New Reactor Testing Line Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of testing lines for new reactors.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'New Reactor Testing Hot Cell Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of hot cells for new reactor testing.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'New Reactor Testing Hot Cell Volume': {
-        'group': 'Central Facility', 'units': 'm^3',
-        'description': 'Total volume of all new reactor testing hot cells.',
-        'source': 'Calculated', 'hidden': False, 'array_mode': None},
-
-    'Power Mwe Processed by New Reactor Facility': {
-        'group': 'Central Facility', 'units': 'MWe',
-        'description': 'Electrical capacity processed by new reactor facility '
-                       '(Power MWe × New Reactor Production Rate).',
-        'source': 'Calculated', 'hidden': False, 'array_mode': None},
-
-    # --- Radioactive Waste Management Facility ---
-    'Radioactive Waste Management Facility Perimeter': {
-        'group': 'Central Facility', 'units': 'm',
-        'description': 'Perimeter of radioactive waste management facility.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Radioactive Waste Processing Building Volume': {
-        'group': 'Central Facility', 'units': 'm^3',
-        'description': 'Total volume of radioactive waste processing building.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Radioactive Waste Storage Building Volume': {
-        'group': 'Central Facility', 'units': 'm^3',
-        'description': 'Total volume of radioactive waste storage building.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    # --- Transportation ---
-    'Local Transport Vehicle Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of local transport vehicles within central facility.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Reactor Transport Vehicle Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of vehicles for transporting reactor units to/from field sites.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Spares/Waste Transport Vehicle Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of vehicles for transporting spare parts and radioactive waste.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'General Transport Vehicle Count': {
-        'group': 'Central Facility', 'units': '',
-        'description': 'Number of general purpose transport vehicles.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    # --- Casks ---
-    'Annual Spent Fuel Cask Replacement': {
-        'group': 'Central Facility', 'units': 'casks/year',
-        'description': 'Annual replacement rate for spent fuel transport casks.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Annual Reactor Cask Replacement': {
-        'group': 'Central Facility', 'units': 'casks/year',
-        'description': 'Annual replacement rate for reactor transport casks.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
-    'Annual Rad Waste Cask Replacement': {
-        'group': 'Central Facility', 'units': 'casks/year',
-        'description': 'Annual replacement rate for radioactive waste transport casks.',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-
     'Assumed Number Of Units For Onsite Learning': {
         'group': 'Economic Parameters', 'units': '',
         'description': 'Number of units assumed for onsite learning (typically 2 × NOAK Unit Number)',
@@ -1431,6 +1276,517 @@ PARAMS_REGISTRY = {
         'description': 'Volume of concrete in the radioactive waste building exterior walls (0 if none)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
+    # =========================================================================
+    # CENTRAL FACILITY PARAMETERS
+    # =========================================================================
+
+    # --- Overall Central Facility ---
+    'Estimate Central Facility': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Enable central facility cost estimation (True/False). '
+                       'When True, reads from Central Facility Database sheet.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Maximum Number of Operating Reactors': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Maximum number of reactor units the central facility supports. '
+                       'Used to normalize costs per kW of total fleet capacity.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Central Facility Construction Duration': {
+        'group': 'Central Facility', 'units': 'months',
+        'description': 'Construction duration for central facility. '
+                       'Used for financing cost (interest during construction).',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Central Facility Power MWe': {
+        'group': 'Central Facility', 'units': 'MWe',
+        'description': 'Electrical capacity of the central facility for its own operations.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Site Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of entire central facility site for security fencing.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Maintenance Staff Per Shift': {
+        'group': 'Central Facility', 'units': 'FTEs',
+        'description': 'Number of maintenance staff per shift at the central facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Power Mwt of Operating Fleet': {
+        'group': 'Central Facility', 'units': 'MWt',
+        'description': 'Total thermal power of operating reactor fleet '
+                       '(Power MWt × Maximum Number of Operating Reactors).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    # --- Servicing Facility ---
+    'Servicing Facility Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of servicing facility for security fencing.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Total Servicing Rate': {
+        'group': 'Central Facility', 'units': 'reactors/year',
+        'description': 'Number of reactors serviced (refueled/maintained) per year.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Servicing Hot Cell Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of hot cells for reactor servicing operations.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Servicing Hot Cell Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of each servicing hot cell.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Total Servicing Hot Cell Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total volume of all servicing hot cells '
+                       '(Servicing Hot Cell Count × Servicing Hot Cell Volume).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Defueling/Refueling Line Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of defueling/refueling lines in servicing facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Power Mwt Processed by Servicing': {
+        'group': 'Central Facility', 'units': 'MWt',
+        'description': 'Thermal power processed by servicing facility '
+                       '(assumes 5% power for low-power testing per hot cell).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    # Servicing Facility Building Volumes
+    'Servicing Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility main building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility main building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility main building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the servicing facility main building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Helium Purification and Storage Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the helium purification and storage building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Helium Purification and Storage Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the helium purification and storage building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Helium Purification and Storage Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the helium purification and storage building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Helium Purification and Storage Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the helium purification and storage building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Servicing Facility Integrated Control Room Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility integrated control room slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Integrated Control Room Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility integrated control room basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Integrated Control Room Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility integrated control room exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Integrated Control Room Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the servicing facility integrated control room',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Servicing Facility Admin Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility admin building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Admin Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility admin building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Admin Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility admin building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Admin Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the servicing facility admin building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Servicing Facility Security Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility security building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Security Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility security building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Security Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the servicing facility security building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Servicing Facility Security Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the servicing facility security building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- Manufacturing/Factory Facility ---
+    'Factory Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of manufacturing/factory facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Production Rate': {
+        'group': 'Central Facility', 'units': 'reactors/year',
+        'description': 'Number of new reactors produced per year.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # Manufacturing Facility Building Volumes
+    'Fabrication Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the fabrication building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Fabrication Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the fabrication building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Fabrication Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the fabrication building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Fabrication Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the fabrication building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Feed and Product Warehouse Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the feed and product warehouse building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Feed and Product Warehouse Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the feed and product warehouse building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Feed and Product Warehouse Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the feed and product warehouse building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Feed and Product Warehouse Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the feed and product warehouse building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Manufacturing Facility Integrated Control Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility integrated control building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Integrated Control Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility integrated control building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Integrated Control Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility integrated control building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Integrated Control Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the manufacturing facility integrated control building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Manufacturing Facility Admin Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility admin building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Admin Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility admin building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Admin Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility admin building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Admin Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the manufacturing facility admin building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Manufacturing Facility Security Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility security building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Security Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility security building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Security Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the manufacturing facility security building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Manufacturing Facility Security Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the manufacturing facility security building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- New Reactor Facility ---
+    'New Reactor Facility Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of new reactor fueling and testing facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Fueling Line Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of fueling lines for new reactors.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Testing Line Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of testing lines for new reactors.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Testing Hot Cell Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of hot cells for new reactor testing.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Testing Hot Cell Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total volume of all new reactor testing hot cells.',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Power Mwe Processed by New Reactor Facility': {
+        'group': 'Central Facility', 'units': 'MWe',
+        'description': 'Electrical capacity processed by new reactor facility '
+                       '(Power MWe × New Reactor Production Rate).',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    # New Reactor Facility Building Volumes
+    'Fresh Fuel Storage and Inspection Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the fresh fuel storage and inspection building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Fresh Fuel Storage and Inspection Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the fresh fuel storage and inspection building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Fresh Fuel Storage and Inspection Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the fresh fuel storage and inspection building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Fresh Fuel Storage and Inspection Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the fresh fuel storage and inspection building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Reactor Fueling Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the reactor fueling building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Fueling Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the reactor fueling building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Fueling Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the reactor fueling building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Fueling Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the reactor fueling building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Reactor Testing Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the reactor testing building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Testing Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the reactor testing building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Testing Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the reactor testing building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Testing Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the reactor testing building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Fuel and Testing Facility Admin Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the new reactor facility admin building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'New Reactor Fuel and Testing Facility Admin Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the new reactor facility admin building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'New Reactor Fuel and Testing Facility Admin Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the new reactor facility admin building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'New Reactor Fuel and Testing Facility Admin Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the new reactor facility admin building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'New Reactor Fuel and Testing Facility Security Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the new reactor facility security building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'New Reactor Fuel and Testing Facility Security Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the new reactor facility security building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'New Reactor Fuel and Testing Facility Security Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the new reactor facility security building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'New Reactor Fuel and Testing Facility Security Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the new reactor facility security building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- Radioactive Waste Management Facility ---
+    'Radioactive Waste Management Facility Perimeter': {
+        'group': 'Central Facility', 'units': 'm',
+        'description': 'Perimeter of radioactive waste management facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Radioactive Waste Processing Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total volume of radioactive waste processing building.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Processing Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the radioactive waste processing building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Processing Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the radioactive waste processing building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Processing Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the radioactive waste processing building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Radioactive Waste Storage Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total volume of radioactive waste storage building.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Storage Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the radioactive waste storage building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Storage Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the radioactive waste storage building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Storage Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the radioactive waste storage building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Radioactive Waste Management Facility Integrated Control Room Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility integrated control room slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Integrated Control Room Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility integrated control room basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Integrated Control Room Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility integrated control room exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Integrated Control Room Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the waste management facility integrated control room',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Radioactive Waste Management Facility Admin Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility admin building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Admin Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility admin building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Admin Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility admin building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Admin Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the waste management facility admin building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Radioactive Waste Management Facility Security Building Roof Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility security building slab roof',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Security Building Basement Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility security building basement',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Security Building Walls Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Volume of concrete in the waste management facility security building exterior walls',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Radioactive Waste Management Facility Security Building Volume': {
+        'group': 'Central Facility', 'units': 'm³',
+        'description': 'Total enclosed volume of the waste management facility security building',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- Transportation ---
+    'Local Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of local transport vehicles within central facility.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Reactor Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of vehicles for transporting reactor units to/from field sites.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Spares/Waste Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of vehicles for transporting spare parts and radioactive waste.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'General Transport Vehicle Count': {
+        'group': 'Central Facility', 'units': '',
+        'description': 'Number of general purpose transport vehicles.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    # --- Casks ---
+    'Annual Spent Fuel Cask Replacement': {
+        'group': 'Central Facility', 'units': 'casks/year',
+        'description': 'Annual replacement rate for spent fuel transport casks.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Annual Reactor Cask Replacement': {
+        'group': 'Central Facility', 'units': 'casks/year',
+        'description': 'Annual replacement rate for reactor transport casks.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
+    'Annual Rad Waste Cask Replacement': {
+        'group': 'Central Facility', 'units': 'casks/year',
+        'description': 'Annual replacement rate for radioactive waste transport casks.',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+
     # =========================================================
     # Learning Rates
     # =========================================================
@@ -1590,4 +1946,10 @@ PARAMS_REGISTRY = {
         'group': 'Debug / Intermediate Values', 'units': '',
         'description': 'Total number of control drum positions in the core lattice (GCMR internal variable)',
         'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
+    'Constant': {
+        'group': 'Debug / Intermediate Values', 'units': '',
+        'description': 'Internal scaling constant set to 1, used as a no-op scaling variable '
+                       'for fixed-cost central facility accounts',
+        'source': 'Calculated', 'hidden': True, 'array_mode': None},
 }
