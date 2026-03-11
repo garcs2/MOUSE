@@ -100,6 +100,42 @@ warnings.filterwarnings('ignore')
 import pandas as pd
 import streamlit as st
 
+from reactor_config import build_params, SubcriticalError
+from cost.cost_estimation import bottom_up_cost_estimate, transform_dataframe
+
+# ---------------------------------------------------------------------------
+# Performance patch: cache the per-row Excel read inside calculate_inflation_multiplier.
+# Without this, pd.read_excel is called once per cost-database row on every run.
+# ---------------------------------------------------------------------------
+import functools
+import cost.cost_escalation as _ce
+
+_orig_inflation = _ce.calculate_inflation_multiplier
+
+@functools.lru_cache(maxsize=512)
+def _cached_inflation_multiplier(file_path, base_dollar_year, cost_type, escalation_year):
+    return _orig_inflation(file_path, base_dollar_year, cost_type, escalation_year)
+
+_ce.calculate_inflation_multiplier = _cached_inflation_multiplier
+
+
+@st.cache_data(show_spinner=False)
+def _run_estimate(reactor_type, power_mwt, enrichment, interest_rate,
+                  construction_duration, debt_to_equity, operation_mode,
+                  emergency_shutdowns, startup_duration):
+    overrides = {
+        'Interest Rate': interest_rate,
+        'Construction Duration': construction_duration,
+        'Debt To Equity Ratio': debt_to_equity,
+        'Escalation Year': 2024,
+        'Operation Mode': operation_mode,
+        'Emergency Shutdowns Per Year': emergency_shutdowns,
+        'Startup Duration after Emergency Shutdown': startup_duration,
+    }
+    p = build_params(reactor_type, power_mwt, enrichment, overrides)
+    df = bottom_up_cost_estimate('cost/Cost_Database.xlsx', p)
+    return transform_dataframe(df), p
+
 # ---------------------------------------------------------------------------
 # Page config
 # ---------------------------------------------------------------------------
@@ -130,6 +166,34 @@ with st.sidebar:
         help='LTMR = Liquid Metal Thermal, GCMR = Gas Cooled (Design A), HPMR = Heat Pipe',
     )
 
+    st.markdown('**Core Design Parameters**')
+
+    enrichment = st.slider(
+        'Enrichment (U-235 fraction)',
+        min_value=0.05,
+        max_value=0.1975,
+        value=0.1975,
+        step=0.0025,
+        format='%.4f',
+        help='U-235 enrichment fraction. Affects uranium masses and fuel lifetime via interpolation.',
+    )
+    st.caption(f'{enrichment * 100:.2f}% enriched')
+
+    # Default power per reactor type; unique key resets slider when reactor changes
+    _power_defaults = {'LTMR': 20, 'GCMR': 15, 'HPMR': 7}
+    power_mwt = st.slider(
+        'Thermal Power (MWt)',
+        min_value=1,
+        max_value=20,
+        value=_power_defaults[reactor_type],
+        step=1,
+        key=f'power_{reactor_type}',
+        help='Thermal power output. Affects power-dependent params and fuel lifetime via interpolation.',
+    )
+
+    st.divider()
+    st.markdown('**Economic Parameters**')
+
     interest_rate = st.number_input(
         'Interest Rate (%)',
         min_value=0.0,
@@ -157,13 +221,6 @@ with st.sidebar:
         step=0.05,
         format='%.2f',
         help='Fraction of capital funded by debt (0 = all equity, 1 = all debt).',
-    )
-
-    escalation_year = st.selectbox(
-        'Escalation Year',
-        options=list(range(2020, 2036)),
-        index=list(range(2020, 2036)).index(2024),
-        help='Reference year for cost escalation from the cost database.',
     )
 
     operation_mode = st.selectbox(
@@ -203,25 +260,25 @@ if not run_button:
 # ---------------------------------------------------------------------------
 # Build params and run cost estimate
 # ---------------------------------------------------------------------------
-with st.spinner('Running cost estimate — this takes a few seconds…'):
-    # Lazy imports: only after stubs are in place and the spinner shows
-    from reactor_config import build_params
-    from cost.cost_estimation import bottom_up_cost_estimate, transform_dataframe
-
-    user_overrides = {
-        'Interest Rate': interest_rate / 100.0,
-        'Construction Duration': construction_duration,
-        'Debt To Equity Ratio': debt_to_equity,
-        'Escalation Year': escalation_year,
-        'Operation Mode': operation_mode,
-        'Emergency Shutdowns Per Year': emergency_shutdowns,
-        'Startup Duration after Emergency Shutdown': startup_duration,
-    }
-
+with st.spinner('Running cost estimate…'):
     try:
-        params = build_params(reactor_type, user_overrides)
-        df = bottom_up_cost_estimate('cost/Cost_Database.xlsx', params)
-        display_df = transform_dataframe(df)
+        display_df, params = _run_estimate(
+            reactor_type, power_mwt, enrichment,
+            interest_rate / 100.0, construction_duration, debt_to_equity,
+            operation_mode, emergency_shutdowns, startup_duration,
+        )
+    except SubcriticalError as exc:
+        st.warning('### Reactor is Subcritical')
+        st.error(str(exc))
+        col_a, col_b, col_c = st.columns(3)
+        col_a.metric('Fuel Lifetime', '0 days')
+        col_b.metric('Thermal Power', f'{power_mwt} MWt')
+        col_c.metric('Enrichment', f'{enrichment * 100:.2f}%')
+        st.info(
+            'No cost estimate is available for a subcritical operating point. '
+            'Try reducing the power or increasing the enrichment.'
+        )
+        st.stop()
     except Exception as exc:
         st.error(f'Cost estimation failed: {exc}')
         import traceback

@@ -1,10 +1,14 @@
 # Copyright 2025, Battelle Energy Alliance, LLC, ALL RIGHTS RESERVED
 """
 reactor_config.py — Builds a fully-populated params dict for LTMR, GCMR, or HPMR
-without running OpenMC. Hardcoded OpenMC outputs are injected directly.
+without running OpenMC. OpenMC outputs (Fuel Lifetime, Mass U235, Mass U238) are
+interpolated from a pre-computed parametric study CSV keyed by reactor type,
+enrichment, and thermal power.
 """
 
+import os
 import numpy as np
+import pandas as pd
 
 # openmc and watts must already be stubbed in sys.modules before this module is imported.
 from core_design.utils import (
@@ -39,24 +43,82 @@ from reactor_engineering_evaluation.tools import (
 from reactor_engineering_evaluation.vessels_calcs import vessels_specs
 
 # ---------------------------------------------------------------------------
-# Hardcoded OpenMC results (from prior full simulation runs)
+# CSV-based OpenMC results — interpolated from parametric study table
 # ---------------------------------------------------------------------------
-OPENMC_RESULTS = {
-    'LTMR': {'Fuel Lifetime': 1945, 'Mass U235': 67539, 'Mass U238': 277942},
-    'GCMR': {'Fuel Lifetime': 2697, 'Mass U235': 80972,  'Mass U238': 327918},
-    'HPMR': {'Fuel Lifetime': 1142, 'Mass U235': 103245, 'Mass U238': 418654},
-}
+_CSV_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'assets', 'Ref_Results', 'parametric_study_power_and_enrichment.csv',
+)
+_lookup_df = None
+
+
+class SubcriticalError(Exception):
+    """Raised when the interpolated fuel lifetime is zero (subcritical core)."""
+    pass
+
+
+def _load_lookup():
+    global _lookup_df
+    if _lookup_df is None:
+        df = pd.read_csv(_CSV_PATH)
+        df.columns = df.columns.str.strip()
+        df['reactor type'] = df['reactor type'].str.strip()
+        _lookup_df = df.dropna(subset=['reactor type']).copy()
+    return _lookup_df
+
+
+def interpolate_openmc_results(reactor_type, power_mwt, enrichment):
+    """
+    Interpolate OpenMC results for a given (reactor_type, power_mwt, enrichment).
+
+    - Mass U235 / Mass U238 depend only on enrichment → 1-D linear interpolation.
+    - Fuel Lifetime depends on both enrichment and power → 2-D linear interpolation
+      over the triangulated convex hull of available data points, with a
+      nearest-neighbour fallback for points outside that hull.
+    - Fuel Lifetime is clamped to >= 0.
+
+    Returns a dict with keys 'Fuel Lifetime', 'Mass U235', 'Mass U238'.
+    Raises SubcriticalError if Fuel Lifetime == 0.
+    """
+    from scipy.interpolate import griddata
+
+    df = _load_lookup()
+    rdf = df[df['reactor type'] == reactor_type].copy()
+
+    # --- 1-D interpolation for uranium masses (enrichment only) ---
+    enr_unique = np.sort(rdf['Enrichment'].unique())
+    u235_vals = [rdf[rdf['Enrichment'] == e]['Mass U235'].mean() for e in enr_unique]
+    u238_vals = [rdf[rdf['Enrichment'] == e]['Mass U238'].mean() for e in enr_unique]
+    mass_u235 = float(np.interp(enrichment, enr_unique, u235_vals))
+    mass_u238 = float(np.interp(enrichment, enr_unique, u238_vals))
+
+    # --- 2-D interpolation for fuel lifetime (enrichment × power) ---
+    points = rdf[['Enrichment', 'Power MWt']].values
+    fl_vals = rdf['Fuel Lifetime'].values.astype(float)
+    query = np.array([[enrichment, power_mwt]])
+
+    fl = griddata(points, fl_vals, query, method='linear')[0]
+    if np.isnan(fl):
+        # Outside the convex hull — nearest-neighbour fallback
+        fl = griddata(points, fl_vals, query, method='nearest')[0]
+    fl = max(0.0, float(fl))
+
+    return {
+        'Fuel Lifetime': int(round(fl)),
+        'Mass U235': max(0, int(round(mass_u235))),
+        'Mass U238': max(0, int(round(mass_u238))),
+    }
 
 
 def _build_ltmr(params):
     """Populate params for LTMR (Liquid Metal Thermal Microreactor)."""
 
     # Sec 1: Materials
+    # Note: 'Enrichment' and 'Power MWt' are pre-set by build_params from user input.
     params.update({
         'reactor type': 'LTMR',
         'TRISO Fueled': 'No',
         'Fuel': 'TRIGA_fuel',
-        'Enrichment': 0.1975,
         'H_Zr_ratio': 1.6,
         'U_met_wo': 0.3,
         'Coolant': 'NaK',
@@ -99,8 +161,8 @@ def _build_ltmr(params):
     calculate_reflector_mass_LTMR(params)
 
     # Sec 4: Overall system
+    # 'Power MWt' is pre-set by build_params; do not override it here.
     params.update({
-        'Power MWt': 20,
         'Thermal Efficiency': 0.31,
         'Heat Flux Criteria': 0.9,
         'Burnup Steps': [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0,
@@ -109,8 +171,14 @@ def _build_ltmr(params):
     params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
     params['Heat Flux'] = calculate_heat_flux(params)
 
-    # Sec 5: Inject hardcoded OpenMC results
-    params.update(OPENMC_RESULTS['LTMR'])
+    # Sec 5: Interpolate OpenMC results from parametric study table
+    _omc = interpolate_openmc_results('LTMR', params['Power MWt'], params['Enrichment'])
+    if _omc['Fuel Lifetime'] == 0:
+        raise SubcriticalError(
+            f"Fuel lifetime is zero for LTMR at Power={params['Power MWt']} MWt, "
+            f"Enrichment={params['Enrichment']:.4f}. The reactor is subcritical."
+        )
+    params.update(_omc)
     params['Uranium Mass'] = (params['Mass U235'] + params['Mass U238']) / 1000  # kg
     fuel_calculations(params)
 
@@ -239,11 +307,11 @@ def _build_gcmr(params):
     """Populate params for GCMR Design A (Gas Cooled Microreactor)."""
 
     # Sec 1: Materials
+    # Note: 'Enrichment' and 'Power MWt' are pre-set by build_params from user input.
     params.update({
         'reactor type': 'GCMR',
         'TRISO Fueled': 'Yes',
         'Fuel': 'UN',
-        'Enrichment': 0.1975,
         'UO2 atom fraction': 0.7,
         'Radial Reflector': 'Graphite',
         'Axial Reflector': 'Graphite',
@@ -287,8 +355,8 @@ def _build_gcmr(params):
     calculate_moderator_mass_GCMR(params)
 
     # Sec 4: Overall system
+    # 'Power MWt' is pre-set by build_params; do not override it here.
     params.update({
-        'Power MWt': 15,
         'Thermal Efficiency': 0.4,
         'Heat Flux Criteria': 0.9,
         'Burnup Steps': [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0,
@@ -297,8 +365,14 @@ def _build_gcmr(params):
     params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
     params['Heat Flux'] = calculate_heat_flux_TRISO(params)
 
-    # Sec 5: Inject hardcoded OpenMC results
-    params.update(OPENMC_RESULTS['GCMR'])
+    # Sec 5: Interpolate OpenMC results from parametric study table
+    _omc = interpolate_openmc_results('GCMR', params['Power MWt'], params['Enrichment'])
+    if _omc['Fuel Lifetime'] == 0:
+        raise SubcriticalError(
+            f"Fuel lifetime is zero for GCMR at Power={params['Power MWt']} MWt, "
+            f"Enrichment={params['Enrichment']:.4f}. The reactor is subcritical."
+        )
+    params.update(_omc)
     params['Uranium Mass'] = (params['Mass U235'] + params['Mass U238']) / 1000  # kg
     fuel_calculations(params)
 
@@ -440,11 +514,11 @@ def _build_hpmr(params):
     """Populate params for HPMR (Heat Pipe Microreactor)."""
 
     # Sec 1: Materials
+    # Note: 'Enrichment' and 'Power MWt' are pre-set by build_params from user input.
     params.update({
         'reactor type': 'HPMR',
         'TRISO Fueled': 'Yes',
         'Fuel': 'homog_TRISO',
-        'Enrichment': 0.19985,
         'Radial Reflector': 'Graphite',
         'Axial Reflector': 'Graphite',
         'Moderator': 'monolith_graphite',
@@ -491,8 +565,8 @@ def _build_hpmr(params):
     calculate_reflector_and_moderator_mass_HPMR(params)
 
     # Sec 4: Overall system
+    # 'Power MWt' is pre-set by build_params; do not override it here.
     params.update({
-        'Power MWt': 7,
         'Thermal Efficiency': 0.36,
         'Heat Flux Criteria': 0.9,
         'Time Steps': [t * 86400 for t in [0.01, 0.99, 3, 6, 20, 70, 100, 165,
@@ -501,8 +575,14 @@ def _build_hpmr(params):
     params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
     params['Heat Flux'] = calculate_heat_flux(params)
 
-    # Sec 5: Inject hardcoded OpenMC results
-    params.update(OPENMC_RESULTS['HPMR'])
+    # Sec 5: Interpolate OpenMC results from parametric study table
+    _omc = interpolate_openmc_results('HPMR', params['Power MWt'], params['Enrichment'])
+    if _omc['Fuel Lifetime'] == 0:
+        raise SubcriticalError(
+            f"Fuel lifetime is zero for HPMR at Power={params['Power MWt']} MWt, "
+            f"Enrichment={params['Enrichment']:.4f}. The reactor is subcritical."
+        )
+    params.update(_omc)
     params['Uranium Mass'] = (params['Mass U235'] + params['Mass U238']) / 1000  # kg
     fuel_calculations(params)
 
@@ -626,7 +706,7 @@ def _build_hpmr(params):
     # No ITC/PTC credits for HPMR by default
 
 
-def build_params(reactor_type, user_overrides):
+def build_params(reactor_type, power_mwt, enrichment, user_overrides):
     """
     Build a fully-populated params dict for the given reactor type,
     then apply user_overrides on top.
@@ -635,6 +715,12 @@ def build_params(reactor_type, user_overrides):
     ----------
     reactor_type : str
         One of 'LTMR', 'GCMR', 'HPMR'.
+    power_mwt : float
+        Thermal power in MWt (1–20). Controls all power-dependent params and
+        is used to interpolate Fuel Lifetime from the parametric study table.
+    enrichment : float
+        U-235 enrichment fraction (0.05–0.1975). Controls all enrichment-dependent
+        params (Uranium masses, Fuel Lifetime) via the parametric study table.
     user_overrides : dict
         User-supplied values that override defaults (e.g. Interest Rate).
 
@@ -642,8 +728,16 @@ def build_params(reactor_type, user_overrides):
     -------
     dict
         Fully-populated params dict ready for bottom_up_cost_estimate().
+
+    Raises
+    ------
+    SubcriticalError
+        If the interpolated Fuel Lifetime is zero at the requested operating point.
     """
     params = {}
+    # Set power and enrichment FIRST so all builder sections can use them.
+    params['Power MWt'] = float(power_mwt)
+    params['Enrichment'] = float(enrichment)
 
     builders = {'LTMR': _build_ltmr, 'GCMR': _build_gcmr, 'HPMR': _build_hpmr}
     if reactor_type not in builders:
