@@ -12,7 +12,80 @@ import re
 def natural_sort_key(s):
     """Sort keys in a natural order (e.g., n0, n1, ..., n11)."""
     return [int(text) if text.isdigit() else text for text in re.split(r'(\d+)', s)]
+def keff_3d(depletion_2d_results_file, total_height):
 
+    # Find all state point files generated during depletion
+    statepoint_files = sorted(glob.glob('openmc_simulation_n*.h5'), key=natural_sort_key)
+    # Initialize lists to store time steps and keff_3D values
+    time_steps = []
+    keff_3d_values = []
+    keff_3d_values_uncertainty = []
+    # Read the depletion results file to extract time steps
+    depletion_results = openmc.deplete.Results("depletion_results.h5")
+    time, _ = depletion_results.get_keff()
+    time_days = [t / 86400 for t in time]  # Convert time to days
+
+    # Open CSV file for writing results
+    with open('depletion_output3.csv', 'w', newline='') as csvfile:
+
+        writer = csv.writer(csvfile)
+        writer.writerow(['keff_2D', 'P_NL', 'keff_3D', 'keff_3D_Uncertainty'])
+    
+        # Iterate over all state point files
+        for idx, sp_file in enumerate(statepoint_files):
+            # Load the state point
+            sp = openmc.StatePoint(sp_file)
+
+            keff_3d = sp.keff.nominal_value
+            keff_3d_uncertainty = sp.keff.std_dev
+            time_steps.append(time_days[idx])  # Use the actual time in days
+            keff_3d_values.append(keff_3d)
+            keff_3d_values_uncertainty.append(keff_3d_uncertainty)
+
+            print(f"Time Step: {idx + 1}")
+            print(f"keff_3D: {keff_3d:.5f}+/-{keff_3d_uncertainty:.5f}")
+        
+            writer.writerow([f"{keff_3d:.5f}", f"{keff_3d_uncertainty:.5f}"])
+    
+
+    # Plot keff_2D and keff_3D vs. Actual Time Steps
+    plt.figure()
+    plt.errorbar(time_steps, keff_3d_values, yerr=keff_3d_uncertainty, marker='o', linestyle='-', color='r', label='keff_3D')
+    plt.xlabel('Time [days]')
+    plt.ylabel('k-effective')
+    plt.title('Comparison of keff_2D and corrected_keff_2D vs. Time')
+    plt.grid(True)
+    plt.legend()
+    plt.savefig('keff3D_comparison_vs_Time.png')
+    plt.show()
+    
+    # Initialize variables for cycle length calculation
+    cycle_length = None
+
+    # Iterate through the corrected keff values to find the cycle length
+    for i in range(1, len(keff_3d_values)):
+        k1 = keff_3d_values[i - 1]
+        k2 = keff_3d_values[i]
+        t1 = time_steps[i - 1]
+        t2 = time_steps[i]
+
+        # Check if k1 and k2 bracket the value of 1.0
+        if (k1 < 1.0 <= k2) or (k2 < 1.0 <= k1):
+            # Perform linear interpolation to find the time when k = 1.0
+            slope = (k2 - k1) / (t2 - t1)
+            cycle_length = t1 + (1.0 - k1) / slope
+            break  # Break once the cycle length is found
+
+    if cycle_length is not None:
+        round_cycle_length = round(cycle_length, 0)
+        print(f"Estimated fuel cycle length: {round_cycle_length} days")
+    else:
+        print("k = 1.0 not reached within the given time steps.")
+        raise ValueError("Cannot compute fuel cycle length: k=1.0 was never reached.")
+
+    return round_cycle_length,keff_3d_values, keff_3d_values     
+
+ 
 def corrected_keff_2d(depletion_2d_results_file, total_height): 
 
     geometry = openmc.Geometry.from_xml()
