@@ -724,6 +724,7 @@ if not run_button:
                  <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;
                              opacity:0.6;margin-bottom:0.2rem;">Reactor Types</div>
                  <div style="font-weight:700;font-size:0.88rem;">LTMR · GCMR · HPMR</div>
+                 <div style="font-size:0.62rem;opacity:0.65;margin-top:0.2rem;">Liquid Metal · Gas Cooled · Heat Pipe</div>
                </div>
                <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
                            border-radius:10px;padding:0.7rem 1.2rem;">
@@ -735,13 +736,14 @@ if not run_button:
                            border-radius:10px;padding:0.7rem 1.2rem;">
                  <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;
                              opacity:0.6;margin-bottom:0.2rem;">Enrichment</div>
-                 <div style="font-weight:700;font-size:0.88rem;">5 – 19.75% LEU+</div>
+                 <div style="font-weight:700;font-size:0.88rem;">5 – 19.75%</div>
                </div>
                <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
                            border-radius:10px;padding:0.7rem 1.2rem;">
                  <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;
                              opacity:0.6;margin-bottom:0.2rem;">Outputs</div>
                  <div style="font-weight:700;font-size:0.88rem;">OCC · TCI · LCOE · LCOH · LCOF</div>
+                 <div style="font-size:0.62rem;opacity:0.65;margin-top:0.2rem;">Capital Cost · Capital Investment · Cost of Energy · Cost of Heat · Cost of Fuel</div>
                </div>
                <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);
                            border-radius:10px;padding:0.7rem 1.2rem;">
