@@ -448,9 +448,13 @@ section[data-testid="stSidebar"] hr {
     border-color: rgba(255,255,255,0.08) !important;
     margin: 0.6rem 0 !important;
 }
-section[data-testid="stSidebar"] .stTooltipIcon {
+section[data-testid="stSidebar"] button[kind="icon"],
+section[data-testid="stSidebar"] [data-testid="stTooltipIcon"],
+section[data-testid="stSidebar"] .stTooltipIcon,
+section[data-testid="stSidebar"] svg[data-icon="question-circle"] {
     color: #93c5fd !important;
     opacity: 1 !important;
+    fill: #93c5fd !important;
 }
 section[data-testid="stSidebar"] .stButton > button {
     background: linear-gradient(135deg, #e05c2b 0%, #b84520 100%) !important;
