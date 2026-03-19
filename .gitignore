@@ -7,3 +7,6 @@ output*.xlsx
 *.txt
 *.sh
 *.png
+__init__.py
+pyproject.toml
+mouse.egg-info/dependency_links.txt
