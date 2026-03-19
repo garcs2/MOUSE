@@ -454,12 +454,12 @@ PARAMS_REGISTRY = {
     'Burnup Steps': {
         'group': 'Overall System', 'units': 'MWd/kg',
         'description': 'Cumulative burnup values at each depletion time step',
-        'source': 'User Input', 'hidden': False, 'array_mode': 'steps'},
+        'source': 'User Input', 'hidden': False, 'array_mode': 'as_is'},  # was 'steps'
 
     'Time Steps': {
         'group': 'Overall System', 'units': 's',
         'description': 'Duration of each depletion time step',
-        'source': 'User Input', 'hidden': False, 'array_mode': 'steps'},
+        'source': 'User Input', 'hidden': False, 'array_mode': 'as_is'},  # was 'steps'
 
     # =========================================================
     # OpenMC Settings
@@ -580,12 +580,12 @@ PARAMS_REGISTRY = {
     'keff 2D': {
         'group': 'Physics Results', 'units': '',
         'description': 'keff at each burnup step from 2D OpenMC simulation',
-        'source': 'Calculated', 'hidden': False, 'array_mode': 'summary'},
+        'source': 'Calculated', 'hidden': False, 'array_mode': 'as_is'},  # was 'summary'
 
     'keff 3D (2D corrected)': {
         'group': 'Physics Results', 'units': '',
         'description': 'keff at each burnup step corrected from 2D to 3D using axial leakage correction',
-        'source': 'Calculated', 'hidden': False, 'array_mode': 'summary'},
+        'source': 'Calculated', 'hidden': False, 'array_mode': 'as_is'},  # was 'summary'
 
     # =========================================================
     # Primary Loop & Balance of Plant

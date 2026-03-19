@@ -328,11 +328,11 @@ update_params({
 
     # Maximum number of reactor units the central facility is designed to support.
     # Used to calculate fleet-wide metrics and normalize costs per kW.
-    'Maximum Number of Operating Reactors': 100,  # number of reactor units
+    'Maximum Number of Operating Reactors': 100,  # number of reactor units. This is the number of reactors served by all the facilities
 
     # Construction duration for the central facility (may differ from reactor construction).
     # Used for calculating financing costs (interest during construction).
-    'Central Facility Construction Duration': 120,  # months
+    'Central Facility Construction Duration': 120,  # months (this includes manufacturing facility and the service facility)
 
     # Total electrical capacity of the central facility itself (for its own operations).
     'Central Facility Power MWe': 50,  # MWe
@@ -362,7 +362,7 @@ update_params({
     'Helium Purification and Storage Building Walls Volume': 80,  # m^3
     'Helium Purification and Storage Building Volume': 1000,  # m^3
 
-    'Servicing Facility Integrated Control Room Roof Volume': 50,  # m^3
+    'Servicing Facility Integrated Control Room Roof Volume': 50,  # m^3 # mainly the hot cell
     'Servicing Facility Integrated Control Room Basement Volume': 50,  # m^3
     'Servicing Facility Integrated Control Room Walls Volume': 40,  # m^3
     'Servicing Facility Integrated Control Room Volume': 500,  # m^3
@@ -384,18 +384,18 @@ update_params({
     'Total Servicing Rate': 50,  # reactors/year
 
     # Number of hot cells for reactor servicing operations
-    'Servicing Hot Cell Count': 10,  # number of hot cells
+    'Servicing Hot Cell Count': 10,  # number of hot cells # 'Total Servicing Rate' divided by capacity of hot cell
 
     # Volume of each servicing hot cell
-    'Servicing Hot Cell Volume': 500,  # m^3 per hot cell
+    'Servicing Hot Cell Volume': 500,  # m^3 per hot cell # volume of empty space
 
     # Number of defueling/refueling lines (typically equals hot cell count)
-    'Defueling/Refueling Line Count': 10,  # number of lines
+    'Defueling/Refueling Line Count': 10,  # number of lines # maybe remove this one
 })
 
 # Total volume of all servicing hot cells combined
+# maybe remove this.
 params['Total Servicing Hot Cell Volume'] = params['Servicing Hot Cell Count'] * params['Servicing Hot Cell Volume']
-
 # Thermal power processed by servicing facility (assumes 5% power for low-power testing per hot cell)
 params['Power Mwt Processed by Servicing'] = 0.05 * params['Power MWt'] * params['Servicing Hot Cell Count']
 
@@ -437,7 +437,7 @@ update_params({
 
 # --- New Reactor Facility Parameters ---
 # The new reactor facility handles fresh fuel storage, initial fueling, and reactor testing
-# before deployment to field sites.
+# before deployment to field sites. # these are fresh reactors while the other servicing facility is for the used ones
 update_params({
     # Building volumes for new reactor facility structures
     'Fresh Fuel Storage and Inspection Building Roof Volume': 150,  # m^3
@@ -519,11 +519,11 @@ update_params({
     'Radioactive Waste Management Facility Perimeter': 2000,  # meters
 })
 
-# --- Transportation Parameters ---
+# --- Transportation Parameters --- 
 # Vehicles and equipment for transporting reactors, fuel, and waste between facilities.
 update_params({
     # Local transport vehicles (within central facility complex)
-    'Local Transport Vehicle Count': 80,  # number of vehicles
+    'Local Transport Vehicle Count': 80,  # number of vehicles (how many cars inside the facility) # this variable is repeated!!!
 
     # Vehicles for transporting complete reactor units to/from field sites
     'Reactor Transport Vehicle Count': 20,  # number of vehicles
@@ -536,11 +536,11 @@ update_params({
 })
 
 # --- Cask Parameters ---
-# Specialized containers for transporting spent fuel, reactors, and radioactive waste.
+# Specialized containers for transporting spent fuel, reactors, and radioactive waste inside facility
 # These are consumable items that need periodic replacement.
 update_params({
     # Annual replacement rate for spent fuel transport casks
-    'Annual Spent Fuel Cask Replacement': 20,  # casks/year
+    'Annual Spent Fuel Cask Replacement': 20,  # casks/year @# 20 casks are used and disposed every year because of spent fuel
 
     # Annual replacement rate for reactor transport casks
     'Annual Reactor Cask Replacement': 10,  # casks/year

@@ -3,3 +3,7 @@
 *.xml
 *.csv
 output*.xlsx
+*.out
+*.txt
+*.sh
+*.png
