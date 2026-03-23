@@ -204,25 +204,22 @@ def create_control_drums_positions(number_of_drums):
 
     return positions 
 
-def create_core_geometry(params, drums, drums_positions, assembly_universe):
+def create_core_geometry(params, drums, drums_positions, assembly_universe, reflector_material):
 
-    """
-    Creating the geometry for the entire core
-    @ In, params, dict, The parameters that are used to "fill in" input files with placeholders.
-    @ In, drums, list, universes of the drums
-    @ In, drums_positions, list of control drum positions
-    @ In, assembly_universe, openmc.universe.Universet, fuel assembly universe
-    @ out, core_geometry, openmc.geometry.Geometry, the geometry of the entire core
-    """
+    half_h      = params['Active Height'] / 2.0
+    axial_thick = params['Axial Reflector Thickness']
 
-    half_h = params['Active Height'] / 2.0
-    z_bottom = openmc.ZPlane(z0=-half_h, boundary_type='vacuum')
-    z_top    = openmc.ZPlane(z0= half_h, boundary_type='vacuum')
-    axial_bounds = +z_bottom & -z_top          # reuse this everywhere
+    # Active core axial bounds (no longer vacuum — reflectors sit outside these)
+    z_bottom = openmc.ZPlane(z0=-half_h)
+    z_top    = openmc.ZPlane(z0= half_h)
+    axial_bounds = +z_bottom & -z_top
+
+    # Outer axial vacuum boundaries (outside the reflectors)
+    z_bottom_refl = openmc.ZPlane(z0=-(half_h + axial_thick), boundary_type='vacuum')
+    z_top_refl    = openmc.ZPlane(z0= (half_h + axial_thick), boundary_type='vacuum')
 
     params['Drum Tube Radius'] = params['Drum Radius'] + params['Drum Radius'] / 90
-
-    cd_distance   = 0.86602540378 * params['Lattice Radius'] + params['Drum Tube Radius']
+    cd_distance      = 0.86602540378 * params['Lattice Radius'] + params['Drum Tube Radius']
     drum_tube_radius = params['Drum Tube Radius']
 
     drum_universes = []
@@ -237,7 +234,6 @@ def create_core_geometry(params, drums, drums_positions, assembly_universe):
         x, y = np.cos(p) * cd_distance, np.sin(p) * cd_distance
         drum_shell = openmc.ZCylinder(x0=x, y0=y, r=drum_tube_radius)
         drum_shells.append(drum_shell)
-        # ← intersect drum cell region with axial bounds
         drum_cell = openmc.Cell(fill=du, region=-drum_shell & axial_bounds)
         drum_cell.translation = (x, y, 0)
         drum_cells.append(drum_cell)
@@ -246,14 +242,22 @@ def create_core_geometry(params, drums, drums_positions, assembly_universe):
     for d in drum_shells[1:]:
         drums_outside = drums_outside & +d
 
-    # Radial vacuum boundary — z boundaries are handled by the ZPlanes above
     outer_surface = openmc.ZCylinder(r=params['Core Radius'], boundary_type='vacuum')
 
-    # ← intersect core cell with axial bounds
+    # Active core cell
     core_cell = openmc.Cell(fill=assembly_universe,
                             region=-outer_surface & drums_outside & axial_bounds)
 
-    core = openmc.Universe(cells=[core_cell] + drum_cells)
+    # Axial reflector cells (full cylinder — no drum cutouts needed outside active height)
+    top_reflector_cell = openmc.Cell(name='axial_reflector_top',
+                                     fill=reflector_material,
+                                     region=-outer_surface & +z_top & -z_top_refl)
+
+    bot_reflector_cell = openmc.Cell(name='axial_reflector_bot',
+                                     fill=reflector_material,
+                                     region=-outer_surface & +z_bottom_refl & -z_bottom)
+
+    core = openmc.Universe(cells=[core_cell, top_reflector_cell, bot_reflector_cell] + drum_cells)
     core_geometry = openmc.Geometry(core)
     return core_geometry, core
 
@@ -416,7 +420,8 @@ def build_openmc_model_LTMR_3D(params):
     core_geometry, core = create_core_geometry(params,
                                          drums,
                                          drums_positions = control_drum_positions,
-                                         assembly_universe  = assembly_universe )
+                                         assembly_universe  = assembly_universe, 
+                                         reflector_material=reflector)
 
 
     core_geometry.export_to_xml()
@@ -463,8 +468,8 @@ def build_openmc_model_LTMR_3D(params):
     settings = openmc.Settings()
     source = openmc.Source()
     source.space = openmc.stats.Box(
-        (-params['Core Radius'], -params['Core Radius'], -params['Active Height'] / 2),
-        ( params['Core Radius'],  params['Core Radius'],  params['Active Height'] / 2)
+        (-params['Core Radius'], -params['Core Radius'], -(params['Active Height']/2 + params['Axial Reflector Thickness'])),
+        ( params['Core Radius'],  params['Core Radius'],  (params['Active Height']/2 + params['Axial Reflector Thickness']))
     )
     settings.source = source
     settings.batches = 100

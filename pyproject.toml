@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mouse"
+version = "0.1.0"
+dependencies = [
+    "numpy",
+    "pandas",
+    "openpyxl",
+    "watts",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cost*", "core_design*", "reactor_engineering_evaluation*", "cost_drivers_and_markets*", "reactor_engineering_evaluation*", "webapp*", "assets*"]

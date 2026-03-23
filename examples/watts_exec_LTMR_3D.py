@@ -5,7 +5,7 @@ This script performs a bottom-up cost estimate for a Liquid Metal Thermal Micror
 OpenMC is used for core design calculations, and other Balance of Plant components are estimated.
 Users can modify parameters in the "params" dictionary below.
 """
-from mpi4py imnport MPI
+from mpi4py import MPI
 import numpy as np
 import watts  # Simulation workflows for one or multiple codes
 from core_design.openmc_template_LTMR_3D import *
@@ -29,7 +29,7 @@ params = watts.Parameters()
 
 def update_params(updates):
     params.update(updates)
-    
+
 def _get_mpi_rank():
     try:
         from mpi4py import MPI

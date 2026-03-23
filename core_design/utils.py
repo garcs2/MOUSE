@@ -6,11 +6,32 @@ import watts
 import traceback # tracing errors
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from core_design.correction_factor import corrected_keff_2d, keff_3d
+from core_design.correction_factor import corrected_keff_2d
 from core_design.peaking_factor import compute_pin_peaking_factors
 
 import pandas,copy
 
+def _get_mpi_rank():
+    try:
+        from mpi4py import MPI
+        return MPI.COMM_WORLD.Get_rank()
+    except ImportError:
+        return 0
+
+def _mpi_barrier():
+    try:
+        from mpi4py import MPI
+        MPI.COMM_WORLD.Barrier()
+    except ImportError:
+        pass
+
+def _mpi_bcast(obj, root=0):
+    try:
+        from mpi4py import MPI
+        return MPI.COMM_WORLD.bcast(obj, root=root)
+    except ImportError:
+        return obj
+    
 def circle_area(r):
     return (np.pi) * r **2
 
@@ -206,7 +227,6 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
 def openmc_depletion(params, lattice_geometry, settings):
     
     openmc.config['cross_sections'] = params['cross_sections_xml_location'] 
-    
     # depletion operator, performing transport simulations, is created using the geometry and settings xml files
     operator = openmc.deplete.CoupledOperator(openmc.Model(geometry=lattice_geometry, 
             settings=settings),
@@ -230,37 +250,47 @@ def openmc_depletion(params, lattice_geometry, settings):
     integrator.integrate()
     print("End Depletion")
 
-    depletion_2d_results_file = openmc.deplete.Results("./depletion_results.h5")  # Example file path
-    if params['3D']:
-        fuel_lifetime_days, keff_2d_values, keff_2d_values_corrected = keff_3d(depletion_2d_results_file, params['Active Height'] + 2 * params['Axial Reflector Thickness'])
+    # Only rank 0 handles post-processing, then broadcasts results
+    rank = _get_mpi_rank()
+
+    if rank == 0:
+        depletion_2d_results_file = openmc.deplete.Results("./depletion_results.h5")
+        fuel_lifetime_days, keff_2d_values, keff_2d_values_corrected = corrected_keff_2d(
+            depletion_2d_results_file, 
+            params['Active Height'] + 2 * params['Axial Reflector Thickness']
+        )
+
+        try:
+            pf_summary, pf_per_step = compute_pin_peaking_factors(".")
+            idx_max = pf_summary['Max_PF'].idxmax()
+            params['Max Peaking Factor']             = pf_summary.loc[idx_max, 'Max_PF']
+            params['Step with Max Peaking Factor']   = pf_summary.loc[idx_max, 'Step']
+            params['Rod ID with Max Peaking Factor'] = pf_summary.loc[idx_max, 'Rod_ID_Max']
+            params['Max Peaking Factors per Step']   = pf_summary['Max_PF'].tolist()
+            params['PF Summary']                     = pf_summary.to_dict(orient='list')
+        except Exception as e:
+            print("[PF] WARNING: compute_pin_peaking_factors failed:", e)
+            pf_summary = None
+            pf_per_step = None
+
+        orig_material = depletion_2d_results_file.export_to_materials(0)
+        mass_U235 = orig_material[0].get_mass('U235')
+        mass_U238 = orig_material[0].get_mass('U238')
+
+        data_k = pandas.DataFrame()
+        data_k['keff 2D'] = keff_2d_values
+        data_k['keff 3D (2D corrected)'] = keff_2d_values_corrected
+        data_k.to_csv('./objectives_keff.csv', index_label='time')
+
+        results = (fuel_lifetime_days, mass_U235, mass_U238, pf_summary, 
+                keff_2d_values, keff_2d_values_corrected)
     else:
-        fuel_lifetime_days, keff_2d_values, keff_2d_values_corrected = corrected_keff_2d(depletion_2d_results_file, params['Active Height'] + 2 * params['Axial Reflector Thickness'])
+        results = None
 
-    # Compute pin peaking factors
-    try:
-        pf_summary, pf_per_step = compute_pin_peaking_factors(".")
-        # Store peaking factor results in params for Excel output
-        idx_max = pf_summary['Max_PF'].idxmax()
-        params['Max Peaking Factor']             = pf_summary.loc[idx_max, 'Max_PF']
-        params['Step with Max Peaking Factor']   = pf_summary.loc[idx_max, 'Step']
-        params['Rod ID with Max Peaking Factor'] = pf_summary.loc[idx_max, 'Rod_ID_Max']
-        params['Max Peaking Factors per Step']   = pf_summary['Max_PF'].tolist()
-        params['PF Summary']                     = pf_summary.to_dict(orient='list')
-
-
-
-    except Exception as e:
-        print("[PF] WARNING: compute_pin_peaking_factors failed:", e)
-        pf_summary = None
-        pf_per_step = None
-
-    orig_material = depletion_2d_results_file.export_to_materials(0)
-    mass_U235 = orig_material[0].get_mass('U235')
-    mass_U238 = orig_material[0].get_mass('U238')
-    data_k = pandas.DataFrame()
-    data_k['keff 2D'] = keff_2d_values
-    data_k['keff 3D (2D corrected)'] = keff_2d_values_corrected
-    data_k.to_csv('./objectives_keff.csv',index_label='time')
+    # Broadcast results to all ranks
+    _mpi_barrier()
+    results = _mpi_bcast(results, root=0)
+    fuel_lifetime_days, mass_U235, mass_U238, pf_summary, keff_2d_values, keff_2d_values_corrected = results
 
     params['keff 2D'] = keff_2d_values
     params['keff 3D (2D corrected)'] = keff_2d_values_corrected
@@ -269,7 +299,7 @@ def openmc_depletion(params, lattice_geometry, settings):
 
 
 def run_depletion_analysis(params):
-    openmc.run()
+    # openmc.run()
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
     fuel_lifetime_days, mass_U235, mass_U238, pf_summary = \
@@ -365,7 +395,7 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
                 else:
                     params['Temp Coeff 2D'] = np.nan
                     params['Temp Coeff 3D (2D corrected)'] = np.nan
-                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True) 
+                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True, show_stdout=True) 
                     openmc_plugin(params, function=lambda: run_depletion_analysis(params))
 
         except Exception as e:
