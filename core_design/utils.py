@@ -6,7 +6,7 @@ import watts
 import traceback # tracing errors
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from core_design.correction_factor import corrected_keff_2d
+from core_design.correction_factor import corrected_keff_2d, keff_3d
 from core_design.peaking_factor import compute_pin_peaking_factors
 
 import pandas,copy
@@ -254,12 +254,15 @@ def openmc_depletion(params, lattice_geometry, settings):
     rank = _get_mpi_rank()
 
     if rank == 0:
+        
         depletion_2d_results_file = openmc.deplete.Results("./depletion_results.h5")
-        fuel_lifetime_days, keff_2d_values, keff_2d_values_corrected = corrected_keff_2d(
+        if params['3D']:
+            fuel_lifetime_days, keff_2d_values, keff_2d_values_corrected = keff_3d(depletion_2d_results_file, params['Active Height'] + 2 * params['Axial Reflector Thickness'])
+        else:
+            fuel_lifetime_days, keff_2d_values, keff_2d_values_corrected = corrected_keff_2d(
             depletion_2d_results_file, 
             params['Active Height'] + 2 * params['Axial Reflector Thickness']
         )
-
         try:
             pf_summary, pf_per_step = compute_pin_peaking_factors(".")
             idx_max = pf_summary['Max_PF'].idxmax()
