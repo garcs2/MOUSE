@@ -230,7 +230,9 @@ def openmc_depletion(params, lattice_geometry, settings):
     # depletion operator, performing transport simulations, is created using the geometry and settings xml files
     operator = openmc.deplete.CoupledOperator(openmc.Model(geometry=lattice_geometry, 
             settings=settings),
-            chain_file= params['simplified_chain_thermal_xml'])
+            chain_file= params['simplified_chain_thermal_xml'],
+            diff_burnable_mats=True)
+    
     if 'Burnup Steps' in params:
         burnup_steps_list_MWd_per_Kg = params['Burnup Steps']
     
@@ -277,8 +279,19 @@ def openmc_depletion(params, lattice_geometry, settings):
             pf_per_step = None
 
         orig_material = depletion_2d_results_file.export_to_materials(0)
-        mass_U235 = orig_material[0].get_mass('U235')
-        mass_U238 = orig_material[0].get_mass('U238')
+
+        # With diff_burnable_mats=True, each fuel pin is a separate material clone.
+        # Volume must be re-applied per-pin (total fuel volume / number of fuel pins).
+        fissile_area = circle_area(params['Fuel Pin Radii'][params['Fuel Pin Materials'].index(params['Fuel'])]) \
+                     - circle_area(params['Fuel Pin Radii'][params['Fuel Pin Materials'].index(params['Fuel']) - 1])
+        volume_per_pin = fissile_area * params['Active Height']
+
+        for mat in orig_material:
+            if params['Fuel'] in mat.name:
+                mat.volume = volume_per_pin
+
+        mass_U235 = sum(mat.get_mass('U235') for mat in orig_material if params['Fuel'] in mat.name)
+        mass_U238 = sum(mat.get_mass('U238') for mat in orig_material if params['Fuel'] in mat.name)
 
         data_k = pandas.DataFrame()
         data_k['keff 2D'] = keff_2d_values
@@ -302,7 +315,7 @@ def openmc_depletion(params, lattice_geometry, settings):
 
 
 def run_depletion_analysis(params):
-    # openmc.run()
+    _mpi_barrier()
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
     fuel_lifetime_days, mass_U235, mass_U238, pf_summary = \
@@ -398,7 +411,7 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
                 else:
                     params['Temp Coeff 2D'] = np.nan
                     params['Temp Coeff 3D (2D corrected)'] = np.nan
-                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True, show_stdout=True) 
+                    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True) 
                     openmc_plugin(params, function=lambda: run_depletion_analysis(params))
 
         except Exception as e:

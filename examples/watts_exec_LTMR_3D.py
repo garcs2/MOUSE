@@ -157,7 +157,7 @@ for params['3D'] in [True, False]:
     # This parameter is REQUIRED only when 'Isothermal Temperature Coefficients' is True.
     params['Temperature Perturbation'] = 100  # K
     update_params({
-        'Particles': 100000  # MWt
+        'Particles': 1000000  # MWt
     })
     heat_flux_monitor = monitor_heat_flux(params)
     if params['3D']:
@@ -165,8 +165,9 @@ for params['3D'] in [True, False]:
     else:
         build_openmc_model = build_openmc_model_LTMR
     run_openmc(build_openmc_model, heat_flux_monitor, params)
-    fuel_calculations(params)  # calculate the fuel mass and SWU
     if rank ==0:
+        fuel_calculations(params)  # calculate the fuel mass and SWU
+    
         # **************************************************************************************************************************
         #                                           Sec. 6: Primary Loop + Balance of Plant
         # ************************************************************************************************************************** 

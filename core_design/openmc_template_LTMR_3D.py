@@ -4,7 +4,7 @@ import openmc
 import numpy as np
 from core_design.openmc_materials_database import collect_materials_data
 from core_design.utils import create_universe_plot, circle_area, create_cells
-
+import copy
 
 
 # **************************************************************************************************************************
@@ -148,7 +148,7 @@ def create_assembly_universe(params, fuel_pin_universe, moderator_pin_universe, 
     assembly.outer = outer_coolant_universe
     
     # Get the rings configuration from the parameters
-    rings = params['Pins Arrangement']
+    rings = copy.deepcopy(params['Pins Arrangement'])
 
     # Only keep the last 'Number of Rings per Assembly' number of rings as specified in the parameters
     rings = rings[-params['Number of Rings per Assembly']:]
@@ -204,17 +204,17 @@ def create_control_drums_positions(number_of_drums):
 
     return positions 
 
-def create_core_geometry(params, drums, drums_positions, assembly_universe, reflector_material):
+def create_core_geometry(params, drums, drums_positions, assembly_universes, reflector_material):
 
-    half_h      = params['Active Height'] / 2.0
+    N_AXIAL   = len(assembly_universes)
+    half_h    = params['Active Height'] / 2.0
     axial_thick = params['Axial Reflector Thickness']
+    zone_h    = params['Active Height'] / N_AXIAL
 
-    # Active core axial bounds (no longer vacuum — reflectors sit outside these)
-    z_bottom = openmc.ZPlane(z0=-half_h)
-    z_top    = openmc.ZPlane(z0= half_h)
-    axial_bounds = +z_bottom & -z_top
+    # 15 axial zone boundaries
+    z_planes = [openmc.ZPlane(z0=-half_h + i * zone_h) for i in range(N_AXIAL + 1)]
 
-    # Outer axial vacuum boundaries (outside the reflectors)
+    # Outer axial vacuum boundaries
     z_bottom_refl = openmc.ZPlane(z0=-(half_h + axial_thick), boundary_type='vacuum')
     z_top_refl    = openmc.ZPlane(z0= (half_h + axial_thick), boundary_type='vacuum')
 
@@ -227,9 +227,10 @@ def create_core_geometry(params, drums, drums_positions, assembly_universe, refl
         drum_universes.append(d)
         drum_universes.append(d)
 
+    axial_bounds = +z_planes[0] & -z_planes[-1]  # full active height
+
     drum_shells = []
     drum_cells  = []
-
     for p, du in zip(drums_positions, drum_universes):
         x, y = np.cos(p) * cd_distance, np.sin(p) * cd_distance
         drum_shell = openmc.ZCylinder(x0=x, y0=y, r=drum_tube_radius)
@@ -244,20 +245,21 @@ def create_core_geometry(params, drums, drums_positions, assembly_universe, refl
 
     outer_surface = openmc.ZCylinder(r=params['Core Radius'], boundary_type='vacuum')
 
-    # Active core cell
-    core_cell = openmc.Cell(fill=assembly_universe,
-                            region=-outer_surface & drums_outside & axial_bounds)
+    # One core cell per axial zone
+    core_cells = []
+    for i, au in enumerate(assembly_universes):
+        zone_region = -outer_surface & drums_outside & +z_planes[i] & -z_planes[i+1]
+        core_cells.append(openmc.Cell(fill=au, region=zone_region))
 
-    # Axial reflector cells (full cylinder — no drum cutouts needed outside active height)
-    top_reflector_cell = openmc.Cell(name='axial_reflector_top',
-                                     fill=reflector_material,
-                                     region=-outer_surface & +z_top & -z_top_refl)
+    # Axial reflectors
+    top_refl_cell = openmc.Cell(name='axial_reflector_top',
+                                fill=reflector_material,
+                                region=-outer_surface & +z_planes[-1] & -z_top_refl)
+    bot_refl_cell = openmc.Cell(name='axial_reflector_bot',
+                                fill=reflector_material,
+                                region=-outer_surface & +z_bottom_refl & -z_planes[0])
 
-    bot_reflector_cell = openmc.Cell(name='axial_reflector_bot',
-                                     fill=reflector_material,
-                                     region=-outer_surface & +z_bottom_refl & -z_bottom)
-
-    core = openmc.Universe(cells=[core_cell, top_reflector_cell, bot_reflector_cell] + drum_cells)
+    core = openmc.Universe(cells=core_cells + [top_refl_cell, bot_refl_cell] + drum_cells)
     core_geometry = openmc.Geometry(core)
     return core_geometry, core
 
@@ -302,29 +304,35 @@ def build_openmc_model_LTMR_3D(params):
     # Creating Fuel Pins regions
     fuel_pin_regions = create_pin_regions(params, 'fuel')
     
-    # Creating fuel pin materials
-    fuel_materials = []
-    for mat in params['Fuel Pin Materials']:
-        if mat == None:
-            fuel_materials.append(None)
-        else: 
-            material_1 = materials_database[mat]
-            fuel_materials.append(material_1)
-    fuel_materials.append(coolant)
+    N_AXIAL = 15
 
-     # Giving the user error message if the number of materials is not the same as the number of regions
-    assert len(fuel_pin_regions) == len(fuel_materials), "The number of regions, {len(fuel_pin_regions)} should be\
-        the same as the number of introduced materials, {len(fuel_materials)}"
-    
-    # creating the fuel pin universe
-    fuel_cells = create_cells(fuel_pin_regions, fuel_materials)
-    # The fuel region cell (to be used in distribcell tally)
-    fuel_cell = fuel_cells['fuel_meat']
-    fuel_pin_universe = openmc.Universe(cells=fuel_cells.values())
+    # Create one fuel material clone per axial zone
+    fuel_materials_axial = [fuel.clone() for _ in range(N_AXIAL)]
+    for i, fm in enumerate(fuel_materials_axial):
+        fm.name = f'{params["Fuel"]}_axial_{i}'
+
+    # Create one fuel pin universe per axial zone
+    fuel_pin_universes_axial = []
+    fuel_cells_axial = []
+    for i in range(N_AXIAL):
+        zone_mats = []
+        for mat in params['Fuel Pin Materials']:
+            if mat is None:
+                zone_mats.append(None)
+            elif mat == params['Fuel']:
+                zone_mats.append(fuel_materials_axial[i])
+            else:
+                zone_mats.append(materials_database[mat])
+        zone_mats.append(coolant)
+        zone_cells = create_cells(fuel_pin_regions, zone_mats)
+        fuel_cells_axial.append(zone_cells['fuel_meat'])
+        fuel_pin_universes_axial.append(openmc.Universe(cells=zone_cells.values()))
+
+        fuel_cell = fuel_cells_axial[0]  # representative cell for distribcell tally
 
     if params['plotting'] == "Y":
         # plotting
-        create_universe_plot(materials_database, fuel_pin_universe, 
+        create_universe_plot(materials_database, fuel_pin_universes_axial[0], 
                         plot_width = 2.2 * params['Fuel Pin Radii'][-1],
                         num_pixels = 500, 
                         font_size = 32,
@@ -382,57 +390,54 @@ def build_openmc_model_LTMR_3D(params):
     # The center-to-center distance between adjacent fuel/moderator pins
     pin_pitch = 2 * (params['Fuel Pin Radii'][-1] ) + params["Pin Gap Distance"]
 
-    assembly_universe = create_assembly_universe(params,
-                                                 fuel_pin_universe,
-                                                 moderator_pin_universe,
-                                                 pin_pitch,
-                                                 reflector,
-                                                 coolant_universe)
+    assembly_universes = []
+    for i in range(N_AXIAL):
+        assembly_universes.append(
+            create_assembly_universe(params,
+                                     fuel_pin_universes_axial[i],
+                                     moderator_pin_universe,
+                                     pin_pitch,
+                                     reflector,
+                                     coolant_universe)
+        )
 
 
     # # **************************************************************************************************************************
     # #                                                Sec. 1.5 : VOLUME INFO for Depletion
     # # **************************************************************************************************************************
-    #find where the fuel is in the fuel pin
-    fuel_index = params['Fuel Pin Materials'].index(params['Fuel'])
-
-    fissile_area = circle_area(params['Fuel Pin Radii'][fuel_index] )\
-        - circle_area(params['Fuel Pin Radii'][fuel_index - 1])
-    fuel.volume = fissile_area *params['Active Height'] * params['Fuel Pin Count']
-   
-    all_materials = fuel_materials +\
-        moderator_materials + [coolant, reflector, control_drum_absorber, control_drum_reflector]
-    
-    # removing "None" materials
-    all_materials_cleaned_list = [item for item in all_materials if item is not None]
-    materials = openmc.Materials(list(set(all_materials_cleaned_list)))
-   
-    openmc.Materials.cross_sections = params['cross_sections_xml_location']
-    materials.export_to_xml()
-    
+    fuel_index   = params['Fuel Pin Materials'].index(params['Fuel'])
+    fissile_area = circle_area(params['Fuel Pin Radii'][fuel_index]) \
+                 - circle_area(params['Fuel Pin Radii'][fuel_index - 1])
+    zone_height  = params['Active Height'] / N_AXIAL
+    for fm in fuel_materials_axial:
+        fm.volume = fissile_area * zone_height * params['Fuel Pin Count']
 
     # # **************************************************************************************************************************
-    # #                                                Sec. 1.6 : CORE DRUM REPLACEMENT
+    # #                                                Sec. 1.6 : CORE GEOMETRY
     # # **************************************************************************************************************************
 
-    control_drum_positions = create_control_drums_positions(number_of_drums = len(drums))
+    control_drum_positions = create_control_drums_positions(number_of_drums=len(drums))
 
     core_geometry, core = create_core_geometry(params,
-                                         drums,
-                                         drums_positions = control_drum_positions,
-                                         assembly_universe  = assembly_universe, 
-                                         reflector_material=reflector)
-
+                                               drums,
+                                               drums_positions=control_drum_positions,
+                                               assembly_universes=assembly_universes,
+                                               reflector_material=reflector)
 
     core_geometry.export_to_xml()
-    
+
+    # Export materials AFTER geometry is built so traversal catches every clone
+    materials = openmc.Materials(list(core_geometry.get_all_materials().values()))
+    openmc.Materials.cross_sections = params['cross_sections_xml_location']
+    materials.export_to_xml()
+
     if params['plotting'] == "Y":
-        create_universe_plot(materials_database, core_geometry, 
+        create_universe_plot(materials_database, core_geometry,
                         plot_width = 2.01 * params['Core Radius'],
-                        num_pixels = 2000, 
+                        num_pixels = 2000,
                         font_size = 32,
-                        title = "Reactor Core", 
-                        fig_size = 8, 
+                        title = "Reactor Core",
+                        fig_size = 8,
                         output_file_name = "core.png")
     
     # # **************************************************************************************************************************
