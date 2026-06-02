@@ -774,17 +774,96 @@ def compute_pin_temperatures_abc(
     return summary, per_step_data_out
 
 
-if __name__ == "__main__":
-    # Re-run with ABC function using same setup from above
-    geom2  = LTMRPinGeometry()
-    props2 = LTMRThermalProperties(); props2.set_fuel_k_from_name("UN")
-    P_total2 = 20e6; T_in2 = 703.15; T_out2 = 793.15; cp2 = 880.0
-    cond2  = LTMRCoolantConditions(T_inlet=T_in2, T_outlet=T_out2, P_total_W=P_total2,
-                                   N_fuel_pins=397, cp_NaK=cp2)
-    q_nom2 = P_total2 / (397 * geom2.L_active)
-    rng2   = np.random.default_rng(42)
-    pf2    = rng2.uniform(0.7, 1.4, 20); pf2 /= pf2.mean()
-    mock2  = {1: pd.DataFrame({"Region_ID": list(range(20)),
-                                "Peaking_Factor": pf2, "Step": 1})}
+def run_thermal_analysis(params) -> None:
+    """
+    Run pin temperature ABC analysis after the OpenMC depletion run.
+
+    Called from watts_exec_LTMR_pin_temp.py immediately after Sec. 6
+    (Primary Loop + BoP), once both the neutronics results and coolant
+    boundary conditions are available in params.
+
+    All inputs are read directly from params — no hardcoding needed.
+    Results are stored back into params for downstream use.
+
+    Required params keys
+    --------------------
+    Geometry:
+        'Fuel Pin Radii'    : [r_Zr, r_fi, r_fo, r_ci, r_co]  in cm
+        'Pin Gap Distance'  : cm
+        'Active Height'     : cm
+        'Fuel Pin Count'    : int
+    Power / coolant:
+        'Power MWt'                     : MWt
+        'Primary Loop Inlet Temperature' : K
+        'Primary Loop Outlet Temperature': K
+    Fuel:
+        'Fuel'  : string  e.g. 'UZrH_alloy', 'UN', 'UC', 'UO2'
+    """
+    import watts
+    from core_design.peaking_factor import compute_pin_peaking_factors
+
+    # --- Locate statepoint directory from the most recent watts result ---
+    db          = watts.Database()
+    results_dir = str(db[-1].base_path)
+
+    # --- Peaking factors from MOUSE ---
+    pf_summary, per_step_data = compute_pin_peaking_factors(
+        current_dir=results_dir
+    )
+
+    if not per_step_data:
+        print("[Thermal] No peaking factor data found — skipping thermal analysis.")
+        return
+
+    # --- Build geometry from params (all cm → m) ---
+    radii = params['Fuel Pin Radii']   # [r_Zr, r_fi, r_fo, r_ci, r_co] in cm
+    geom  = LTMRPinGeometry(
+        r_Zr_o   = radii[0] * 1e-2,
+        r_fi     = radii[1] * 1e-2,
+        r_fo     = radii[2] * 1e-2,
+        r_ci     = radii[3] * 1e-2,
+        r_co     = radii[4] * 1e-2,
+        pin_gap  = params['Pin Gap Distance'] * 1e-2,
+        L_active = params['Active Height']    * 1e-2,
+    )
+
+    # --- Thermal properties: fuel conductivity from material name ---
+    props = LTMRThermalProperties()
+    props.set_fuel_k_from_name(params['Fuel'])
+
+    # --- Coolant conditions: inlet/outlet T set by user; m_dot derived ---
+    cond = LTMRCoolantConditions(
+        T_inlet     = params['Primary Loop Inlet Temperature'],
+        T_outlet    = params['Primary Loop Outlet Temperature'],
+        P_total_W   = params['Power MWt'] * 1e6,
+        N_fuel_pins = params['Fuel Pin Count'],
+    )
+
+    # --- Nominal linear heat rate ---
+    q_nom = (params['Power MWt'] * 1e6) / (params['Fuel Pin Count'] * geom.L_active)
+
+    # --- Run ABC temperature analysis ---
     abc_summary, abc_per_step = compute_pin_temperatures_abc(
-        mock2, geom2, props2, cond2, q_nom2)
+        per_step_data = per_step_data,
+        geom          = geom,
+        props         = props,
+        cond          = cond,
+        q_prime_nom   = q_nom,
+    )
+
+    # --- Store results back into params ---
+    params['ABC Temperature Summary']    = abc_summary
+    params['ABC Temperature Per Step']   = abc_per_step
+    params['Max DeltaT Fuel [K]']        = float(
+        abc_summary['Max_DeltaT_fuel_peak [K]'].max())
+    params['Max DeltaT Coolant [K]']     = float(
+        abc_summary['Max_DeltaT_coolant [K]'].max())
+    params['Max T Fuel Peak [K]']        = float(
+        abc_summary['Max_T_fuel_peak [K]'].max())
+
+    print(f"\n[Thermal] Max fuel peak temperature : "
+          f"{params['Max T Fuel Peak [K]']:.1f} K")
+    print(f"[Thermal] Max fuel peak ΔT (above inlet) : "
+          f"{params['Max DeltaT Fuel [K]']:.1f} K")
+    print(f"[Thermal] Max coolant axial ΔT : "
+          f"{params['Max DeltaT Coolant [K]']:.1f} K\n")
