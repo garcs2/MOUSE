@@ -1,0 +1,1052 @@
+300
+XS_type = 'endf8.1' → loading ENDF/B-VIII.1 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+XS_type = 'endf8.1' → loading ENDF/B-VIII.1 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+XS_type = 'endf8.1' → loading ENDF/B-VIII.1 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+
+
+[92mHeat flux: 0.85 MW/m^2.[0m
+
+
+
+
+The results/plots are saved at: /home/garcsamu/.local/share/watts
+
+
+[watts] Calling OpenMC...
+XS_type = 'endf8.1' → loading ENDF/B-VIII.1 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+[93m--- WARNING: Material 'U_met' does not have a color specified in potential_colors. Automatically assigned color: 'aliceblue'. Please add a permanent entry for this material in the potential_colors dictionary in create_universe_plot (utils.py) to suppress this warning.[0m
+[93m--- WARNING: Material 'U_met' does not have a color specified in potential_colors. Automatically assigned color: 'aliceblue'. Please add a permanent entry for this material in the potential_colors dictionary in create_universe_plot (utils.py) to suppress this warning.[0m
+[93m--- WARNING: Material 'U_met' does not have a color specified in potential_colors. Automatically assigned color: 'aliceblue'. Please add a permanent entry for this material in the potential_colors dictionary in create_universe_plot (utils.py) to suppress this warning.[0m
+                                %%%%%%%%%%%%%%%
+                           %%%%%%%%%%%%%%%%%%%%%%%%
+                        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                    %%%%%%%%%%%%%%%%%%%%%%%%
+                                     %%%%%%%%%%%%%%%%%%%%%%%%
+                 ###############      %%%%%%%%%%%%%%%%%%%%%%%%
+                ##################     %%%%%%%%%%%%%%%%%%%%%%%
+                ###################     %%%%%%%%%%%%%%%%%%%%%%%
+                ####################     %%%%%%%%%%%%%%%%%%%%%%
+                #####################     %%%%%%%%%%%%%%%%%%%%%
+                ######################     %%%%%%%%%%%%%%%%%%%%
+                #######################     %%%%%%%%%%%%%%%%%%
+                 #######################     %%%%%%%%%%%%%%%%%
+                 ######################     %%%%%%%%%%%%%%%%%
+                  ####################     %%%%%%%%%%%%%%%%%
+                    #################     %%%%%%%%%%%%%%%%%
+                     ###############     %%%%%%%%%%%%%%%%
+                       ############     %%%%%%%%%%%%%%%
+                          ########     %%%%%%%%%%%%%%
+                                      %%%%%%%%%%%
+
+                 | The OpenMC Monte Carlo Code
+       Copyright | 2011-2025 MIT, UChicago Argonne LLC, and contributors
+         License | https://docs.openmc.org/en/latest/license.html
+         Version | 0.15.3
+     Commit Hash | 27e38e894697bb32a1dac7848d2618818b6b8daf
+       Date/Time | 2026-06-04 11:56:38
+   MPI Processes | 1
+  OpenMP Threads | 224
+
+ Reading settings XML file...
+ Reading cross sections XML file...
+ Reading materials XML file...
+ Reading geometry XML file...
+ Reading Zr90 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Zr90.h5
+ Reading Zr91 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Zr91.h5
+ Reading Zr92 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Zr92.h5
+ Reading Zr94 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Zr94.h5
+ Reading Zr96 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Zr96.h5
+ Reading Er162 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Er162.h5
+ Reading Er164 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Er164.h5
+ Reading Er166 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Er166.h5
+ Reading Er167 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Er167.h5
+ Reading Er168 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Er168.h5
+ Reading Er170 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Er170.h5
+ Reading U235 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U235.h5
+ Reading U238 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U238.h5
+ Reading H1 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/H1.h5
+ Reading K39 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/K39.h5
+ Reading K41 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/K41.h5
+ Reading Na23 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Na23.h5
+ Reading C12 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/C12.h5
+ Reading C13 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/C13.h5
+ Reading Cr50 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cr50.h5
+ Reading Cr52 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cr52.h5
+ Reading Cr53 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cr53.h5
+ Reading Cr54 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cr54.h5
+ Reading Fe54 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Fe54.h5
+ Reading Fe56 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Fe56.h5
+ Reading Fe57 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Fe57.h5
+ Reading Fe58 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Fe58.h5
+ Reading Mn55 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mn55.h5
+ Reading Ni58 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ni58.h5
+ Reading Ni60 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ni60.h5
+ Reading Ni61 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ni61.h5
+ Reading Ni62 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ni62.h5
+ Reading Ni64 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ni64.h5
+ Reading P31 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/P31.h5
+ Reading S32 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/S32.h5
+ Reading S33 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/S33.h5
+ Reading S34 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/S34.h5
+ Reading S36 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/S36.h5
+ Reading Si28 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Si28.h5
+ Reading Si29 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Si29.h5
+ Reading Si30 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Si30.h5
+ Reading B10 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/B10.h5
+ Reading B11 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/B11.h5
+ Reading c_H_in_ZrH from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/thermal/c_H_in_ZrH.h5
+ Reading c_Zr_in_ZrH from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/thermal/c_Zr_in_ZrH.h5
+ Reading c_Graphite from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/thermal/c_Graphite.h5
+ Minimum neutron data temperature: 250 K
+ Maximum neutron data temperature: 900 K
+ Reading tallies XML file...
+ Preparing distributed cell instances...
+ Reading plot XML file...
+ Writing summary.h5 file...
+ Reading O16 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/O16.h5
+ Reading Br81 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Br81.h5
+ Reading Kr82 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Kr82.h5
+ Reading Kr83 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Kr83.h5
+ Reading Kr84 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Kr84.h5
+ Reading Kr85 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Kr85.h5
+ Reading Kr86 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Kr86.h5
+ Reading Sr89 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sr89.h5
+ Reading Sr90 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sr90.h5
+ Reading Y89 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Y89.h5
+ Reading Y90 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Y90.h5
+ Reading Y91 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Y91.h5
+ Reading Zr93 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Zr93.h5
+ Reading Zr95 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Zr95.h5
+ Reading Nb95 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nb95.h5
+ Reading Mo92 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo92.h5
+ Reading Mo94 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo94.h5
+ Reading Mo95 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo95.h5
+ Reading Mo96 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo96.h5
+ Reading Mo97 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo97.h5
+ Reading Mo98 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo98.h5
+ Reading Mo99 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo99.h5
+ Reading Mo100 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Mo100.h5
+ Reading Tc99 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Tc99.h5
+ Reading Ru100 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ru100.h5
+ Reading Ru101 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ru101.h5
+ Reading Ru102 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ru102.h5
+ Reading Ru103 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ru103.h5
+ Reading Ru104 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ru104.h5
+ Reading Ru105 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ru105.h5
+ Reading Ru106 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ru106.h5
+ Reading Rh103 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Rh103.h5
+ Reading Rh104 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Rh104.h5
+ Reading Rh105 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Rh105.h5
+ Reading Pd104 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pd104.h5
+ Reading Pd105 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pd105.h5
+ Reading Pd106 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pd106.h5
+ Reading Pd107 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pd107.h5
+ Reading Pd108 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pd108.h5
+ Reading Pd109 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pd109.h5
+ Reading Ag107 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ag107.h5
+ Reading Ag109 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ag109.h5
+ Reading Ag110_m1 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ag110_m1.h5
+ Reading Ag111 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ag111.h5
+ Reading Cd110 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cd110.h5
+ Reading Cd111 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cd111.h5
+ Reading Cd112 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cd112.h5
+ Reading Cd113 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cd113.h5
+ Reading Cd114 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cd114.h5
+ Reading In113 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/In113.h5
+ Reading In115 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/In115.h5
+ Reading Sb121 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sb121.h5
+ Reading Sb123 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sb123.h5
+ Reading Sb125 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sb125.h5
+ Reading Te127_m1 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Te127_m1.h5
+ Reading Te129_m1 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Te129_m1.h5
+ Reading Te132 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Te132.h5
+ Reading I127 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/I127.h5
+ Reading I128 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/I128.h5
+ Reading I129 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/I129.h5
+ Reading I130 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/I130.h5
+ Reading I131 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/I131.h5
+ Reading I132 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/I132.h5
+ Reading I135 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/I135.h5
+ Reading Xe128 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe128.h5
+ Reading Xe130 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe130.h5
+ Reading Xe131 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe131.h5
+ Reading Xe132 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe132.h5
+ Reading Xe133 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe133.h5
+ Reading Xe134 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe134.h5
+ Reading Xe135 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe135.h5
+ Reading Xe136 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Xe136.h5
+ Reading Cs133 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cs133.h5
+ Reading Cs134 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cs134.h5
+ Reading Cs135 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cs135.h5
+ Reading Cs136 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cs136.h5
+ Reading Cs137 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cs137.h5
+ Reading Ba134 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ba134.h5
+ Reading Ba137 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ba137.h5
+ Reading Ba140 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ba140.h5
+ Reading La139 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/La139.h5
+ Reading La140 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/La140.h5
+ Reading Ce140 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ce140.h5
+ Reading Ce141 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ce141.h5
+ Reading Ce142 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ce142.h5
+ Reading Ce143 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ce143.h5
+ Reading Ce144 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ce144.h5
+ Reading Pr141 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pr141.h5
+ Reading Pr142 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pr142.h5
+ Reading Pr143 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pr143.h5
+ Reading Nd142 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd142.h5
+ Reading Nd143 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd143.h5
+ Reading Nd144 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd144.h5
+ Reading Nd145 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd145.h5
+ Reading Nd146 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd146.h5
+ Reading Nd147 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd147.h5
+ Reading Nd148 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd148.h5
+ Reading Nd149 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd149.h5
+ Reading Nd150 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Nd150.h5
+ Reading Pm147 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pm147.h5
+ Reading Pm148 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pm148.h5
+ Reading Pm148_m1 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pm148_m1.h5
+ Reading Pm149 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pm149.h5
+ Reading Pm150 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pm150.h5
+ Reading Pm151 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pm151.h5
+ Reading Sm147 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm147.h5
+ Reading Sm148 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm148.h5
+ Reading Sm149 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm149.h5
+ Reading Sm150 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm150.h5
+ Reading Sm151 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm151.h5
+ Reading Sm152 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm152.h5
+ Reading Sm153 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm153.h5
+ Reading Sm154 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Sm154.h5
+ Reading Eu151 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Eu151.h5
+ Reading Eu152 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Eu152.h5
+ Reading Eu153 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Eu153.h5
+ Reading Eu154 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Eu154.h5
+ Reading Eu155 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Eu155.h5
+ Reading Eu156 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Eu156.h5
+ Reading Eu157 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Eu157.h5
+ Reading Gd152 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd152.h5
+ Reading Gd154 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd154.h5
+ Reading Gd155 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd155.h5
+ Reading Gd156 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd156.h5
+ Reading Gd157 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd157.h5
+ Reading Gd158 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd158.h5
+ Reading Gd159 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd159.h5
+ Reading Gd160 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Gd160.h5
+ Reading Tb159 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Tb159.h5
+ Reading Tb160 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Tb160.h5
+ Reading Tb161 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Tb161.h5
+ Reading Dy160 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Dy160.h5
+ Reading Dy161 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Dy161.h5
+ Reading Dy162 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Dy162.h5
+ Reading Dy163 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Dy163.h5
+ Reading Dy164 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Dy164.h5
+ Reading Ho165 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ho165.h5
+ Reading Er169 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Er169.h5
+ Reading Tm169 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Tm169.h5
+ Reading Tm170 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Tm170.h5
+ Reading Tm171 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Tm171.h5
+ Reading Hf174 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Hf174.h5
+ Reading Hf176 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Hf176.h5
+ Reading Hf177 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Hf177.h5
+ Reading Hf178 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Hf178.h5
+ Reading Hf179 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Hf179.h5
+ Reading Hf180 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Hf180.h5
+ Reading Hf181 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Hf181.h5
+ Reading Ta181 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ta181.h5
+ Reading Ta182 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Ta182.h5
+ Reading Th230 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Th230.h5
+ Reading Th231 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Th231.h5
+ Reading Th232 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Th232.h5
+ Reading Th233 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Th233.h5
+ Reading Th234 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Th234.h5
+ Reading Pa231 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pa231.h5
+ Reading Pa232 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pa232.h5
+ Reading Pa233 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pa233.h5
+ Reading U232 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U232.h5
+ Reading U233 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U233.h5
+ Reading U234 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U234.h5
+ Reading U236 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U236.h5
+ Reading U237 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U237.h5
+ Reading U239 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/U239.h5
+ Reading Np236 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Np236.h5
+ Reading Np237 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Np237.h5
+ Reading Np238 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Np238.h5
+ Reading Np239 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Np239.h5
+ Reading Pu236 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu236.h5
+ Reading Pu237 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu237.h5
+ Reading Pu238 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu238.h5
+ Reading Pu239 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu239.h5
+ Reading Pu240 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu240.h5
+ Reading Pu241 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu241.h5
+ Reading Pu242 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu242.h5
+ Reading Pu243 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Pu243.h5
+ Reading Am241 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Am241.h5
+ Reading Am242 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Am242.h5
+ Reading Am242_m1 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Am242_m1.h5
+ Reading Am243 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Am243.h5
+ Reading Am244 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Am244.h5
+ Reading Am244_m1 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Am244_m1.h5
+ Reading Cm242 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cm242.h5
+ Reading Cm243 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cm243.h5
+ Reading Cm244 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cm244.h5
+ Reading Cm245 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cm245.h5
+ Reading Cm246 from
+ /home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/neutron/Cm246.h5
+ Maximum neutron transport energy: 20000000 eV for Zr90
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+        1/1    1.50031
+        2/1    1.46742
+        3/1    1.40363
+        4/1    1.52199
+        5/1    1.37465
+        6/1    1.40436
+        7/1    1.46440
+        8/1    1.30723
+        9/1    1.36405
+       10/1    1.40858
+       11/1    1.50258
+       12/1    1.41885
+       13/1    1.41022
+       14/1    1.36556
+       15/1    1.40432
+       16/1    1.41078
+       17/1    1.35136
+       18/1    1.31322
+       19/1    1.36277
+       20/1    1.32215
+       21/1    1.42276
+       22/1    1.35345
+       23/1    1.36939
+       24/1    1.33260
+       25/1    1.41063
+       26/1    1.37447
+       27/1    1.38096
+       28/1    1.36215
+       29/1    1.35846
+       30/1    1.46345
+       31/1    1.40093
+       32/1    1.43439
+       33/1    1.36812
+       34/1    1.34420
+       35/1    1.41595
+       36/1    1.44127
+       37/1    1.33100
+       38/1    1.44214
+       39/1    1.40655
+       40/1    1.31018
+       41/1    1.39882
+       42/1    1.37755
+       43/1    1.41983
+       44/1    1.36789
+       45/1    1.33506
+       46/1    1.40520
+       47/1    1.53438
+       48/1    1.39923
+       49/1    1.40770
+       50/1    1.42310
+       51/1    1.28822
+       52/1    1.39998    1.34410 +/- 0.05588
+       53/1    1.44099    1.37640 +/- 0.04565
+       54/1    1.39136    1.38014 +/- 0.03250
+       55/1    1.33660    1.37143 +/- 0.02663
+       56/1    1.45192    1.38485 +/- 0.02555
+       57/1    1.38422    1.38476 +/- 0.02160
+       58/1    1.43563    1.39111 +/- 0.01975
+       59/1    1.36253    1.38794 +/- 0.01771
+       60/1    1.43425    1.39257 +/- 0.01650
+       61/1    1.39835    1.39309 +/- 0.01494
+       62/1    1.38311    1.39226 +/- 0.01366
+       63/1    1.27859    1.38352 +/- 0.01531
+       64/1    1.38743    1.38380 +/- 0.01418
+       65/1    1.38743    1.38404 +/- 0.01320
+       66/1    1.43586    1.38728 +/- 0.01276
+       67/1    1.33073    1.38395 +/- 0.01244
+       68/1    1.45259    1.38777 +/- 0.01234
+       69/1    1.46251    1.39170 +/- 0.01231
+       70/1    1.31327    1.38778 +/- 0.01232
+       71/1    1.39635    1.38819 +/- 0.01173
+       72/1    1.33177    1.38562 +/- 0.01147
+       73/1    1.40723    1.38656 +/- 0.01100
+       74/1    1.26463    1.38148 +/- 0.01170
+       75/1    1.34055    1.37984 +/- 0.01134
+       76/1    1.43584    1.38200 +/- 0.01110
+       77/1    1.39274    1.38240 +/- 0.01069
+       78/1    1.42774    1.38401 +/- 0.01043
+       79/1    1.34306    1.38260 +/- 0.01016
+       80/1    1.35619    1.38172 +/- 0.00986
+       81/1    1.44600    1.38380 +/- 0.00976
+       82/1    1.39845    1.38425 +/- 0.00946
+       83/1    1.40545    1.38490 +/- 0.00919
+       84/1    1.46087    1.38713 +/- 0.00919
+       85/1    1.42519    1.38822 +/- 0.00899
+       86/1    1.39096    1.38829 +/- 0.00874
+       87/1    1.42496    1.38928 +/- 0.00855
+       88/1    1.39507    1.38944 +/- 0.00833
+       89/1    1.37406    1.38904 +/- 0.00812
+       90/1    1.45040    1.39058 +/- 0.00806
+       91/1    1.39528    1.39069 +/- 0.00786
+       92/1    1.32344    1.38909 +/- 0.00784
+       93/1    1.42539    1.38993 +/- 0.00770
+       94/1    1.27758    1.38738 +/- 0.00795
+       95/1    1.39041    1.38745 +/- 0.00777
+       96/1    1.31641    1.38590 +/- 0.00775
+       97/1    1.39486    1.38609 +/- 0.00759
+       98/1    1.31378    1.38459 +/- 0.00758
+       99/1    1.45040    1.38593 +/- 0.00754
+      100/1    1.31820    1.38458 +/- 0.00751
+ Creating state point statepoint.100.h5...
+
+ =======================>     TIMING STATISTICS     <=======================
+
+ Total time for initialization     = 3.6167e+00 seconds
+   Reading cross sections          = 3.4872e+00 seconds
+ Total time in simulation          = 4.1984e+00 seconds
+   Time in transport only          = 3.9822e+00 seconds
+   Time in inactive batches        = 9.1230e-02 seconds
+   Time in active batches          = 4.1071e+00 seconds
+   Time synchronizing fission bank = 5.8072e-03 seconds
+     Sampling source sites         = 4.5374e-03 seconds
+     SEND/RECV source sites        = 9.7199e-04 seconds
+   Time accumulating tallies       = 1.9591e-01 seconds
+   Time writing statepoints        = 9.6125e-03 seconds
+ Total time for finalization       = 1.3744e-03 seconds
+ Total time elapsed                = 8.1247e+00 seconds
+ Calculation Rate (inactive)       = 548064 particles/second
+ Calculation Rate (active)         = 12174 particles/second
+
+ ============================>     RESULTS     <============================
+
+ k-effective (Collision)     = 1.38239 +/- 0.00686
+ k-effective (Track-length)  = 1.38458 +/- 0.00751
+ k-effective (Absorption)    = 1.39074 +/- 0.00321
+ Combined k-effective        = 1.38995 +/- 0.00331
+ Leakage Fraction            = 0.04110 +/- 0.00078
+
+ Creating state point openmc_simulation_n0.h5...
+ Maximum neutron transport energy: 20000000 eV for Zr90
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+        1/1    1.45872
+        2/1    1.50686
+        3/1    1.41614
+        4/1    1.40826
+        5/1    1.34979
+        6/1    1.33224
+        7/1    1.31277
+        8/1    1.37751
+        9/1    1.38103
+       10/1    1.34225
+       11/1    1.32521
+       12/1    1.35297
+       13/1    1.33052
+       14/1    1.38172
+       15/1    1.33416
+       16/1    1.32581
+       17/1    1.41442
+       18/1    1.36787
+       19/1    1.46187
+       20/1    1.37416
+       21/1    1.31232
+       22/1    1.28621
+       23/1    1.25635
+       24/1    1.27372
+       25/1    1.39605
+       26/1    1.30794
+       27/1    1.27806
+       28/1    1.36944
+       29/1    1.45148
+       30/1    1.32544
+       31/1    1.35573
+       32/1    1.35458
+       33/1    1.36376
+       34/1    1.38037
+       35/1    1.51073
+       36/1    1.33160
+       37/1    1.35618
+       38/1    1.41586
+       39/1    1.36895
+       40/1    1.40480
+       41/1    1.31792
+       42/1    1.32127
+       43/1    1.35479
+       44/1    1.35009
+       45/1    1.38921
+       46/1    1.44869
+       47/1    1.31708
+       48/1    1.32376
+       49/1    1.37784
+       50/1    1.27369
+       51/1    1.33652
+       52/1    1.30064    1.31858 +/- 0.01794
+       53/1    1.39770    1.34495 +/- 0.02833
+       54/1    1.28421    1.32977 +/- 0.02514
+       55/1    1.42057    1.34793 +/- 0.02663
+       56/1    1.30650    1.34102 +/- 0.02281
+       57/1    1.34852    1.34209 +/- 0.01931
+       58/1    1.25518    1.33123 +/- 0.01994
+       59/1    1.29115    1.32678 +/- 0.01814
+       60/1    1.30702    1.32480 +/- 0.01635
+       61/1    1.30816    1.32329 +/- 0.01486
+       62/1    1.31023    1.32220 +/- 0.01361
+       63/1    1.28555    1.31938 +/- 0.01283
+       64/1    1.33474    1.32048 +/- 0.01193
+       65/1    1.41130    1.32653 +/- 0.01265
+       66/1    1.31726    1.32595 +/- 0.01185
+       67/1    1.37243    1.32869 +/- 0.01146
+       68/1    1.38975    1.33208 +/- 0.01133
+       69/1    1.42748    1.33710 +/- 0.01183
+       70/1    1.37258    1.33887 +/- 0.01136
+       71/1    1.31492    1.33773 +/- 0.01087
+       72/1    1.32387    1.33710 +/- 0.01038
+       73/1    1.38130    1.33903 +/- 0.01010
+       74/1    1.38195    1.34081 +/- 0.00984
+       75/1    1.41537    1.34380 +/- 0.00990
+       76/1    1.33241    1.34336 +/- 0.00952
+       77/1    1.34033    1.34325 +/- 0.00916
+       78/1    1.26697    1.34052 +/- 0.00924
+       79/1    1.31937    1.33979 +/- 0.00894
+       80/1    1.32912    1.33944 +/- 0.00865
+       81/1    1.27176    1.33725 +/- 0.00864
+       82/1    1.37870    1.33855 +/- 0.00847
+       83/1    1.30232    1.33745 +/- 0.00828
+       84/1    1.34411    1.33765 +/- 0.00804
+       85/1    1.43520    1.34043 +/- 0.00829
+       86/1    1.35499    1.34084 +/- 0.00806
+       87/1    1.31613    1.34017 +/- 0.00787
+       88/1    1.29390    1.33895 +/- 0.00776
+       89/1    1.46113    1.34209 +/- 0.00818
+       90/1    1.38946    1.34327 +/- 0.00806
+       91/1    1.39815    1.34461 +/- 0.00797
+       92/1    1.43015    1.34665 +/- 0.00804
+       93/1    1.46536    1.34941 +/- 0.00833
+       94/1    1.35248    1.34948 +/- 0.00813
+       95/1    1.33025    1.34905 +/- 0.00796
+       96/1    1.39736    1.35010 +/- 0.00786
+       97/1    1.29445    1.34892 +/- 0.00778
+       98/1    1.35143    1.34897 +/- 0.00762
+       99/1    1.47036    1.35144 +/- 0.00786
+      100/1    1.33593    1.35113 +/- 0.00771
+ Creating state point statepoint.100.h5...
+
+ =======================>     TIMING STATISTICS     <=======================
+
+ Total time for initialization     = 0.0000e+00 seconds
+   Reading cross sections          = 0.0000e+00 seconds
+ Total time in simulation          = 4.0321e+00 seconds
+   Time in transport only          = 3.8484e+00 seconds
+   Time in inactive batches        = 4.0124e-01 seconds
+   Time in active batches          = 3.6309e+00 seconds
+   Time synchronizing fission bank = 6.5363e-03 seconds
+     Sampling source sites         = 5.3118e-03 seconds
+     SEND/RECV source sites        = 9.1082e-04 seconds
+   Time accumulating tallies       = 1.5787e-01 seconds
+   Time writing statepoints        = 9.3909e-03 seconds
+ Total time for finalization       = 1.3717e-03 seconds
+ Total time elapsed                = 4.3301e+00 seconds
+ Calculation Rate (inactive)       = 124613 particles/second
+ Calculation Rate (active)         = 13770.8 particles/second
+
+ ============================>     RESULTS     <============================
+
+ k-effective (Collision)     = 1.35332 +/- 0.00763
+ k-effective (Track-length)  = 1.35113 +/- 0.00771
+ k-effective (Absorption)    = 1.35712 +/- 0.00413
+ Combined k-effective        = 1.35725 +/- 0.00423
+ Leakage Fraction            = 0.04108 +/- 0.00094
+
+ Creating state point openmc_simulation_n1.h5...
+ Maximum neutron transport energy: 20000000 eV for Zr90
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+        1/1    1.01792
+        2/1    0.95913
+        3/1    0.97823
+        4/1    0.97704
+        5/1    0.92443
+        6/1    0.99435
+        7/1    0.93146
+        8/1    0.98717
+        9/1    0.97954
+       10/1    0.98919
+       11/1    0.91881
+       12/1    0.93965
+       13/1    1.00492
+       14/1    0.94766
+       15/1    0.90539
+       16/1    0.92560
+       17/1    0.98418
+       18/1    0.92031
+       19/1    0.97522
+       20/1    0.98244
+       21/1    0.92979
+       22/1    0.97098
+       23/1    0.94737
+       24/1    0.95436
+       25/1    0.87351
+       26/1    0.89548
+       27/1    0.96063
+       28/1    0.99405
+       29/1    0.89975
+       30/1    0.91045
+       31/1    0.89297
+       32/1    0.92544
+       33/1    0.95815
+       34/1    1.03699
+       35/1    0.95538
+       36/1    0.91244
+       37/1    1.02885
+       38/1    0.91932
+       39/1    1.00534
+       40/1    0.97216
+       41/1    0.88465
+       42/1    0.98610
+       43/1    0.90395
+       44/1    0.86691
+       45/1    0.99511
+       46/1    0.91658
+       47/1    0.99019
+       48/1    0.92612
+       49/1    0.95750
+       50/1    0.91310
+       51/1    0.95509
+       52/1    0.95716    0.95613 +/- 0.00104
+       53/1    0.91064    0.94096 +/- 0.01517
+       54/1    0.96765    0.94764 +/- 0.01264
+       55/1    0.92027    0.94216 +/- 0.01121
+       56/1    0.89422    0.93417 +/- 0.01215
+       57/1    0.93071    0.93368 +/- 0.01028
+       58/1    0.87929    0.92688 +/- 0.01120
+       59/1    0.99125    0.93403 +/- 0.01220
+       60/1    0.91774    0.93240 +/- 0.01103
+       61/1    0.92288    0.93154 +/- 0.01002
+       62/1    0.90626    0.92943 +/- 0.00938
+       63/1    1.01882    0.93631 +/- 0.01103
+       64/1    0.91577    0.93484 +/- 0.01032
+       65/1    0.95968    0.93650 +/- 0.00975
+       66/1    1.00224    0.94060 +/- 0.01000
+       67/1    0.97890    0.94286 +/- 0.00966
+       68/1    0.93605    0.94248 +/- 0.00912
+       69/1    0.97367    0.94412 +/- 0.00878
+       70/1    0.91171    0.94250 +/- 0.00848
+       71/1    0.93318    0.94206 +/- 0.00808
+       72/1    1.01535    0.94539 +/- 0.00840
+       73/1    0.95766    0.94592 +/- 0.00804
+       74/1    0.94423    0.94585 +/- 0.00770
+       75/1    0.85389    0.94217 +/- 0.00825
+       76/1    0.95778    0.94277 +/- 0.00795
+       77/1    0.95310    0.94315 +/- 0.00766
+       78/1    0.90733    0.94188 +/- 0.00749
+       79/1    0.92341    0.94124 +/- 0.00725
+       80/1    0.94621    0.94140 +/- 0.00701
+       81/1    0.97069    0.94235 +/- 0.00685
+       82/1    0.97449    0.94335 +/- 0.00670
+       83/1    0.95038    0.94357 +/- 0.00650
+       84/1    0.89471    0.94213 +/- 0.00647
+       85/1    0.95960    0.94263 +/- 0.00630
+       86/1    0.98112    0.94370 +/- 0.00622
+       87/1    0.86724    0.94163 +/- 0.00639
+       88/1    0.95415    0.94196 +/- 0.00623
+       89/1    0.94285    0.94198 +/- 0.00607
+       90/1    0.86605    0.94009 +/- 0.00621
+       91/1    0.99318    0.94138 +/- 0.00619
+       92/1    0.91956    0.94086 +/- 0.00607
+       93/1    0.95198    0.94112 +/- 0.00593
+       94/1    0.89227    0.94001 +/- 0.00590
+       95/1    0.97743    0.94084 +/- 0.00583
+       96/1    0.98240    0.94174 +/- 0.00577
+       97/1    0.98289    0.94262 +/- 0.00571
+       98/1    0.96313    0.94305 +/- 0.00561
+       99/1    0.96194    0.94343 +/- 0.00551
+      100/1    0.87983    0.94216 +/- 0.00554
+ Creating state point statepoint.100.h5...
+
+ =======================>     TIMING STATISTICS     <=======================
+
+ Total time for initialization     = 0.0000e+00 seconds
+   Reading cross sections          = 0.0000e+00 seconds
+ Total time in simulation          = 4.5784e+00 seconds
+   Time in transport only          = 4.3003e+00 seconds
+   Time in inactive batches        = 4.2038e-01 seconds
+   Time in active batches          = 4.1580e+00 seconds
+   Time synchronizing fission bank = 6.3065e-03 seconds
+     Sampling source sites         = 4.9969e-03 seconds
+     SEND/RECV source sites        = 9.2978e-04 seconds
+   Time accumulating tallies       = 2.5651e-01 seconds
+   Time writing statepoints        = 1.0447e-02 seconds
+ Total time for finalization       = 1.3776e-03 seconds
+ Total time elapsed                = 4.8834e+00 seconds
+ Calculation Rate (inactive)       = 118941 particles/second
+ Calculation Rate (active)         = 12025 particles/second
+
+ ============================>     RESULTS     <============================
+
+ k-effective (Collision)     = 0.93966 +/- 0.00531
+ k-effective (Track-length)  = 0.94216 +/- 0.00554
+ k-effective (Absorption)    = 0.94332 +/- 0.00459
+ Combined k-effective        = 0.94163 +/- 0.00436
+ Leakage Fraction            = 0.04122 +/- 0.00072
+
+ Creating state point openmc_simulation_n2.h5...
+{'Step': [1, 2, 3], 'Max_PF': [1.9536550591226562, 1.8679519000725917, 1.9026523110293394], 'Region_ID_Max': [180, 183, 182]}
+
+========== ABC TEMPERATURE ANALYSIS ==========
+
+  q'_nom = 85034.0 W/m  |  T_inlet = 703.15 K  |  T_outlet = 793.15 K  |  m_dot_total = 252.53 kg/s  |  m_dot_per_pin = 0.8418 kg/s
+
+
+[Velocity Check]
+  Subchannel velocity : 14.79 m/s  (WARNING — above 12 m/s: elevated erosion risk for SS304/316. Review cladding material selection and lifetime.)
+  Reynolds number     : 1113622  (turbulent: Re >> 2300)
+  A_flow per pin      : 0.6857 cm²
+  m_dot_per_pin       : 0.8418 kg/s
+  m_dot_total         : 252.53 kg/s
+
+--- Step 1.0 ---
+ Region_ID  Peaking_Factor  DeltaT_coolant [K]  DeltaT_fuel_peak [K]  T_fuel_peak [K]  T_coolant_top [K]
+     180.0        1.953655          175.828955            1290.31351       1993.46351         878.978955
+
+--- Step 2.0 ---
+ Region_ID  Peaking_Factor  DeltaT_coolant [K]  DeltaT_fuel_peak [K]  T_fuel_peak [K]  T_coolant_top [K]
+     183.0        1.867952          168.115671           1233.709892      1936.859892         871.265671
+
+--- Step 3.0 ---
+ Region_ID  Peaking_Factor  DeltaT_coolant [K]  DeltaT_fuel_peak [K]  T_fuel_peak [K]  T_coolant_top [K]
+     182.0        1.902652          171.238708            1256.62817       1959.77817         874.388708
+
+========== ABC Summary ==========
+ Step   Max_PF  Max_DeltaT_coolant [K]  Max_DeltaT_fuel_peak [K]  Max_T_fuel_peak [K]  Max_T_coolant_top [K]  Region_ID_hottest
+  1.0 1.953655              175.828955               1290.313510          1993.463510             878.978955              180.0
+  2.0 1.867952              168.115671               1233.709892          1936.859892             871.265671              183.0
+  3.0 1.902652              171.238708               1256.628170          1959.778170             874.388708              182.0
+=================================
+
+
+[Thermal] Max fuel peak temperature : 1993.5 K
+[Thermal] Max fuel peak ΔT (above inlet) : 1290.3 K
+[Thermal] Max coolant axial ΔT : 175.8 K
+
+
+
+For the cost of the Account 221.12: Outer Vessel Structure, the Guard Vessel Material is selected to be stainless_steel
+
+
+For the cost of the Account 221.13: Inner Vessel Structure, the Vessel Material is selected to be stainless_steel
+
+
+For the cost of the Account 221.213: Control Drums Materials (Absorber), the Control Drum Absorber is selected to be B4C_enriched
+
+
+For the cost of the Account 221.214: Control Drums Materials (Reflector), the Control Drum Reflector is selected to be Graphite
+
+
+For the cost of the Account 221.311: Radial Reflector, the Radial Reflector is selected to be Graphite
+
+
+For the cost of the Account 221.312: Axial Reflector, the Axial Reflector is selected to be Graphite
+
+
+For the cost of the Account 221.321: In Vessel Shield Materials, the In Vessel Shield Material is selected to be B4C_natural
+
+
+For the cost of the Account 221.322: Out The Vessel Shield Materials, the Out Of Vessel Shield Material is selected to be WEP
+
+
+For the cost of the Account 221.33: Moderator, the Moderator is selected to be ZrH
+
+
+For the cost of the Account 222.11: Primary Pump, the Primary Pump is selected to be Yes
+
+
+For the cost of the Account 222.2: Reactor Heat Transfer Piping System, the reactor type is selected to be LTMR
+
+
+For the cost of the Account 222.31: Primary Heat Exchanger, the HX Material is selected to be SS316
+
+
+For the cost of the Account 222.32: Secondary Heat Exchanger, the HX Material is selected to be SS316
+
+
+For the cost of the Account 222.5: Initial Coolant Inventory, the Coolant is selected to be NaK
+
+
+For the cost of the Account 226.0: Other Reactor Plant Equipment, the reactor type is selected to be LTMR
+
+
+For the cost of the Account 254.0: First Core Fuel Assembly Fabrication , the TRISO Fueled is selected to be No
+
+
+For the cost of the Account 254.0: First Core Fuel Assembly Fabrication , the TRISO Fueled is selected to be No
+
+
+For the cost of the Account 721.0: Coolant, the Coolant is selected to be NaK
+
+
+Sample # 100
+
+
+Parameters saved — 242 entries across 17 groups.
+
+
+Cost drivers plot saved at LTMR_cost_drivers.png
+Detailed cost drivers plot saved at LTMR_cost_drivers(detailed).png
+
+
+The cost estimate and all the parameters are saved at /home/garcsamu/OpenMC/MOUSE/examples/watts_exec_LTMR_pin_temp_output.xlsx
+
+
+Execution time: 1.6 minutes

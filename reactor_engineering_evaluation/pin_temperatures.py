@@ -1,7 +1,7 @@
 """
 compute_pin_temperatures.py
 ============================
-Derives per-pin axial temperature profiles and top-minus-bottom temperature
+Derives axial temperature profiles and  temperature
 differences from OpenMC radial peaking factors, using:
   - A cosine axial power shape whose peak amplitude equals the radial PF
     from compute_pin_peaking_factors() (MOUSE)
@@ -155,7 +155,11 @@ class LTMRThermalProperties:
         "UO2":        3.5,
         "UC":         20.0,
         "UN":         20.0,
-        "TRIGA_fuel": 14.0,
+        "TRIGA_fuel": 14.0,   # ZrH-U fuel (General Atomics TRIGA data)
+        "UZrH_alloy": 14.0,   # U-ZrHx alloy — same family as TRIGA_fuel.
+                               # k ~ 14-18 W/(m·K) at operating temperatures.
+                               # Conservative mid-range; override via
+                               # props.k_fuel if composition-specific data available.
     })
 
     def set_fuel_k_from_name(self, fuel_name: str) -> None:
@@ -173,24 +177,26 @@ class LTMRCoolantConditions:
     """
     System-level coolant operating conditions.
 
-    Specify the thermal-hydraulic boundary conditions (T_inlet, T_outlet,
-    P_total_W) and the required total mass-flow rate is derived automatically
-    from the core energy balance:
+    Specify T_inlet, DeltaT_coolant, and P_total_W as design inputs.
+    The required mass-flow rate and outlet temperature are derived:
 
-        m_dot_total = P_total_W / (cp_NaK * (T_outlet - T_inlet))
+        m_dot_total = P_total_W / (cp_NaK * DeltaT_coolant)
+        T_outlet    = T_inlet + DeltaT_coolant
 
     Attributes
     ----------
-    T_inlet        : Coolant inlet temperature [K]
-    T_outlet       : Coolant outlet temperature [K]  (core-average, nominal)
-    P_total_W      : Total reactor thermal power [W]
-    N_fuel_pins    : Total number of fuel pins in the core
-    cp_NaK         : NaK specific heat capacity [J/(kg·K)]
-    rho_NaK        : NaK density at mean coolant temperature [kg/m³]
-    h_NaK_override : If set, bypasses the Nu correlation entirely [W/(m²·K)]
+    T_inlet          : Coolant inlet temperature [K]
+    DeltaT_coolant   : Design core-average coolant temperature rise [K]
+                       (= T_outlet - T_inlet). This is the primary thermal-
+                       hydraulic design target; m_dot is sized to achieve it.
+    P_total_W        : Total reactor thermal power [W]
+    N_fuel_pins      : Total number of fuel pins in the core
+    cp_NaK           : NaK specific heat capacity [J/(kg·K)]
+    rho_NaK          : NaK density at mean coolant temperature [kg/m³]
+    h_NaK_override   : If set, bypasses the Nu correlation entirely [W/(m²·K)]
     """
     T_inlet:        float = 703.15   # K  (430 °C — LTMR default)
-    T_outlet:       float = 793.15   # K  (520 °C — LTMR default)
+    DeltaT_coolant: float = 90.0     # K  (design target temperature rise)
     P_total_W:      float = 20.0e6   # W  (20 MWt — LTMR default)
     N_fuel_pins:    int   = 1
     cp_NaK:         float = 880.0    # J/(kg·K)
@@ -198,16 +204,20 @@ class LTMRCoolantConditions:
     h_NaK_override: Optional[float] = None
 
     def __post_init__(self):
-        if self.T_outlet <= self.T_inlet:
+        if self.DeltaT_coolant <= 0:
             raise ValueError(
-                f"T_outlet ({self.T_outlet} K) must be greater than "
-                f"T_inlet ({self.T_inlet} K)."
+                f"DeltaT_coolant ({self.DeltaT_coolant} K) must be positive."
             )
 
     @property
+    def T_outlet(self) -> float:
+        """Coolant outlet temperature derived from inlet + ΔT [K]."""
+        return self.T_inlet + self.DeltaT_coolant
+
+    @property
     def m_dot_total(self) -> float:
-        """Total mass-flow rate derived from energy balance [kg/s]."""
-        return self.P_total_W / (self.cp_NaK * (self.T_outlet - self.T_inlet))
+        """Total mass-flow rate required to achieve DeltaT_coolant [kg/s]."""
+        return self.P_total_W / (self.cp_NaK * self.DeltaT_coolant)
 
     @property
     def m_dot_per_pin(self) -> float:
@@ -393,7 +403,7 @@ def _solve_radial(
 
 
 # ============================================================================
-# Axial model — cosine power shape, coolant energy balance
+# Axial model — uniform linear heat rate, linear coolant temperature rise
 # ============================================================================
 
 def _axial_profiles(
@@ -406,27 +416,29 @@ def _axial_profiles(
     n_nodes:     int = 50,
 ) -> dict:
     """
-    Compute axial temperature profiles for one pin.
+    Compute axial temperature profiles for one pin assuming a uniform
+    (flat) axial power distribution.
 
-    Cosine power shape
-    ------------------
-    The PF from MOUSE is the radial (pin-to-average) power ratio. For the
-    axial cosine shape we require that integrating q'(z) over the active
-    length reproduces the total pin power:
+    Uniform power shape
+    -------------------
+    The local linear heat rate is constant along the entire active length:
 
-        integral_0^L q'_peak * cos(pi*(z - L/2)/L) dz = PF * q'_nom * L
+        q'(z) = PF * q'_nom   for all z in [0, L]
 
-        LHS = q'_peak * (2L/pi)
-        => q'_peak = PF * q'_nom * pi / 2
-
-    Coolant temperature (energy balance from inlet at z=0)
+    Coolant temperature (linear rise from inlet to outlet)
     -------------------------------------------------------
-        T_coolant(z) = T_inlet
-                     + q'_peak / (m_dot_pin * cp) * (L/pi) * (1 - cos(pi*z/L))
+    With uniform heat deposition, the coolant temperature rises linearly:
 
-    At z = L:  T_coolant(L) = T_inlet + 2*q'_peak*L/(pi * m_dot_pin * cp)
-                             = T_inlet + PF * q'_nom * L / (m_dot_pin * cp)
-    (identical to the lumped energy balance — self-consistent)
+        T_coolant(z) = T_inlet + (q' * z) / (m_dot_pin * cp_NaK)
+
+    At z = L:
+        T_coolant(L) = T_inlet + PF * q'_nom * L / (m_dot_pin * cp_NaK)
+                     = T_inlet + PF * DeltaT_coolant_nom
+
+    The radial solve (_solve_radial) is applied at each axial node using
+    the local T_coolant(z) and the constant q'(z) = PF * q'_nom.
+    The fuel peak temperature is therefore highest at the top of the core
+    (z = L) where the coolant is hottest.
 
     Parameters
     ----------
@@ -438,29 +450,26 @@ def _axial_profiles(
     Returns
     -------
     dict with:
-        z              : axial positions array [m], shape (n_nodes,)
-        q_prime_z      : local linear heat rate [W/m]
+        z              : axial positions [m], shape (n_nodes,)
+        q_prime_z      : local linear heat rate [W/m]  (constant array)
         T_coolant_z    : coolant bulk temperature [K]
         T_fuel_max_z   : peak fuel temperature (at r_i) [K]
         T_co_z         : cladding outer surface temperature [K]
-        DeltaT_fuel    : T_fuel_max(top) - T_fuel_max(bottom)  [K]
-        DeltaT_coolant : T_coolant(top)  - T_coolant(bottom)   [K]
-        q_prime_peak   : peak linear heat rate (at core midplane) [W/m]
+        DeltaT_fuel    : T_fuel_max(top) - T_fuel_max(bottom) [K]
+        DeltaT_coolant : T_coolant(top)  - T_coolant(bottom)  [K]
+        q_prime_pin    : pin linear heat rate [W/m]  (= PF * q'_nom)
     """
-    L         = geom.L_active
-    # Peak linear heat rate (cosine amplitude)
-    q_prime_peak = PF * q_prime_nom * np.pi / 2.0
+    L       = geom.L_active
+    q_prime = PF * q_prime_nom   # uniform linear heat rate for this pin [W/m]
 
-    # Axial nodes: from bottom (z=0) to top (z=L)
     z = np.linspace(0.0, L, n_nodes)
 
-    # Local linear heat rate: cosine centred at z = L/2
-    q_prime_z = q_prime_peak * np.cos(np.pi * (z - L / 2.0) / L)
+    # Uniform heat rate — same at every axial node
+    q_prime_z = np.full(n_nodes, q_prime)
 
-    # Coolant bulk temperature at each axial node (energy balance from inlet)
+    # Coolant temperature: linear rise from inlet
     T_coolant_z = (cond.T_inlet
-                   + q_prime_peak / (cond.m_dot_per_pin * cond.cp_NaK)
-                   * (L / np.pi) * (1.0 - np.cos(np.pi * z / L)))
+                   + q_prime * z / (cond.m_dot_per_pin * cond.cp_NaK))
 
     # Radial solve at each axial node
     T_fuel_max_z = np.zeros(n_nodes)
@@ -479,7 +488,7 @@ def _axial_profiles(
         "T_co_z":          T_co_z,
         "DeltaT_fuel":     float(T_fuel_max_z[-1] - T_fuel_max_z[0]),
         "DeltaT_coolant":  float(T_coolant_z[-1]  - T_coolant_z[0]),
-        "q_prime_peak":    float(q_prime_peak),
+        "q_prime_pin":     float(q_prime),
     }
 
 
@@ -534,7 +543,7 @@ def compute_pin_temperatures(
         Keys: depletion step (int).
         Values: DataFrame with one row per pin:
             Region_ID, Peaking_Factor, Step,
-            q_prime_peak [W/m],
+            q_prime_pin [W/m],
             T_fuel_bottom [K], T_fuel_top [K], DeltaT_fuel [K],
             T_coolant_bottom [K], T_coolant_top [K], DeltaT_coolant [K],
             axial_profiles  (dict with full z, T arrays — for plotting)
@@ -571,7 +580,7 @@ def compute_pin_temperatures(
                 "Region_ID":           pin["Region_ID"],
                 "Peaking_Factor":      PF,
                 "Step":                step,
-                "q_prime_peak [W/m]":  ax["q_prime_peak"],
+                "q_prime_pin [W/m]":   ax["q_prime_pin"],
                 # Bottom of core (z = 0, coolant inlet side)
                 "T_fuel_bottom [K]":   float(ax["T_fuel_max_z"][0]),
                 "T_coolant_bottom [K]": float(ax["T_coolant_z"][0]),
@@ -632,8 +641,8 @@ if __name__ == "__main__":
     N_pins  = 397
 
     cond = LTMRCoolantConditions(
-        T_inlet     = T_in,
-        T_outlet    = T_out,
+        T_inlet        = T_in,
+        DeltaT_coolant = T_out - T_in,
         P_total_W   = P_total,
         N_fuel_pins = N_pins,
         cp_NaK      = cp,
@@ -675,19 +684,6 @@ if __name__ == "__main__":
         print(f"  Pin {int(row['Region_ID']):2d}  PF={PF:.3f}  "
               f"DeltaT_axial={dT_axial:.4f}  lumped={dT_lumped:.4f}  match={match}")
 
-
-# ============================================================================
-# Note on cosine endpoints and what to report for ABC analysis
-# ============================================================================
-# With a pure cosine q'(z) = q'_peak * cos(pi*(z-L/2)/L):
-#   - At z=0 and z=L: q'=0, so T_fuel = T_coolant (no radial drop)
-#   - DeltaT_fuel (top-bottom) therefore equals DeltaT_coolant
-#
-# For ABC analysis the physically meaningful quantities are:
-#   DeltaT_coolant = T_coolant(top) - T_coolant(bottom)   [coolant axial rise]
-#   DeltaT_fuel_peak = T_fuel_max(midplane) - T_coolant(bottom=inlet)
-#                    = T_fuel_max at z=L/2 minus T_inlet
-#
 # Use compute_pin_temperatures_abc() below which reports these clearly.
 
 def compute_pin_temperatures_abc(
@@ -704,8 +700,8 @@ def compute_pin_temperatures_abc(
     Reports per pin, per depletion step:
       DeltaT_coolant   : T_coolant(top) - T_coolant(bottom)
                          = axial coolant temperature rise  [K]
-      DeltaT_fuel_peak : T_fuel_max(midplane) - T_inlet
-                         = fuel temperature rise above inlet at peak power location [K]
+      DeltaT_fuel_peak : T_fuel_max(top) - T_inlet
+                         = fuel temperature rise above inlet at the core outlet [K]
       T_fuel_peak      : absolute peak fuel temperature [K]
       T_coolant_top    : coolant outlet temperature for this pin [K]
 
@@ -718,7 +714,7 @@ def compute_pin_temperatures_abc(
 
     print("\n========== ABC TEMPERATURE ANALYSIS ==========\n")
     print(f"  q'_nom = {q_prime_nom:.1f} W/m  |  T_inlet = {cond.T_inlet:.2f} K  "
-          f"|  T_outlet = {cond.T_outlet:.2f} K  |  m_dot_total = {cond.m_dot_total:.2f} kg/s  "
+          f"|  DeltaT_coolant = {cond.DeltaT_coolant:.2f} K  |  T_outlet = {cond.T_outlet:.2f} K  |  m_dot_total = {cond.m_dot_total:.2f} kg/s  "
           f"|  m_dot_per_pin = {cond.m_dot_per_pin:.4f} kg/s\n")
 
     check_velocity(geom, cond)
@@ -729,12 +725,10 @@ def compute_pin_temperatures_abc(
             PF = float(pin["Peaking_Factor"])
             ax = _axial_profiles(PF, q_prime_nom, h, geom, props, cond, n_axial)
 
-            # Midplane index (peak of cosine)
-            mid = len(ax["z"]) // 2
-
+            # With uniform power, fuel peak is at the top (hottest coolant)
             DeltaT_coolant   = float(ax["T_coolant_z"][-1] - ax["T_coolant_z"][0])
-            DeltaT_fuel_peak = float(ax["T_fuel_max_z"][mid] - cond.T_inlet)
-            T_fuel_peak      = float(ax["T_fuel_max_z"][mid])
+            DeltaT_fuel_peak = float(ax["T_fuel_max_z"][-1] - cond.T_inlet)
+            T_fuel_peak      = float(ax["T_fuel_max_z"][-1])
             T_coolant_top    = float(ax["T_coolant_z"][-1])
 
             rows.append({
@@ -778,12 +772,9 @@ def run_thermal_analysis(params) -> None:
     """
     Run pin temperature ABC analysis after the OpenMC depletion run.
 
-    Called from watts_exec_LTMR_pin_temp.py immediately after Sec. 6
-    (Primary Loop + BoP), once both the neutronics results and coolant
-    boundary conditions are available in params.
-
-    All inputs are read directly from params — no hardcoding needed.
-    Results are stored back into params for downstream use.
+    Reads pf_per_step from params['PF Per Step'], which is stored there
+    by openmc_depletion() in utils.py while the statepoints are still
+    local. This avoids any dependency on the watts database path.
 
     Required params keys
     --------------------
@@ -793,27 +784,33 @@ def run_thermal_analysis(params) -> None:
         'Active Height'     : cm
         'Fuel Pin Count'    : int
     Power / coolant:
-        'Power MWt'                     : MWt
+        'Power MWt'                      : MWt
         'Primary Loop Inlet Temperature' : K
         'Primary Loop Outlet Temperature': K
     Fuel:
-        'Fuel'  : string  e.g. 'UZrH_alloy', 'UN', 'UC', 'UO2'
+        'Fuel' : string  e.g. 'UZrH_alloy', 'UN', 'UC', 'UO2'
+    Neutronics (set by openmc_depletion):
+        'PF Summary' : pf_summary.to_dict(orient='list') from compute_pin_peaking_factors()
+                       Must contain columns: Step, Max_PF, Region_ID_Max
     """
-    import watts
-    from core_design.peaking_factor import compute_pin_peaking_factors
+    pf_summary_dict = params.get('PF Summary')
 
-    # --- Locate statepoint directory from the most recent watts result ---
-    db          = watts.Database()
-    results_dir = str(db[-1].base_path)
-
-    # --- Peaking factors from MOUSE ---
-    pf_summary, per_step_data = compute_pin_peaking_factors(
-        current_dir=results_dir
-    )
-
-    if not per_step_data:
-        print("[Thermal] No peaking factor data found — skipping thermal analysis.")
+    if not pf_summary_dict:
+        print("[Thermal] 'PF Summary' not found in params — skipping thermal analysis.")
         return
+
+    # --- Reconstruct worst-case (max PF) pin per step from pf_summary ---
+    # pf_summary was stored as a dict of lists via .to_dict(orient='list').
+    # We only solve for the hottest pin at each step — this is a safety analysis.
+    pf_summary = pd.DataFrame(pf_summary_dict)
+    worst_case_per_step = {}
+    for _, row in pf_summary.iterrows():
+        step = row['Step']
+        worst_case_per_step[step] = pd.DataFrame([{
+            'Region_ID':      row['Region_ID_Max'],
+            'Peaking_Factor': row['Max_PF'],
+            'Step':           step,
+        }])
 
     # --- Build geometry from params (all cm → m) ---
     radii = params['Fuel Pin Radii']   # [r_Zr, r_fi, r_fo, r_ci, r_co] in cm
@@ -834,17 +831,25 @@ def run_thermal_analysis(params) -> None:
     # --- Coolant conditions: inlet/outlet T set by user; m_dot derived ---
     cond = LTMRCoolantConditions(
         T_inlet     = params['Primary Loop Inlet Temperature'],
-        T_outlet    = params['Primary Loop Outlet Temperature'],
+        DeltaT_coolant = (params['Primary Loop Outlet Temperature']
+                          - params['Primary Loop Inlet Temperature']),
         P_total_W   = params['Power MWt'] * 1e6,
         N_fuel_pins = params['Fuel Pin Count'],
     )
 
+    # Mirror the params that mass_flow_rate() in tools.py would have set.
+    # For the LTMR there is no 'Primary Loop per loop load fraction' key, so
+    # loop_factor = 1 and both quantities equal cond.m_dot_total.
+    loop_factor = params.get('Primary Loop per loop load fraction', 1)
+    params['Coolant Mass Flow Rate']      = cond.m_dot_total / loop_factor
+    params['Primary Loop Mass Flow Rate'] = cond.m_dot_total
+
     # --- Nominal linear heat rate ---
     q_nom = (params['Power MWt'] * 1e6) / (params['Fuel Pin Count'] * geom.L_active)
 
-    # --- Run ABC temperature analysis ---
+    # --- Run ABC temperature analysis (worst-case pin per step only) ---
     abc_summary, abc_per_step = compute_pin_temperatures_abc(
-        per_step_data = per_step_data,
+        per_step_data = worst_case_per_step,
         geom          = geom,
         props         = props,
         cond          = cond,
@@ -852,8 +857,8 @@ def run_thermal_analysis(params) -> None:
     )
 
     # --- Store results back into params ---
-    params['ABC Temperature Summary']    = abc_summary
-    params['ABC Temperature Per Step']   = abc_per_step
+    params['ABC Worst Case Summary']     = abc_summary
+    params['ABC Worst Case Per Step']    = abc_per_step
     params['Max DeltaT Fuel [K]']        = float(
         abc_summary['Max_DeltaT_fuel_peak [K]'].max())
     params['Max DeltaT Coolant [K]']     = float(

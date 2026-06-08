@@ -36,7 +36,7 @@ def update_params(updates):
 # **************************************************************************************************************************
 
 update_params({
-    'plotting': "N",  # "Y" or "N": Yes or No
+    'plotting': "Y",  # "Y" or "N": Yes or No
     'XS_type': 'endf8.1',
     'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml', # on INL HPC
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml'       # on INL HPC
@@ -85,6 +85,7 @@ params['Active Height']  =   78.4  # Or it is 2 * params['Lattice Radius']
 params['Assembly FTF'] = 2 * params['Lattice Apothem']
 params['Axial Reflector Thickness'] = params['Radial Reflector Thickness'] # cm
 params['Fuel Pin Count'] = calculate_pins_in_assembly(params, "FUEL")
+print(params['Fuel Pin Count'])
 params['Moderator Pin Count'] =  calculate_pins_in_assembly(params, "MODERATOR")
 params['Moderator Mass'] = calculate_moderator_mass(params)
 params['Core Radius'] = calculate_core_radius_from_hex(params)
@@ -112,11 +113,30 @@ update_params({
     'Power MWt': 20,  # MWt
     'Thermal Efficiency': 0.31,
     'Heat Flux Criteria': 0.9,  # MW/m^2
-    'Burnup Steps': [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 60.0, 80.0, 100.0, 120.0, 140.0]   # MWd_per_Kg
+    'Burnup Steps': [0.1, 200.0] 
+    # 'Burnup Steps': [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 60.0, 80.0, 100.0, 120.0, 140.0]   # MWd_per_Kg
 })
 params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux'] =  calculate_heat_flux(params)
 
+update_params({
+    'Secondary HX Mass': 0,
+    'Primary Pump': 'Yes',
+    'Secondary Pump': 'No',
+    'Pump Isentropic Efficiency': 0.8,
+    'Primary Loop Inlet Temperature': 430 + 273.15, # K
+    'Primary Loop Outlet Temperature': 520 + 273.15, # K
+    'Secondary Loop Inlet Temperature': 395 + 273.15, # K
+    'Secondary Loop Outlet Temperature': 495 + 273.15, # K,
+})
+
+params['Primary HX Mass'] = calculate_heat_exchanger_mass(params)  # Kg
+# Update BoP Parameters
+params.update({
+    'BoP Count': 2, # Number of BoP present in plant
+    'BoP per loop load fraction': 0.5, # based on assuming that each BoP Handles the total load evenly (1/2)
+    })
+params['BoP Power kWe'] = 1000 * params['Power MWe'] * params['BoP per loop load fraction']
 # **************************************************************************************************************************
 #                                           Sec. 5: Running OpenMC
 # **************************************************************************************************************************
@@ -159,28 +179,29 @@ fuel_calculations(params)  # calculate the fuel mass and SWU
 #                                           Sec. 6: Primary Loop + Balance of Plant
 # ************************************************************************************************************************** 
 
-update_params({
-    'Secondary HX Mass': 0,
-    'Primary Pump': 'Yes',
-    'Secondary Pump': 'No',
-    'Pump Isentropic Efficiency': 0.8,
-    'Primary Loop Inlet Temperature': 430 + 273.15, # K
-    'Primary Loop Outlet Temperature': 520 + 273.15, # K
-    'Secondary Loop Inlet Temperature': 395 + 273.15, # K
-    'Secondary Loop Outlet Temperature': 495 + 273.15, # K,
-})
+# update_params({
+#     'Secondary HX Mass': 0,
+#     'Primary Pump': 'Yes',
+#     'Secondary Pump': 'No',
+#     'Pump Isentropic Efficiency': 0.8,
+#     'Primary Loop Inlet Temperature': 430 + 273.15, # K
+#     'Primary Loop Outlet Temperature': 520 + 273.15, # K
+#     'Secondary Loop Inlet Temperature': 395 + 273.15, # K
+#     'Secondary Loop Outlet Temperature': 495 + 273.15, # K,
+# })
 
-params['Primary HX Mass'] = calculate_heat_exchanger_mass(params)  # Kg
-# Update BoP Parameters
-params.update({
-    'BoP Count': 2, # Number of BoP present in plant
-    'BoP per loop load fraction': 0.5, # based on assuming that each BoP Handles the total load evenly (1/2)
-    })
-params['BoP Power kWe'] = 1000 * params['Power MWe'] * params['BoP per loop load fraction']
+# params['Primary HX Mass'] = calculate_heat_exchanger_mass(params)  # Kg
+# # Update BoP Parameters
+# params.update({
+#     'BoP Count': 2, # Number of BoP present in plant
+#     'BoP per loop load fraction': 0.5, # based on assuming that each BoP Handles the total load evenly (1/2)
+#     })
+# params['BoP Power kWe'] = 1000 * params['Power MWe'] * params['BoP per loop load fraction']
 # calculate coolant mass flow rate
 # mass_flow_rate(params)
-calculate_primary_pump_mechanical_power(params)
+print(params['PF Summary'])
 run_thermal_analysis(params)
+calculate_primary_pump_mechanical_power(params)
 # **************************************************************************************************************************
 #                                           Sec. 7: Shielding
 # ************************************************************************************************************************** 
@@ -337,7 +358,6 @@ params['ITC credit level'] = 0.30  # fraction — assumes prevailing wage requir
 # **************************************************************************************************************************
 params['Number of Samples'] = 100 # Accounting for cost uncertainties
 # Estimate costs using the cost database file and save the output to an Excel file
-tracked_params_list =     ["Fuel","Fuel Lifetime", "XS_type","Enrichment", "Mass U235", "Mass U238", "Uranium Mass"]
-parametric_studies('/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx',  tracked_params_list)
-elapsed_time = (time.time() - time_start) / 60  # Calculate execution time
+estimate = detailed_bottom_up_cost_estimate('/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx')
+elapsed_time = (time.time() - time_start) / 60  # calculate execution time
 print('Execution time:', np.round(elapsed_time, 1), 'minutes')

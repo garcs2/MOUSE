@@ -71,11 +71,6 @@ def compute_pin_peaking_factors(current_dir="."):
             ]
 
         # Detect tally format: distribcell (LTMR) or mesh-based (GCMR).
-        # Mesh column names depend on the OpenMC version and how many meshes have been
-        # created in the session (the mesh ID counter increments globally, so when
-        # build_openmc_model_GCMR is called twice — e.g. for Isothermal Temperature
-        # Coefficients — the second mesh gets ID 2, not 1).  We detect the mesh
-        # columns dynamically by regex rather than hard-coding "mesh 1 x" etc.
         x_cols = [c for c in df.columns if re.match(r"mesh \d+ x$", c)]
         y_cols = [c for c in df.columns if re.match(r"mesh \d+ y$", c)]
         z_cols = [c for c in df.columns if re.match(r"mesh \d+ z$", c)]
@@ -85,11 +80,9 @@ def compute_pin_peaking_factors(current_dir="."):
             tally_type = "distribcell"
             per_region = df.groupby("distribcell")["mean"].sum()
         elif x_cols and y_cols and z_cols:
-            # New OpenMC format: separate x / y / z columns
             tally_type = "mesh_xyz"
             per_region = df.groupby([x_cols[0], y_cols[0], z_cols[0]])["mean"].sum()
         elif flat_mesh_cols:
-            # Old OpenMC format: single "mesh N" column (flat voxel index)
             tally_type = "mesh_flat"
             per_region = df.groupby(flat_mesh_cols[0])["mean"].sum()
         else:
@@ -140,3 +133,62 @@ def compute_pin_peaking_factors(current_dir="."):
     print("============================================\n")
 
     return summary, per_step_data
+
+
+def get_pin_positions(statepoint_path: str, pin_pitch: float) -> pd.DataFrame:
+    """
+    Map distribcell region IDs to (x, y) Cartesian positions in the core.
+ 
+    Uses OpenMC's get_distribcell_paths to decode the hex lattice indices
+    from each instance's geometry path, then converts to cm.
+ 
+    Parameters
+    ----------
+    statepoint_path : path to any openmc_simulation_n*.h5 file
+    pin_pitch       : centre-to-centre pin pitch [cm]
+                      = 2 * params['Fuel Pin Radii'][-1] + params['Pin Gap Distance']
+ 
+    Returns
+    -------
+    DataFrame with columns: region_id, ix, iy, x [cm], y [cm]
+    """
+    sp = openmc.StatePoint(statepoint_path)
+    t  = sp.get_tally(name='pin_power_kappa')
+ 
+    # Load geometry from xml files in the current working directory.
+    # get_distribcell_paths works directly on the geometry object.
+    geom = openmc.Geometry.from_xml()
+    df = t.get_pandas_dataframe(paths=False)
+ 
+    # Get all unique distribcell instance IDs in the tally
+    region_ids = sorted(df['distribcell'].unique())
+ 
+    # get_distribcell_paths needs the cell ID from the DistribcellFilter
+    distribcell_filter = next(
+        f for f in t.filters
+        if isinstance(f, openmc.DistribcellFilter)
+    )
+    cell_id = distribcell_filter.bins[0]
+ 
+    # Returns one path string per instance, ordered by instance index
+    # get_distribcell_paths is a method on the Cell, not the Geometry
+    fuel_cell = geom.get_all_cells()[cell_id]
+    paths = fuel_cell.get_distribcell_paths()
+ 
+    rows = []
+    for region_id in region_ids:
+        path = paths[region_id]
+        # Path format: "... -> HexLattice(...) -> (ix, iy, iz) -> ..."
+        matches = re.findall(r'\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)', path)
+        if not matches:
+            continue
+        # Take the last match — innermost lattice in the geometry hierarchy
+        ix, iy, iz = int(matches[-1][0]), int(matches[-1][1]), int(matches[-1][2])
+ 
+        # Pointy-top hex lattice (OpenMC HexLattice default orientation='y')
+        x = pin_pitch * (ix + iy * 0.5)
+        y = pin_pitch * iy * (3**0.5 / 2)
+ 
+        rows.append({'region_id': region_id, 'ix': ix, 'iy': iy, 'x [cm]': x, 'y [cm]': y})
+ 
+    return pd.DataFrame(rows)
