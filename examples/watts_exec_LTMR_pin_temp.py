@@ -89,7 +89,7 @@ print(params['Fuel Pin Count'])
 params['Moderator Pin Count'] =  calculate_pins_in_assembly(params, "MODERATOR")
 params['Moderator Mass'] = calculate_moderator_mass(params)
 params['Core Radius'] = calculate_core_radius_from_hex(params)
-
+print(f"This is core radius: {params['Core Radius']}")
 # **************************************************************************************************************************
 #                                           Sec. 3: Control Drums
 # ************************************************************************************************************************** 

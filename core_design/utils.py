@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from core_design.correction_factor import corrected_keff_2d
 from core_design.peaking_factor import compute_pin_peaking_factors
-from reactor_engineering_evaluation.pin_temperatures import plot_peaking_factor_map
+# from reactor_engineering_evaluation.pin_temperatures import plot_peaking_factor_map
 import pandas
 import copy
 import glob

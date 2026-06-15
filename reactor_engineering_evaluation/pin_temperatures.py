@@ -311,7 +311,6 @@ def check_velocity(
     """
     u = subchannel_velocity(geom, cond)
 
-    # Subchannel area and Re for context
     P      = geom.pin_pitch
     A_flow = (np.sqrt(3) / 4.0) * P**2 - (np.pi / 2.0) * geom.r_co**2
     Re     = cond.rho_NaK * u * geom.D_co / 3.5e-4  # mu_NaK ~ 3.5e-4 Pa·s
@@ -493,198 +492,52 @@ def _axial_profiles(
 
 
 # ============================================================================
+# Internal helper: solve and print a single PF case
+# ============================================================================
+
+def _solve_and_print_case(
+    label:       str,
+    PF:          float,
+    q_prime_nom: float,
+    h_NaK:       float,
+    geom:        LTMRPinGeometry,
+    props:       LTMRThermalProperties,
+    cond:        LTMRCoolantConditions,
+    n_axial:     int = 50,
+) -> dict:
+    """
+    Run _axial_profiles for a given PF, print a detailed radial summary
+    at the outlet (top of core, worst-case location), and return the
+    axial profile dict.
+    """
+    ax  = _axial_profiles(PF, q_prime_nom, h_NaK, geom, props, cond, n_axial)
+    sol = _solve_radial(ax["q_prime_z"][-1], ax["T_coolant_z"][-1], h_NaK, geom, props)
+
+    print(f"\n  {'─'*55}")
+    print(f"  {label}  (PF = {PF:.4f})")
+    print(f"  {'─'*55}")
+    print(f"  q' (pin linear heat rate)  : {ax['q_prime_pin']:.1f} W/m")
+    print(f"  T_coolant (outlet / top)   : {ax['T_coolant_z'][-1]:.2f} K  "
+          f"({ax['T_coolant_z'][-1]-273.15:.1f} °C)")
+    print(f"  T_co  (clad outer, top)    : {sol['T_co']:.2f} K  "
+          f"({sol['T_co']-273.15:.1f} °C)")
+    print(f"  T_ci  (clad inner, top)    : {sol['T_ci']:.2f} K  "
+          f"({sol['T_ci']-273.15:.1f} °C)")
+    print(f"  T_fo  (fuel outer, top)    : {sol['T_fo']:.2f} K  "
+          f"({sol['T_fo']-273.15:.1f} °C)")
+    print(f"  T_fi  (fuel peak, top)     : {sol['T_fi']:.2f} K  "
+          f"({sol['T_fi']-273.15:.1f} °C)")
+    print(f"  DeltaT_coolant (top-bot)   : {ax['DeltaT_coolant']:.2f} K")
+    print(f"  DeltaT_fuel    (top-bot)   : {ax['DeltaT_fuel']:.2f} K")
+    print(f"  DeltaT_fuel_peak (T_fi - T_inlet) : "
+          f"{sol['T_fi'] - cond.T_inlet:.2f} K")
+
+    return ax
+
+
+# ============================================================================
 # Public API
 # ============================================================================
-
-def compute_pin_temperatures(
-    per_step_data: dict,
-    geom:          LTMRPinGeometry,
-    props:         LTMRThermalProperties,
-    cond:          LTMRCoolantConditions,
-    q_prime_nom:   float,
-    n_axial:       int = 50,
-) -> tuple[pd.DataFrame, dict]:
-    """
-    Compute per-pin axial temperature profiles and top-minus-bottom differences.
-
-    Parameters
-    ----------
-    per_step_data : dict
-        Output of compute_pin_peaking_factors() (MOUSE).
-        Keys: depletion step (int); Values: DataFrame with columns
-        ['Region_ID', 'Peaking_Factor', 'Step'].
-
-    geom : LTMRPinGeometry
-        Pin radial geometry (LTMR defaults loaded automatically).
-
-    props : LTMRThermalProperties
-        Thermal conductivities.
-
-    cond : LTMRCoolantConditions
-        Coolant operating conditions.
-
-    q_prime_nom : float
-        Nominal (core-average) linear heat rate [W/m].
-        = P_total / (N_fuel_pins * L_active)
-
-    n_axial : int
-        Number of axial nodes along the pin (default 50).
-
-    Returns
-    -------
-    summary : pd.DataFrame
-        One row per depletion step with columns:
-            Step, Max_PF,
-            Max_DeltaT_fuel [K], Max_DeltaT_coolant [K],
-            Max_T_fuel_top [K], Max_T_coolant_top [K],
-            Region_ID_hottest_fuel, Region_ID_hottest_coolant
-
-    per_step_data_out : dict
-        Keys: depletion step (int).
-        Values: DataFrame with one row per pin:
-            Region_ID, Peaking_Factor, Step,
-            q_prime_pin [W/m],
-            T_fuel_bottom [K], T_fuel_top [K], DeltaT_fuel [K],
-            T_coolant_bottom [K], T_coolant_top [K], DeltaT_coolant [K],
-            axial_profiles  (dict with full z, T arrays — for plotting)
-    """
-    summary_rows     = []
-    per_step_data_out = {}
-
-    print("\n========== LTMR PIN TEMPERATURE ANALYSIS (Axial + Radial) ==========\n")
-    print(f"  Nominal q'_nom          : {q_prime_nom:.1f} W/m")
-    print(f"  Coolant inlet T         : {cond.T_inlet:.2f} K")
-    print(f"  Coolant outlet T        : {cond.T_outlet:.2f} K")
-    print(f"  Per-pin mass-flow rate  : {cond.m_dot_per_pin:.4f} kg/s")
-    print(f"  Total mass-flow rate    : {cond.m_dot_total:.2f} kg/s")
-    print(f"  k_fuel                  : {props.k_fuel:.2f} W/(m·K)")
-    print(f"  k_clad                  : {props.k_clad:.2f} W/(m·K)")
-    print(f"  k_NaK_gap               : {props.k_NaK_gap:.2f} W/(m·K)")
-    print(f"  Axial nodes             : {n_axial}")
-    print(f"  Axial shape             : cosine  (peak = PF * q'_nom * pi/2)\n")
-
-    check_velocity(geom, cond)
-
-    for step, df in per_step_data.items():
-
-        # HTC is the same for all pins (uniform flow assumption)
-        h = compute_h_NaK(geom, props, cond)
-
-        rows = []
-        for _, pin in df.iterrows():
-            PF = float(pin["Peaking_Factor"])
-
-            ax = _axial_profiles(PF, q_prime_nom, h, geom, props, cond, n_axial)
-
-            rows.append({
-                "Region_ID":           pin["Region_ID"],
-                "Peaking_Factor":      PF,
-                "Step":                step,
-                "q_prime_pin [W/m]":   ax["q_prime_pin"],
-                # Bottom of core (z = 0, coolant inlet side)
-                "T_fuel_bottom [K]":   float(ax["T_fuel_max_z"][0]),
-                "T_coolant_bottom [K]": float(ax["T_coolant_z"][0]),
-                # Top of core (z = L, coolant outlet side)
-                "T_fuel_top [K]":      float(ax["T_fuel_max_z"][-1]),
-                "T_coolant_top [K]":   float(ax["T_coolant_z"][-1]),
-                # Top-minus-bottom differences
-                "DeltaT_fuel [K]":     ax["DeltaT_fuel"],
-                "DeltaT_coolant [K]":  ax["DeltaT_coolant"],
-                # Full axial profiles stored for plotting
-                "axial_profiles":      ax,
-            })
-
-        out = pd.DataFrame(rows)
-        per_step_data_out[step] = out
-
-        idx_hot_fuel    = out["DeltaT_fuel [K]"].abs().idxmax()
-        idx_hot_coolant = out["DeltaT_coolant [K]"].abs().idxmax()
-
-        print(f"--- Step {step} ---")
-        print(out[["Region_ID", "Peaking_Factor",
-                   "T_fuel_bottom [K]", "T_fuel_top [K]", "DeltaT_fuel [K]",
-                   "T_coolant_bottom [K]", "T_coolant_top [K]",
-                   "DeltaT_coolant [K]"]].to_string(index=False))
-        print()
-
-        summary_rows.append({
-            "Step":                    step,
-            "Max_PF":                  float(out["Peaking_Factor"].max()),
-            "Max_DeltaT_fuel [K]":     float(out["DeltaT_fuel [K]"].max()),
-            "Max_DeltaT_coolant [K]":  float(out["DeltaT_coolant [K]"].max()),
-            "Max_T_fuel_top [K]":      float(out["T_fuel_top [K]"].max()),
-            "Max_T_coolant_top [K]":   float(out["T_coolant_top [K]"].max()),
-            "Region_ID_hottest_fuel":  out.loc[idx_hot_fuel,    "Region_ID"],
-            "Region_ID_hottest_cool":  out.loc[idx_hot_coolant, "Region_ID"],
-        })
-
-    summary = pd.DataFrame(summary_rows).sort_values("Step")
-
-    print("========== Summary (worst pin per step) ==========")
-    print(summary.to_string(index=False))
-    print("==================================================\n")
-
-    return summary, per_step_data_out
-
-
-# ============================================================================
-# Standalone demo
-# ============================================================================
-
-if __name__ == "__main__":
-
-    geom  = LTMRPinGeometry()
-    props = LTMRThermalProperties()
-    props.set_fuel_k_from_name("UN")
-
-    P_total = 20.0e6; T_in = 703.15; T_out = 793.15; cp = 880.0
-    N_pins  = 397
-
-    cond = LTMRCoolantConditions(
-        T_inlet        = T_in,
-        DeltaT_coolant = T_out - T_in,
-        P_total_W   = P_total,
-        N_fuel_pins = N_pins,
-        cp_NaK      = cp,
-    )
-
-    q_nom = P_total / (N_pins * geom.L_active)
-    print(f"m_dot_total = {cond.m_dot_total:.1f} kg/s,  q'_nom = {q_nom:.1f} W/m\n")
-
-    rng    = np.random.default_rng(42)
-    n_pins = 20
-    pf_raw = rng.uniform(0.7, 1.4, size=n_pins)
-    pf_nom = pf_raw / pf_raw.mean()
-
-    mock = {
-        1: pd.DataFrame({"Region_ID": list(range(n_pins)),
-                         "Peaking_Factor": pf_nom, "Step": 1}),
-        2: pd.DataFrame({"Region_ID": list(range(n_pins)),
-                         "Peaking_Factor": pf_nom * rng.uniform(0.97, 1.03, n_pins),
-                         "Step": 2}),
-    }
-
-    summary, per_step = compute_pin_temperatures(
-        per_step_data = mock,
-        geom          = geom,
-        props         = props,
-        cond          = cond,
-        q_prime_nom   = q_nom,
-        n_axial       = 50,
-    )
-
-    # --- Quick sanity check: verify coolant ΔT matches lumped energy balance ---
-    print("=== Sanity check: DeltaT_coolant vs lumped energy balance ===")
-    step1 = per_step[1]
-    for _, row in step1.iterrows():
-        PF       = row["Peaking_Factor"]
-        dT_axial = row["DeltaT_coolant [K]"]
-        dT_lumped = PF * q_nom * geom.L_active / (cond.m_dot_per_pin * cp)
-        match = np.isclose(dT_axial, dT_lumped, rtol=1e-6)
-        print(f"  Pin {int(row['Region_ID']):2d}  PF={PF:.3f}  "
-              f"DeltaT_axial={dT_axial:.4f}  lumped={dT_lumped:.4f}  match={match}")
-
-# Use compute_pin_temperatures_abc() below which reports these clearly.
 
 def compute_pin_temperatures_abc(
     per_step_data: dict,
@@ -697,15 +550,18 @@ def compute_pin_temperatures_abc(
     """
     ABC-analysis-ready version of compute_pin_temperatures.
 
+    For each depletion step, evaluates TWO cases:
+      1) The worst-case pin at the actual PF from OpenMC (safety case)
+      2) A reference pin at PF = 1.0 (nominal / validation case)
+
     Reports per pin, per depletion step:
-      DeltaT_coolant   : T_coolant(top) - T_coolant(bottom)
-                         = axial coolant temperature rise  [K]
-      DeltaT_fuel_peak : T_fuel_max(top) - T_inlet
-                         = fuel temperature rise above inlet at the core outlet [K]
+      DeltaT_coolant   : T_coolant(top) - T_coolant(bottom) [K]
+      DeltaT_fuel_peak : T_fuel_max(top) - T_inlet [K]
       T_fuel_peak      : absolute peak fuel temperature [K]
       T_coolant_top    : coolant outlet temperature for this pin [K]
 
-    These are the inputs typically needed for ABC (hot-channel) analysis.
+    The PF=1 reference case is printed for validation and stored under
+    params['ABC Nominal Reference'].
     """
     h = compute_h_NaK(geom, props, cond)
 
@@ -714,18 +570,46 @@ def compute_pin_temperatures_abc(
 
     print("\n========== ABC TEMPERATURE ANALYSIS ==========\n")
     print(f"  q'_nom = {q_prime_nom:.1f} W/m  |  T_inlet = {cond.T_inlet:.2f} K  "
-          f"|  DeltaT_coolant = {cond.DeltaT_coolant:.2f} K  |  T_outlet = {cond.T_outlet:.2f} K  |  m_dot_total = {cond.m_dot_total:.2f} kg/s  "
+          f"|  DeltaT_coolant = {cond.DeltaT_coolant:.2f} K  "
+          f"|  T_outlet = {cond.T_outlet:.2f} K  "
+          f"|  m_dot_total = {cond.m_dot_total:.2f} kg/s  "
           f"|  m_dot_per_pin = {cond.m_dot_per_pin:.4f} kg/s\n")
 
     check_velocity(geom, cond)
 
+    # --- PF = 1 reference case (printed once, same for all steps) ---
+    print("\n========== NOMINAL REFERENCE CASE (PF = 1.0) ==========")
+    ax_nom = _solve_and_print_case(
+        label       = "Nominal pin (PF = 1.0)",
+        PF          = 1.0,
+        q_prime_nom = q_prime_nom,
+        h_NaK       = h,
+        geom        = geom,
+        props       = props,
+        cond        = cond,
+        n_axial     = n_axial,
+    )
+    print()
+
     for step, df in per_step_data.items():
         rows = []
+
+        print(f"========== STEP {step} — WORST-CASE PIN ==========")
+
         for _, pin in df.iterrows():
             PF = float(pin["Peaking_Factor"])
-            ax = _axial_profiles(PF, q_prime_nom, h, geom, props, cond, n_axial)
 
-            # With uniform power, fuel peak is at the top (hottest coolant)
+            ax = _solve_and_print_case(
+                label       = f"Worst-case pin (Region {pin['Region_ID']})",
+                PF          = PF,
+                q_prime_nom = q_prime_nom,
+                h_NaK       = h,
+                geom        = geom,
+                props       = props,
+                cond        = cond,
+                n_axial     = n_axial,
+            )
+
             DeltaT_coolant   = float(ax["T_coolant_z"][-1] - ax["T_coolant_z"][0])
             DeltaT_fuel_peak = float(ax["T_fuel_max_z"][-1] - cond.T_inlet)
             T_fuel_peak      = float(ax["T_fuel_max_z"][-1])
@@ -742,14 +626,10 @@ def compute_pin_temperatures_abc(
                 "axial_profiles":       ax,
             })
 
+        print()
+
         out = pd.DataFrame(rows)
         per_step_data_out[step] = out
-
-        print(f"--- Step {step} ---")
-        print(out[["Region_ID", "Peaking_Factor",
-                   "DeltaT_coolant [K]", "DeltaT_fuel_peak [K]",
-                   "T_fuel_peak [K]", "T_coolant_top [K]"]].to_string(index=False))
-        print()
 
         summary_rows.append({
             "Step":                        step,
@@ -759,12 +639,19 @@ def compute_pin_temperatures_abc(
             "Max_T_fuel_peak [K]":         float(out["T_fuel_peak [K]"].max()),
             "Max_T_coolant_top [K]":       float(out["T_coolant_top [K]"].max()),
             "Region_ID_hottest":           out.loc[out["T_fuel_peak [K]"].idxmax(), "Region_ID"],
+            # PF=1 reference values (same for all steps)
+            "Ref_PF1_T_fuel_peak [K]":     float(ax_nom["T_fuel_max_z"][-1]),
+            "Ref_PF1_T_coolant_top [K]":   float(ax_nom["T_coolant_z"][-1]),
+            "Ref_PF1_DeltaT_coolant [K]":  float(ax_nom["DeltaT_coolant"]),
+            "Ref_PF1_DeltaT_fuel_peak [K]": float(ax_nom["T_fuel_max_z"][-1] - cond.T_inlet),
         })
 
     summary = pd.DataFrame(summary_rows).sort_values("Step")
-    print("========== ABC Summary ==========")
+
+    print("\n========== ABC Summary ==========")
     print(summary.to_string(index=False))
     print("=================================\n")
+
     return summary, per_step_data_out
 
 
@@ -772,7 +659,7 @@ def run_thermal_analysis(params) -> None:
     """
     Run pin temperature ABC analysis after the OpenMC depletion run.
 
-    Reads pf_per_step from params['PF Per Step'], which is stored there
+    Reads pf_per_step from params['PF Summary'], which is stored there
     by openmc_depletion() in utils.py while the statepoints are still
     local. This avoids any dependency on the watts database path.
 
@@ -800,8 +687,6 @@ def run_thermal_analysis(params) -> None:
         return
 
     # --- Reconstruct worst-case (max PF) pin per step from pf_summary ---
-    # pf_summary was stored as a dict of lists via .to_dict(orient='list').
-    # We only solve for the hottest pin at each step — this is a safety analysis.
     pf_summary = pd.DataFrame(pf_summary_dict)
     worst_case_per_step = {}
     for _, row in pf_summary.iterrows():
@@ -813,7 +698,7 @@ def run_thermal_analysis(params) -> None:
         }])
 
     # --- Build geometry from params (all cm → m) ---
-    radii = params['Fuel Pin Radii']   # [r_Zr, r_fi, r_fo, r_ci, r_co] in cm
+    radii = params['Fuel Pin Radii']
     geom  = LTMRPinGeometry(
         r_Zr_o   = radii[0] * 1e-2,
         r_fi     = radii[1] * 1e-2,
@@ -824,22 +709,19 @@ def run_thermal_analysis(params) -> None:
         L_active = params['Active Height']    * 1e-2,
     )
 
-    # --- Thermal properties: fuel conductivity from material name ---
+    # --- Thermal properties ---
     props = LTMRThermalProperties()
     props.set_fuel_k_from_name(params['Fuel'])
 
-    # --- Coolant conditions: inlet/outlet T set by user; m_dot derived ---
+    # --- Coolant conditions ---
     cond = LTMRCoolantConditions(
-        T_inlet     = params['Primary Loop Inlet Temperature'],
+        T_inlet        = params['Primary Loop Inlet Temperature'],
         DeltaT_coolant = (params['Primary Loop Outlet Temperature']
                           - params['Primary Loop Inlet Temperature']),
-        P_total_W   = params['Power MWt'] * 1e6,
-        N_fuel_pins = params['Fuel Pin Count'],
+        P_total_W      = params['Power MWt'] * 1e6,
+        N_fuel_pins    = params['Fuel Pin Count'],
     )
 
-    # Mirror the params that mass_flow_rate() in tools.py would have set.
-    # For the LTMR there is no 'Primary Loop per loop load fraction' key, so
-    # loop_factor = 1 and both quantities equal cond.m_dot_total.
     loop_factor = params.get('Primary Loop per loop load fraction', 1)
     params['Coolant Mass Flow Rate']      = cond.m_dot_total / loop_factor
     params['Primary Loop Mass Flow Rate'] = cond.m_dot_total
@@ -847,7 +729,7 @@ def run_thermal_analysis(params) -> None:
     # --- Nominal linear heat rate ---
     q_nom = (params['Power MWt'] * 1e6) / (params['Fuel Pin Count'] * geom.L_active)
 
-    # --- Run ABC temperature analysis (worst-case pin per step only) ---
+    # --- Run ABC temperature analysis ---
     abc_summary, abc_per_step = compute_pin_temperatures_abc(
         per_step_data = worst_case_per_step,
         geom          = geom,
@@ -856,19 +738,58 @@ def run_thermal_analysis(params) -> None:
         q_prime_nom   = q_nom,
     )
 
-    # --- Store results back into params ---
-    params['ABC Worst Case Summary']     = abc_summary
-    params['ABC Worst Case Per Step']    = abc_per_step
-    params['Max DeltaT Fuel [K]']        = float(
-        abc_summary['Max_DeltaT_fuel_peak [K]'].max())
-    params['Max DeltaT Coolant [K]']     = float(
-        abc_summary['Max_DeltaT_coolant [K]'].max())
-    params['Max T Fuel Peak [K]']        = float(
-        abc_summary['Max_T_fuel_peak [K]'].max())
+    # --- Store results ---
+    params['ABC Worst Case Summary']      = abc_summary
+    params['ABC Worst Case Per Step']     = abc_per_step
+    params['Max DeltaT Fuel [K]']         = float(abc_summary['Max_DeltaT_fuel_peak [K]'].max())
+    params['Max DeltaT Coolant [K]']      = float(abc_summary['Max_DeltaT_coolant [K]'].max())
+    params['Max T Fuel Peak [K]']         = float(abc_summary['Max_T_fuel_peak [K]'].max())
+    params['Ref PF1 T Fuel Peak [K]']     = float(abc_summary['Ref_PF1_T_fuel_peak [K]'].iloc[0])
+    params['Ref PF1 T Coolant Top [K]']   = float(abc_summary['Ref_PF1_T_coolant_top [K]'].iloc[0])
 
-    print(f"\n[Thermal] Max fuel peak temperature : "
-          f"{params['Max T Fuel Peak [K]']:.1f} K")
-    print(f"[Thermal] Max fuel peak ΔT (above inlet) : "
-          f"{params['Max DeltaT Fuel [K]']:.1f} K")
-    print(f"[Thermal] Max coolant axial ΔT : "
-          f"{params['Max DeltaT Coolant [K]']:.1f} K\n")
+    print(f"\n[Thermal] ── Nominal reference (PF=1) ──")
+    print(f"[Thermal]   T_fuel_peak      : {params['Ref PF1 T Fuel Peak [K]']:.1f} K  "
+          f"({params['Ref PF1 T Fuel Peak [K]']-273.15:.1f} °C)")
+    print(f"[Thermal]   T_coolant_top    : {params['Ref PF1 T Coolant Top [K]']:.1f} K  "
+          f"({params['Ref PF1 T Coolant Top [K]']-273.15:.1f} °C)")
+    print(f"\n[Thermal] ── Worst-case pin (max PF) ──")
+    print(f"[Thermal]   Max T_fuel_peak  : {params['Max T Fuel Peak [K]']:.1f} K  "
+          f"({params['Max T Fuel Peak [K]']-273.15:.1f} °C)")
+    print(f"[Thermal]   Max DeltaT_fuel  : {params['Max DeltaT Fuel [K]']:.1f} K")
+    print(f"[Thermal]   Max DeltaT_cool  : {params['Max DeltaT Coolant [K]']:.1f} K\n")
+
+
+def plot_peaking_factor_map(per_step_data: dict, statepoint_path: str, params) -> None:
+    """
+    Generate a spatial peaking factor map for each depletion step.
+    Saves peaking_factor_map_step{N}.png in the current directory.
+    """
+    from core_design.peaking_factor import get_pin_positions
+    import matplotlib.pyplot as plt
+
+    pin_pitch = (2 * params['Fuel Pin Radii'][-1] + params['Pin Gap Distance'])  # cm
+    positions = get_pin_positions(statepoint_path, pin_pitch)
+
+    for step, df in per_step_data.items():
+        pf = df.rename(columns={'Region_ID': 'region_id'}).copy()
+        pf['region_id'] = pf['region_id'].astype(int)
+        merged = positions.merge(pf, on='region_id')
+
+        fig, ax = plt.subplots(figsize=(10, 10))
+        sc = ax.scatter(merged['x [cm]'], merged['y [cm]'],
+                        c=merged['Peaking_Factor'],
+                        cmap='hot_r', s=300, vmin=0.8, vmax=1.4)
+        plt.colorbar(sc, ax=ax, label='Peaking Factor')
+
+        hot = merged.loc[merged['Peaking_Factor'].idxmax()]
+        ax.annotate(f"Max PF\n{hot['Peaking_Factor']:.3f}\nID={int(hot['region_id'])}",
+                    xy=(hot['x [cm]'], hot['y [cm]']), fontsize=9, ha='center',
+                    bbox=dict(boxstyle='round', fc='yellow', alpha=0.8))
+
+        ax.set_aspect('equal')
+        ax.set_xlabel('x [cm]'); ax.set_ylabel('y [cm]')
+        ax.set_title(f'Pin Peaking Factor Map — Step {step}')
+        plt.tight_layout()
+        plt.savefig(f'peaking_factor_map_step{step}.png', dpi=150)
+        plt.close()
+        print(f"[Thermal] Saved peaking_factor_map_step{step}.png")
