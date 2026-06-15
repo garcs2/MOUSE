@@ -8,11 +8,15 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from core_design.correction_factor import corrected_keff_2d
 from core_design.peaking_factor import compute_pin_peaking_factors
-
+# from reactor_engineering_evaluation.pin_temperatures import plot_peaking_factor_map
 import pandas
 import copy
-
-
+import glob
+import re
+def natural_sort_key(s):
+    """Sort keys in a natural order (e.g., n0, n1, ..., n11)."""
+    return [int(text) if text.isdigit() else text for text in re.split(r'(\d+)', s)]
+    
 def circle_area(r):
     return (np.pi) * r ** 2
 
@@ -326,12 +330,18 @@ def openmc_depletion(params, lattice_geometry, settings):
         params['Region ID with Max Peaking Factor'] = pf_summary.loc[idx_max, 'Region_ID_Max']
         params['Max Peaking Factors per Step'] = pf_summary['Max_PF'].tolist()
         params['PF Summary'] = pf_summary.to_dict(orient='list')
-
+        params['PF Per Step'] = pf_per_step
     except Exception as e:
         print("[PF] WARNING: compute_pin_peaking_factors failed:", e)
         pf_summary = None
         pf_per_step = None
-
+        
+#    if params.get('plotting') == 'Y':
+#        sp_files = sorted(glob.glob('./openmc_simulation_n*.h5'),
+#                          key=natural_sort_key)
+#        if sp_files:
+#            plot_peaking_factor_map(pf_per_step, sp_files[0], params)
+                
     orig_material = depletion_2d_results_file.export_to_materials(0)
     mass_U235 = orig_material[0].get_mass('U235')
     mass_U238 = orig_material[0].get_mass('U238')
