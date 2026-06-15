@@ -85,11 +85,9 @@ params['Active Height']  =   78.4  # Or it is 2 * params['Lattice Radius']
 params['Assembly FTF'] = 2 * params['Lattice Apothem']
 params['Axial Reflector Thickness'] = params['Radial Reflector Thickness'] # cm
 params['Fuel Pin Count'] = calculate_pins_in_assembly(params, "FUEL")
-print(params['Fuel Pin Count'])
 params['Moderator Pin Count'] =  calculate_pins_in_assembly(params, "MODERATOR")
 params['Moderator Mass'] = calculate_moderator_mass(params)
 params['Core Radius'] = calculate_core_radius_from_hex(params)
-print(f"This is core radius: {params['Core Radius']}")
 # **************************************************************************************************************************
 #                                           Sec. 3: Control Drums
 # ************************************************************************************************************************** 
@@ -199,7 +197,6 @@ fuel_calculations(params)  # calculate the fuel mass and SWU
 # params['BoP Power kWe'] = 1000 * params['Power MWe'] * params['BoP per loop load fraction']
 # calculate coolant mass flow rate
 # mass_flow_rate(params)
-print(params['PF Summary'])
 run_thermal_analysis(params)
 calculate_primary_pump_mechanical_power(params)
 # **************************************************************************************************************************
