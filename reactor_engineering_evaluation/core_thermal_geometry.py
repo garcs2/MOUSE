@@ -38,14 +38,8 @@ perturbations move the geometry (the derivative is unaffected).
 import warnings
 
 # Reuse the SAME linear-CTE table the density model uses: single source of truth.
-try:
-    from core_design_3D.openmc_materials_database_3D import (
-        THERMAL_EXPANSION, T_REF_DEFAULT)
-except Exception:  # pragma: no cover - fallbacks for standalone / different layout
-    try:
-        from openmc_materials_database_3D import THERMAL_EXPANSION, T_REF_DEFAULT
-    except Exception:
-        THERMAL_EXPANSION, T_REF_DEFAULT = {}, 293.15
+from core_design_3D.openmc_materials_database_3D import (
+    THERMAL_EXPANSION, T_REF_DEFAULT)
 
 
 # params['Fuel'] / params['Reflector'] values that key differently in the
@@ -108,7 +102,7 @@ def expansion_factors(params, T_fuel, T_reflector, T_ref=None):
     if T_ref is None:
         T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
     a_fuel = _cte(params['Fuel'])
-    a_refl = _cte(params['Reflector'])
+    a_refl = _cte(params['Radial Reflector'])
     return (linear_factor(a_fuel, T_fuel, T_ref),
             linear_factor(a_refl, T_reflector, T_ref))
 

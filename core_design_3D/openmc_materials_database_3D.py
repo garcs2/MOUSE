@@ -33,6 +33,7 @@ import openmc
 
 T_REF_DEFAULT = 293.15          # K, assumed reference temperature of cold densities
 TE_BAND = (500.0, 1100.0)       # K, validated temperature band
+_FUEL_KEY_ALIASES = {'TRIGA_fuel': 'UZrH_alloy'}
 
 # Mean linear coefficient of thermal expansion, alpha_L  [1/K]
 THERMAL_EXPANSION = {
@@ -76,7 +77,77 @@ THERMAL_EXPANSION = {
     'heatpipe':         16.0e-6,    # SS/Mo/Na smear.                               VERIFY (homogenized)
 }
 
+def _resolve_region_temperature(params, key):
+    """Per-region temperature for material `key`, falling back to Common
+    Temperature. Active only when params['Per-Region Temperatures'] is True."""
+    T_common = params['Common Temperature']
+    if not params.get('Per-Region Temperatures', False):
+        return T_common
+    fuel_key = _FUEL_KEY_ALIASES.get(params.get('Fuel'), params.get('Fuel'))
+    if key == fuel_key:
+        return params.get('Fuel Temperature', T_common)
+    if key in (params.get('Reflector'), params.get('Control Drum Reflector')):
+        return params.get('Reflector Temperature', T_common)
+    if key in (params.get('Coolant'), params.get('Secondary Coolant')):
+        return params.get('Coolant Temperature', T_common)
+    return T_common
 
+def _apply_thermal_expansion(material, key, T, T_ref=T_REF_DEFAULT, band=TE_BAND,
+                             scale_solid_density=True):
+    """Set the material temperature to T and (optionally) rescale solid density.
+    Temperature is ALWAYS set (Doppler/XS) and coolant EOS density is ALWAYS
+    applied (a fluid property of T); the solid linear-CTE rescale is applied only
+    when scale_solid_density is True (left to the geometry builder's mass-
+    conserving scaling in ABC mode)."""
+    material.temperature = T
+
+    if not (band[0] <= T <= band[1]):
+        warnings.warn(
+            f"[thermal-expansion] T={T} K for '{key}' is outside the validated "
+            f"band {band[0]}-{band[1]} K; expansion is being extrapolated."
+        )
+
+    if key in COOLANT_DENSITY:                       # fluid EOS: always
+        rho, units = COOLANT_DENSITY[key](T, T_ref)
+        material.set_density(units, rho)
+        return
+
+    if not scale_solid_density:                      # solids handled elsewhere (ABC)
+        return
+
+    alpha_L = THERMAL_EXPANSION.get(key)
+    if alpha_L is None:
+        return
+    rho = material.density
+    units = (material.density_units or '').lower()
+    if rho is None:
+        return
+    if units in ('g/cm3', 'g/cc', 'atom/b-cm', 'atom/cm3', 'kg/m3'):
+        material.set_density(material.density_units,
+                             rho / _volume_ratio(alpha_L, T, T_ref))
+    else:
+        warnings.warn(
+            f"[thermal-expansion] '{key}' has density units "
+            f"'{material.density_units}' that are not handled; density unchanged."
+        )
+
+
+def _apply_thermal_expansion_all(mats, params):
+    """Set every material's temperature (per region) and, unless disabled, rescale
+    solid densities for thermal expansion.
+
+        params['Thermal Expansion']        solid CTE rescale on/off (default True)
+        params['Per-Region Temperatures']  use Fuel/Reflector/Coolant Temperature (default False)
+
+    Temperatures and coolant EOS density are always applied so Doppler and
+    coolant-density feedback work even when the solid rescale is off (ABC mode
+    pairs Thermal Expansion=False with mass_conserving_density_scale)."""
+    T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
+    scale_solid = params.get('Thermal Expansion', True)
+    for key, mat in mats.items():
+        T = _resolve_region_temperature(params, key)
+        _apply_thermal_expansion(mat, key, T, T_ref,
+                                 scale_solid_density=scale_solid)
 # --- Coolant density(T) functions: return (density_value, density_units) ----------
 # Coolants do not follow a solid linear-CTE law, so they get their own correlations.
 

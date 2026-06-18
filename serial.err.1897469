@@ -1,0 +1,94 @@
+ WARNING: Negative value(s) found on probability table for nuclide Zr96 at 900K
+ WARNING: Negative value(s) found on probability table for nuclide Zr96 at 1200K
+ WARNING: Negative value(s) found on probability table for nuclide Nb95 at 250K
+ WARNING: Negative value(s) found on probability table for nuclide Nb95 at 294K
+ WARNING: Negative value(s) found on probability table for nuclide Nb95 at 600K
+ WARNING: Negative value(s) found on probability table for nuclide Nb95 at 900K
+ WARNING: Negative value(s) found on probability table for nuclide Nb95 at 1200K
+ WARNING: Negative value(s) found on probability table for nuclide Mo99 at 250K
+ WARNING: Negative value(s) found on probability table for nuclide Mo99 at 294K
+ WARNING: Negative value(s) found on probability table for nuclide Mo99 at 600K
+ WARNING: Negative value(s) found on probability table for nuclide Mo99 at 900K
+ WARNING: Negative value(s) found on probability table for nuclide Mo99 at 1200K
+ WARNING: Negative value(s) found on probability table for nuclide Mo99 at 2500K
+ WARNING: Negative value(s) found on probability table for nuclide I131 at 250K
+ WARNING: Negative value(s) found on probability table for nuclide I131 at 294K
+ WARNING: Negative value(s) found on probability table for nuclide I131 at 600K
+ WARNING: Negative value(s) found on probability table for nuclide I131 at 900K
+ WARNING: Negative value(s) found on probability table for nuclide I131 at 1200K
+ WARNING: Negative value(s) found on probability table for nuclide I131 at 2500K
+ WARNING: Negative value(s) found on probability table for nuclide Xe133 at
+          2500K
+ WARNING: Negative value(s) found on probability table for nuclide Cs136 at 250K
+ WARNING: Negative value(s) found on probability table for nuclide Cs136 at 294K
+ WARNING: Negative value(s) found on probability table for nuclide Cs136 at 600K
+ WARNING: Negative value(s) found on probability table for nuclide Cs136 at 900K
+ WARNING: Negative value(s) found on probability table for nuclide Cs136 at
+          1200K
+ WARNING: Negative value(s) found on probability table for nuclide Cs136 at
+          2500K
+ WARNING: Negative value(s) found on probability table for nuclide Eu156 at 250K
+ WARNING: Negative value(s) found on probability table for nuclide Eu156 at 294K
+ WARNING: Negative value(s) found on probability table for nuclide Eu156 at 600K
+ WARNING: Negative value(s) found on probability table for nuclide Eu156 at 900K
+ WARNING: Negative value(s) found on probability table for nuclide Eu156 at
+          1200K
+ WARNING: Negative value(s) found on probability table for nuclide Eu156 at
+          2500K
+ WARNING: Negative value(s) found on probability table for nuclide Hf181 at 250K
+ WARNING: Negative value(s) found on probability table for nuclide Hf181 at 294K
+ WARNING: Negative value(s) found on probability table for nuclide Hf181 at 600K
+ WARNING: Negative value(s) found on probability table for nuclide Hf181 at 900K
+ WARNING: Negative value(s) found on probability table for nuclide Hf181 at
+          1200K
+ WARNING: Negative value(s) found on probability table for nuclide Hf181 at
+          2500K
+Traceback (most recent call last):
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 578, in run_openmc
+    run_abc_analysis(build_openmc_model, params)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 165, in run_abc_analysis
+    kb2d, kb3d = _run_model(build_openmc_model, params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 37, in _run_model
+    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
+  File "/home/garcsamu/OpenMC/watts/src/watts/plugin.py", line 132, in __call__
+    self.run(**kwargs)
+  File "/home/garcsamu/OpenMC/watts/src/watts/plugin_openmc.py", line 128, in run
+    function(**kwargs)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 37, in <lambda>
+    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 390, in run_depletion_analysis
+    openmc_depletion(params, lattice_geometry, settings)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 318, in openmc_depletion
+    fuel_lifetime_days, time_steps, keff_2d_values_corrected = keff_3d(
+                                                               ^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/correction_factor_3D.py", line 70, in keff_3d
+    raise ValueError("Cannot compute fuel cycle length: k=1.0 was never reached.")
+ValueError: Cannot compute fuel cycle length: k=1.0 was never reached.
+Traceback (most recent call last):
+  File "/home/garcsamu/OpenMC/MOUSE/examples/watts_exec_LTMR_3D_ABC.py", line 159, in <module>
+    run_openmc(build_openmc_model_LTMR_3D, heat_flux_monitor, params)   # 3-arg signature
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 578, in run_openmc
+    run_abc_analysis(build_openmc_model, params)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 165, in run_abc_analysis
+    kb2d, kb3d = _run_model(build_openmc_model, params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 37, in _run_model
+    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
+  File "/home/garcsamu/OpenMC/watts/src/watts/plugin.py", line 132, in __call__
+    self.run(**kwargs)
+  File "/home/garcsamu/OpenMC/watts/src/watts/plugin_openmc.py", line 128, in run
+    function(**kwargs)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 37, in <lambda>
+    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 390, in run_depletion_analysis
+    openmc_depletion(params, lattice_geometry, settings)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 318, in openmc_depletion
+    fuel_lifetime_days, time_steps, keff_2d_values_corrected = keff_3d(
+                                                               ^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/correction_factor_3D.py", line 70, in keff_3d
+    raise ValueError("Cannot compute fuel cycle length: k=1.0 was never reached.")
+ValueError: Cannot compute fuel cycle length: k=1.0 was never reached.

@@ -3,10 +3,10 @@
 core_design_3D/abc_analysis_3D.py
 
 Temperature / reflector / coolant reactivity-coefficient analysis for the 3D
-LTMR, with automatic thermal geometric expansion (core_thermal_geometry.py).
+LTMR, with automatic thermal geometric expansion (core_thermal_geometry.py), plus
+the quasi-static A/B/C inherent-safety screen.
 
-Kept in its own module so it can be wired into the (large) utils_3D.py with a
-small edit rather than a hand-merge. In utils_3D.run_openmc, add:
+Wire into utils_3D.run_openmc with:
 
     params.setdefault('ABC Analysis', False)
     ...
@@ -17,15 +17,12 @@ small edit rather than a hand-merge. In utils_3D.run_openmc, add:
         from core_design_3D.abc_analysis_3D import run_abc_analysis
         run_abc_analysis(build_openmc_model, params)
         return   # the existing 'finally' restores Common Temperature
-
-This module calls run_depletion_analysis (defined in utils_3D.py) via a deferred
-import to avoid a circular import.
 """
 import copy
 
 import numpy as np
 
-from core_design_3D.core_thermal_geometry import (
+from reactor_engineering_evaluation.core_thermal_geometry import (
     apply_core_expansion,
     reset_core_geometry,
 )
@@ -50,32 +47,98 @@ def _coefficient(keff_base, keff_pert, dT):
     ])
 
 
-def _set_region_temperatures(params, T_fuel, T_reflector, T_coolant):
+def _set_region_temperatures(params, T_fuel, T_reflector, T_coolant, T_common):
     """Propagate per-region temperatures to params.
 
-    NOTE: openmc_materials_database_3D currently keys both density and cross-
-    section temperature off the single 'Common Temperature'. Until it honors
-    these per-region keys, the density/Doppler part of the reflector and coolant
-    coefficients is NOT isolated (Common Temperature is set to the perturbed
-    region below, heating every material). The GEOMETRIC part of every
-    coefficient IS isolated, because apply_core_expansion reads T_fuel/T_reflector
-    directly. A small materials-module change (read 'Fuel/Reflector/Coolant
-    Temperature', fall back to 'Common Temperature') fully decomposes the
-    density/Doppler term.
+    If params['Per-Region Temperatures'] is True (requires the materials-module
+    edit so collect_materials_data honors these keys), each region uses its own
+    temperature and everything else (structure, moderator, absorbers) uses
+    T_common. This isolates the density/Doppler part of each coefficient.
+
+    If False (unpatched materials module), Common Temperature is set to the
+    perturbed region's temperature so at least the dominant density/Doppler
+    effect is captured (NOT isolated). The geometric part is isolated either way,
+    since apply_core_expansion reads T_fuel / T_reflector directly.
     """
     params['Fuel Temperature'] = T_fuel
     params['Reflector Temperature'] = T_reflector
     params['Coolant Temperature'] = T_coolant
-    params['Common Temperature'] = max(T_fuel, T_reflector, T_coolant)
+    if params.get('Per-Region Temperatures', False):
+        params['Common Temperature'] = T_common          # structure/moderator at base
+    else:
+        params['Common Temperature'] = max(T_fuel, T_reflector, T_coolant)
+
+
+def _evaluate_abc_criteria(params):
+    """Quasi-static reactivity-balance (A/B/C integral parameters) inherent-safety
+    screen. A and B are in pcm; C is in pcm/K. Uses the 2D coefficients, which
+    equal the 3D-corrected values in the genuine-3D scheme.
+
+    This is a nominal screen based on the quasi-static reactivity balance, not a
+    substitute for a full transient analysis. The dT used in the temperature-rise
+    criteria is the perturbation 'Temperature Perturbation'; if you intend a
+    distinct coolant temperature rise, substitute that quantity.
+    """
+    dT = params['Temperature Perturbation']
+    a_T = params['Temp Coeff 2D']
+    a_C = params['Coolant Coeff 2D']
+    a_R = params['Reflector Coeff 2D']
+
+    A = a_T * dT                          # pcm
+    B = dT * (a_T / 2 + a_C / 2 + a_R)    # pcm
+    C = a_T + a_C + a_R                    # pcm/K
+    params['ABC A (pcm)'] = A
+    params['ABC B (pcm)'] = B
+    params['ABC C (pcm/K)'] = C
+
+    # --- Criterion 1: integral power/temperature parameters all negative ---
+    criterion_1 = (A < 0) and (B < 0) and (C < 0)
+    if not criterion_1:
+        print("Warning Criterion 1: A, B, C are not all negative:\n"
+              f"  A = {A:.3f} pcm\n  B = {B:.3f} pcm\n  C = {C:.3f} pcm/K")
+
+    # --- Criterion 2: loss-of-flow asymptotic temperature below coolant boiling ---
+    # NOTE: condition and message both use the Primary Loop INLET temperature and
+    # include dT (your snippet's message used the OUTLET temperature and dropped
+    # dT; I aligned both to the condition — confirm which you intend).
+    T_boil = params.get('Coolant Boiling Temperature', 1058.15)  # K (NaK ~785 C)
+    if 'Primary Loop Inlet Temperature' in params and B != 0:
+        lof_temp = 2.0 * A / B * dT + params['Primary Loop Inlet Temperature']
+        criterion_2 = lof_temp < T_boil
+        if not criterion_2:
+            print("Warning Criterion 2: loss-of-flow temperature reaches/exceeds "
+                  f"coolant boiling temperature:\n  T_LOF = {lof_temp:.2f} K  >=  "
+                  f"T_boil = {T_boil:.2f} K")
+    else:
+        criterion_2 = False
+        print("Warning Criterion 2: cannot evaluate (need 'Primary Loop Inlet "
+              "Temperature' and B != 0).")
+
+    # --- Criterion 3: loss-of-heat-sink / inlet-temperature balance ---
+    if B != 0:
+        ratio = C / B * dT
+        criterion_3 = 1.0 < ratio < 2.0
+        if not criterion_3:
+            print("Warning Criterion 3: loss-of-heat-sink balance out of range "
+                  f"(want 1 < C/B*dT < 2):\n  C/B*dT = {ratio:.3f}")
+    else:
+        criterion_3 = False
+        print("Warning Criterion 3: cannot evaluate (B == 0).")
+
+    params['ABC Criterion 1'] = criterion_1
+    params['ABC Criterion 2'] = criterion_2
+    params['ABC Criterion 3'] = criterion_3
+    params['ABC Safe'] = bool(criterion_1 and criterion_2 and criterion_3)
+
+    if params['ABC Safe']:
+        print("ABC Analysis shows safe nominal transient characteristics")
+    return params['ABC Safe']
 
 
 def run_abc_analysis(build_openmc_model, params):
     """Evaluate the fuel-temperature, reflector, and coolant reactivity
-    coefficients (pcm/K) for the 3D LTMR, adjusting core geometry for thermal
-    expansion automatically.
-
-    Each coefficient perturbs one region's temperature by +dT and finite-
-    differences against a single shared base run:
+    coefficients (pcm/K) for the 3D LTMR with automatic thermal expansion, then
+    run the A/B/C quasi-static safety screen.
 
       Temperature (fuel) : fuel +dT  -> axial expansion of ALL components
                            (rules 1 & 2) + fuel density/Doppler
@@ -83,11 +146,10 @@ def run_abc_analysis(build_openmc_model, params):
                            (rule 3) + reflector density
       Coolant            : cool +dT  -> coolant EOS density only (no geometry)
 
-    Required params : 'Temperature Perturbation' (K), 'Common Temperature' (K)
-    Optional params : 'Reference Temperature', 'Fuel/Reflector/Coolant Temperature'
-
-    Stores params['Temp/Reflector/Coolant Coeff 2D'] and
-    params['... 3D (2D corrected)'].
+    Required : 'Temperature Perturbation' (K), 'Common Temperature' (K)
+    Optional : 'Reference Temperature', 'Fuel/Reflector/Coolant Temperature',
+               'Per-Region Temperatures', 'Primary Loop Inlet Temperature',
+               'Coolant Boiling Temperature'
     """
     dT = params['Temperature Perturbation']
     T_ref = params.get('Reference Temperature', None)
@@ -98,33 +160,36 @@ def run_abc_analysis(build_openmc_model, params):
     Tc0 = params.get('Coolant Temperature', T0)
 
     # ---- BASE STATE (operating temps, geometry expanded vs reference) ----
-    _set_region_temperatures(params, Tf0, Tr0, Tc0)
+    _set_region_temperatures(params, Tf0, Tr0, Tc0, T0)
     apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
     kb2d, kb3d = _run_model(build_openmc_model, params)
     params['keff 2D ABC base'] = kb2d
     params['keff 3D (2D corrected) ABC base'] = kb3d
 
     # ---- (A) FUEL TEMPERATURE COEFFICIENT: Doppler + axial expansion ----
-    _set_region_temperatures(params, Tf0 + dT, Tr0, Tc0)
+    _set_region_temperatures(params, Tf0 + dT, Tr0, Tc0, T0)
     apply_core_expansion(params, T_fuel=Tf0 + dT, T_reflector=Tr0, T_ref=T_ref)
     kf2d, kf3d = _run_model(build_openmc_model, params)
     params['Temp Coeff 2D'] = _coefficient(kb2d, kf2d, dT)
     params['Temp Coeff 3D (2D corrected)'] = _coefficient(kb3d, kf3d, dT)
 
     # ---- (B) REFLECTOR COEFFICIENT: reflector density + radial expansion ----
-    _set_region_temperatures(params, Tf0, Tr0 + dT, Tc0)
+    _set_region_temperatures(params, Tf0, Tr0 + dT, Tc0, T0)
     apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0 + dT, T_ref=T_ref)
     kr2d, kr3d = _run_model(build_openmc_model, params)
     params['Reflector Coeff 2D'] = _coefficient(kb2d, kr2d, dT)
     params['Reflector Coeff 3D (2D corrected)'] = _coefficient(kb3d, kr3d, dT)
 
     # ---- (C) COOLANT COEFFICIENT: coolant EOS density only (no geometry) ----
-    _set_region_temperatures(params, Tf0, Tr0, Tc0 + dT)
+    _set_region_temperatures(params, Tf0, Tr0, Tc0 + dT, T0)
     apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)  # geom unchanged
     kc2d, kc3d = _run_model(build_openmc_model, params)
     params['Coolant Coeff 2D'] = _coefficient(kb2d, kc2d, dT)
     params['Coolant Coeff 3D (2D corrected)'] = _coefficient(kb3d, kc3d, dT)
 
+    # ---- A/B/C quasi-static inherent-safety screen ----
+    _evaluate_abc_criteria(params)
+
     # ---- Restore reference geometry (Common Temperature restored by run_openmc's finally) ----
-    _set_region_temperatures(params, Tf0, Tr0, Tc0)
+    _set_region_temperatures(params, Tf0, Tr0, Tc0, T0)
     reset_core_geometry(params)

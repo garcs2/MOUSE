@@ -427,6 +427,15 @@ def build_openmc_model_LTMR_3D(params):
     # **************************************************************************************************************************
 
     materials_database    = collect_materials_data(params)
+    materials_database = collect_materials_data(params)
+
+    # --- Mass-conserving thermal-expansion density scaling (ABC / geometry mode) ---
+    # When materials are built cold (params['Thermal Expansion'] = False) and the
+    # core geometry has been expanded (Vol Ratio * set by core_thermal_geometry),
+    # scale solid densities so atom inventory is conserved. No-op otherwise.
+    if not params.get('Thermal Expansion', True):
+        from reactor_engineering_evaluation.core_thermal_geometry import mass_conserving_density_scale
+        mass_conserving_density_scale(materials_database, params)
     fuel                  = materials_database[params['Fuel']]
     coolant               = materials_database[params['Coolant']]
     reflector             = materials_database[params['Radial Reflector']]

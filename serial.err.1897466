@@ -1,0 +1,33 @@
+Traceback (most recent call last):
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 578, in run_openmc
+    run_abc_analysis(build_openmc_model, params)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 164, in run_abc_analysis
+    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
+  File "/home/garcsamu/OpenMC/MOUSE/reactor_engineering_evaluation/core_thermal_geometry.py", line 128, in apply_core_expansion
+    axial, radial = expansion_factors(params, T_fuel, T_reflector, T_ref)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/reactor_engineering_evaluation/core_thermal_geometry.py", line 105, in expansion_factors
+    a_refl = _cte(params['Reflector'])
+                  ~~~~~~^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/watts/src/watts/parameters.py", line 65, in __getitem__
+    return self._dict[key]
+           ~~~~~~~~~~^^^^^
+KeyError: 'Reflector'
+Traceback (most recent call last):
+  File "/home/garcsamu/OpenMC/MOUSE/examples/watts_exec_LTMR_3D_ABC.py", line 159, in <module>
+    run_openmc(build_openmc_model_LTMR_3D, heat_flux_monitor, params)   # 3-arg signature
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/utils_3D.py", line 578, in run_openmc
+    run_abc_analysis(build_openmc_model, params)
+  File "/home/garcsamu/OpenMC/MOUSE/core_design_3D/abc_analysis_3D.py", line 164, in run_abc_analysis
+    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
+  File "/home/garcsamu/OpenMC/MOUSE/reactor_engineering_evaluation/core_thermal_geometry.py", line 128, in apply_core_expansion
+    axial, radial = expansion_factors(params, T_fuel, T_reflector, T_ref)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/MOUSE/reactor_engineering_evaluation/core_thermal_geometry.py", line 105, in expansion_factors
+    a_refl = _cte(params['Reflector'])
+                  ~~~~~~^^^^^^^^^^^^^
+  File "/home/garcsamu/OpenMC/watts/src/watts/parameters.py", line 65, in __getitem__
+    return self._dict[key]
+           ~~~~~~~~~~^^^^^
+KeyError: 'Reflector'

@@ -445,117 +445,18 @@ def _run_isothermal_temperature_coefficients(build_openmc_model, params):
         )
     ])
 
-def _run_abc_analysis(build_openmc_model, params, mpi_args=None):
-    """Evaluate the fuel-temperature, reflector, and coolant reactivity
-    coefficients for a 3D (2D-corrected) LTMR, automatically adjusting the core
-    geometry for thermal expansion via core_thermal_geometry.apply_core_expansion.
- 
-    Each coefficient perturbs one region's temperature by +dT and finite-
-    differences against a single shared base run:
- 
-      Temperature (fuel)  : fuel +dT  -> axial expansion of ALL components
-                            (rules 1 & 2) + fuel density/Doppler
-      Reflector           : reflector +dT -> radial expansion of the reflector
-                            (rule 3) + reflector density
-      Coolant             : coolant +dT  -> coolant EOS density only (no geometry)
- 
-    Required params:
-        'Temperature Perturbation'   dT in K
-    Optional params:
-        'Reference Temperature'      cold/as-built T for dims & density
-                                     (default = density-model T_REF_DEFAULT;
-                                      set equal to the operating T to keep the
-                                      base geometry unperturbed)
-        'Fuel/Reflector/Coolant Temperature'  base per-region temps
-                                     (default = Common Temperature)
- 
-    Stores in params (2D and 3D-corrected, units pcm/K):
-        'Temp Coeff ...', 'Reflector Coeff ...', 'Coolant Coeff ...'
-    """
-    dT = params['Temperature Perturbation']
-    T_ref = params.get('Reference Temperature', None)
-    T0 = params['Common Temperature']
- 
-    # Base per-region temperatures (default to the operating temperature)
-    Tf0 = params.get('Fuel Temperature', T0)
-    Tr0 = params.get('Reflector Temperature', T0)
-    Tc0 = params.get('Coolant Temperature', T0)
- 
-    # Preserve originals for restoration at the end
-    saved = {k: copy.deepcopy(params[k]) for k in ('Common Temperature',) if k in params}
- 
-    # ---- BASE STATE (operating temps, geometry expanded vs reference) ----
-    _set_region_temperatures(params, Tf0, Tr0, Tc0)
-    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
-    kb2d, kb3d = _run_model(build_openmc_model, params, mpi_args)
-    params['keff 2D ABC base'] = kb2d
-    params['keff 3D (2D corrected) ABC base'] = kb3d
- 
-    # ---- (A) FUEL TEMPERATURE COEFFICIENT: Doppler + axial expansion ----
-    _set_region_temperatures(params, Tf0 + dT, Tr0, Tc0)
-    apply_core_expansion(params, T_fuel=Tf0 + dT, T_reflector=Tr0, T_ref=T_ref)
-    kf2d, kf3d = _run_model(build_openmc_model, params, mpi_args)
-    params['Temp Coeff 2D'] = _coefficient(kb2d, kf2d, dT)
-    params['Temp Coeff 3D (2D corrected)'] = _coefficient(kb3d, kf3d, dT)
- 
-    # ---- (B) REFLECTOR COEFFICIENT: reflector density + radial expansion ----
-    _set_region_temperatures(params, Tf0, Tr0 + dT, Tc0)
-    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0 + dT, T_ref=T_ref)
-    kr2d, kr3d = _run_model(build_openmc_model, params, mpi_args)
-    params['Reflector Coeff 2D'] = _coefficient(kb2d, kr2d, dT)
-    params['Reflector Coeff 3D (2D corrected)'] = _coefficient(kb3d, kr3d, dT)
- 
-    # ---- (C) COOLANT COEFFICIENT: coolant EOS density only (no geometry) ----
-    _set_region_temperatures(params, Tf0, Tr0, Tc0 + dT)
-    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)  # geom unchanged
-    kc2d, kc3d = _run_model(build_openmc_model, params, mpi_args)
-    params['Coolant Coeff 2D'] = _coefficient(kb2d, kc2d, dT)
-    params['Coolant Coeff 3D (2D corrected)'] = _coefficient(kb3d, kc3d, dT)
- 
-
-    A = params['Temp Coeff 2D'] * dT # units of pcm
-    B = dT * (params['Temp Coeff 2D']/2 + params['Coolant Coeff 2D']/2 + params['Reflector Coeff 2D']) # units of pcm
-    C = params['Temp Coeff 2D'] + params['Coolant Coeff 2D'] + params['Reflector Coeff 2D'] # units of pcm/K
-
-    if A < 0 and B < 0 and C <0:
-        criterion_1 = True
-    else:
-        criterion_1 = False
-        print(f"Warning Criterion 1: negative power and temp coefficients are not less than zero:\n"
-               f"A = {A}\n"
-               f"B = {B}\n"
-               f"C = {C}")
-    if (2*A/B*dT + params['Primary Loop Inlet Temperature']) < 1058.15:
-        criterion_2 = True
-    else:
-        print(f"Warning Criterion 2: Temperature rise in loss of flow higher than coolant boiling temperature:\n"
-              f"Temperature Rise: {2*A/B + params['Primary Loop Outlet Temperature']}")
-    
-    if 1 < (C/B * dT) < 2:
-        criterion_3 = True
-    else:
-        print(f"Warning Criterion 3: Loss of Heat Sink and Chilled Inlet Temp Response are out of balance\n"
-              f"C/B *  dT_c = {C/B * dT}")
-    if criterion_1 and criterion_2 and criterion_3:
-        print("ABC Analysis shows safe nominal transient characteristics")
-    # ---- Restore base state ----
-    _set_region_temperatures(params, Tf0, Tr0, Tc0)
-    reset_core_geometry(params)
-    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
-    for k, v in saved.items():
-        params[k] = v
-
 def run_openmc(build_openmc_model, heat_flux_monitor, params):
- 
+
     params.setdefault('Shutdown Margin Calc', False)
     params.setdefault('Isothermal Temperature Coefficients', False)
+    params.setdefault('ABC Analysis', False)                     # <-- ADDED
     params.setdefault('Cold Shutdown Temperature', 300)
     params.setdefault('3D', False)
- 
+
     original_shutdown_margin_calc                  = params['Shutdown Margin Calc']
     original_isothermal_temperature_coefficients   = params['Isothermal Temperature Coefficients']
     original_common_temperature                    = params['Common Temperature']
- 
+
     if params['Isothermal Temperature Coefficients']:
         if 'Temperature Perturbation' not in params:
             raise ValueError(
@@ -565,12 +466,21 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
                 "Please add it to your params (e.g. 'Temperature Perturbation': 100  # Kelvin)\n"
                 "Typical range: 50-300K depending on your Monte Carlo statistical noise level.\n"
             )
- 
+
     try:
         print(f"\n\nThe results/plots are saved at: {watts.Database().path}\n\n")
- 
+
+        # ----------------------------- ADDED: ABC analysis path -----------------------------
+        if params['ABC Analysis']:
+            if 'Temperature Perturbation' not in params:
+                raise ValueError("ABC Analysis requires 'Temperature Perturbation' (K).")
+            from core_design_3D.abc_analysis_3D import run_abc_analysis
+            run_abc_analysis(build_openmc_model, params)
+            return   # the 'finally' below restores Common Temperature
+        # ------------------------------------------------------------------------------------
+
         if params['Shutdown Margin Calc']:
- 
+
             if params['Isothermal Temperature Coefficients']:
                 params['Shutdown Margin Calc'] = False
                 params['Common Temperature']   = original_common_temperature
@@ -579,20 +489,20 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
             else:
                 params['Temp Coeff 2D']                = np.nan
                 params['Temp Coeff 3D (2D corrected)'] = np.nan
- 
+
             params['Common Temperature'] = params['Cold Shutdown Temperature']
             openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
             openmc_plugin(params, function=lambda: run_depletion_analysis(params))
             params['keff 2D ARI']                = params['keff 2D']
             params['keff 3D (2D corrected) ARI'] = params['keff 3D (2D corrected)']
- 
+
             params['Shutdown Margin Calc'] = False
             params['Common Temperature']   = original_common_temperature
             openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
             openmc_plugin(params, function=lambda: run_depletion_analysis(params))
             params['keff 2D ARO']                = params['keff 2D']
             params['keff 3D (2D corrected) ARO'] = params['keff 3D (2D corrected)']
- 
+
             sdm_2d_per_step = [
                 ((1.0 - k_s) / k_s) * 1e5
                 for k_s in params['keff 2D ARI']
@@ -601,33 +511,33 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
                 ((1.0 - k_s) / k_s) * 1e5
                 for k_s in params['keff 3D (2D corrected) ARI']
             ]
-            params['Most Limiting Shutdown Margin 2D']              = np.min(sdm_2d_per_step)
-            params['Maximum Shutdown Margin 2D']                    = np.max(sdm_2d_per_step)
+            params['Most Limiting Shutdown Margin 2D']               = np.min(sdm_2d_per_step)
+            params['Maximum Shutdown Margin 2D']                     = np.max(sdm_2d_per_step)
             params['Most Limiting Shutdown Margin 3D (2D corrected)'] = np.min(sdm_3d_per_step)
-            params['Maximum Shutdown Margin 3D (2D corrected)']     = np.max(sdm_3d_per_step)
- 
+            params['Maximum Shutdown Margin 3D (2D corrected)']      = np.max(sdm_3d_per_step)
+
         else:
             params['Most Limiting Shutdown Margin 2D']                = np.nan
             params['Maximum Shutdown Margin 2D']                      = np.nan
             params['Most Limiting Shutdown Margin 3D (2D corrected)'] = np.nan
             params['Maximum Shutdown Margin 3D (2D corrected)']       = np.nan
- 
+
             if params['Isothermal Temperature Coefficients']:
                 _run_isothermal_temperature_coefficients(build_openmc_model, params)
             else:
                 params['Temp Coeff 2D']                = np.nan
                 params['Temp Coeff 3D (2D corrected)'] = np.nan
- 
+
                 openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
                 openmc_plugin(params, function=lambda: run_depletion_analysis(params))
                 params['keff 2D ARO']                = params['keff 2D']
                 params['keff 3D (2D corrected) ARO'] = params['keff 3D (2D corrected)']
- 
+
     except Exception as e:
         print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")
         traceback.print_exc()
         raise
- 
+
     finally:
         params['Shutdown Margin Calc']                  = original_shutdown_margin_calc
         params['Isothermal Temperature Coefficients']   = original_isothermal_temperature_coefficients
