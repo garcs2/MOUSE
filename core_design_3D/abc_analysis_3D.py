@@ -6,6 +6,11 @@ Temperature / reflector / coolant reactivity-coefficient analysis for the 3D
 LTMR, with automatic thermal geometric expansion (core_thermal_geometry.py), plus
 the quasi-static A/B/C inherent-safety screen.
 
+Each k-eff is now a SINGLE steady-state eigenvalue run (no depletion), so you can
+run with high particle counts cheaply. Control statistics through the OpenMC
+settings written in build_openmc_model_LTMR_3D (e.g. params['Particles'],
+params['Batches'], params['Inactive Batches']).
+
 Wire into utils_3D.run_openmc with:
 
     params.setdefault('ABC Analysis', False)
@@ -18,9 +23,10 @@ Wire into utils_3D.run_openmc with:
         run_abc_analysis(build_openmc_model, params)
         return   # the existing 'finally' restores Common Temperature
 """
-import copy
+import glob
 
 import numpy as np
+import openmc
 
 from reactor_engineering_evaluation.core_thermal_geometry import (
     apply_core_expansion,
@@ -28,19 +34,84 @@ from reactor_engineering_evaluation.core_thermal_geometry import (
 )
 
 
+# ----------------------------------------------------------------------------------
+#  MPI-safe helpers (degrade to a single rank if mpi4py is unavailable)
+# ----------------------------------------------------------------------------------
+def _mpi_rank():
+    try:
+        from mpi4py import MPI
+        return MPI.COMM_WORLD.Get_rank()
+    except ImportError:
+        return 0
+
+
+def _mpi_barrier():
+    try:
+        from mpi4py import MPI
+        MPI.COMM_WORLD.Barrier()
+    except ImportError:
+        pass
+
+
+def _mpi_bcast(obj, root=0):
+    try:
+        from mpi4py import MPI
+        return MPI.COMM_WORLD.bcast(obj, root=root)
+    except ImportError:
+        return obj
+
+
+# ----------------------------------------------------------------------------------
+#  Single steady-state eigenvalue run (replaces the depletion path for ABC)
+# ----------------------------------------------------------------------------------
+def run_steady_state(params):
+    """Run ONE fixed-geometry OpenMC eigenvalue case (no depletion) for the
+    CURRENT params and store the resulting k-eff.
+
+    The watts plugin prerun has already written geometry/materials/settings XML
+    for this state, so this just runs OpenMC once and reads k-eff from the final
+    statepoint. The value is stored as single-element lists under 'keff 2D' and
+    'keff 3D (2D corrected)' so the coefficient finite-difference logic (which
+    zips over what used to be burnup steps) is unchanged. In the genuine-3D model
+    the two are the same single real 3D eigenvalue.
+    """
+    _mpi_barrier()
+    if 'cross_sections_xml_location' in params:
+        openmc.config['cross_sections'] = params['cross_sections_xml_location']
+
+    # Uses the XML already written in the run directory; returns the last statepoint.
+    sp_path = openmc.run()
+
+    keff = np.nan
+    if _mpi_rank() == 0:
+        if not sp_path:
+            candidates = sorted(glob.glob('statepoint.*.h5'))
+            sp_path = candidates[-1] if candidates else None
+        if sp_path:
+            with openmc.StatePoint(sp_path) as sp:
+                keff = float(sp.keff.nominal_value)
+                params['keff std_dev'] = float(sp.keff.std_dev)
+    _mpi_barrier()
+    keff = _mpi_bcast(keff, root=0)
+
+    params['keff 2D'] = [keff]
+    params['keff 3D (2D corrected)'] = [keff]
+    return keff
+
+
 def _run_model(build_openmc_model, params):
-    """Run one OpenMC depletion case honoring the CURRENT params (geometry+temps).
-    Returns (keff_2d_list, keff_3d_corrected_list)."""
+    """Run one steady-state eigenvalue case honoring the CURRENT params
+    (geometry + temperatures). Returns (keff_2d_list, keff_3d_corrected_list)."""
     import watts
-    from core_design_3D.utils_3D import run_depletion_analysis  # deferred (no cycle)
     openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
-    openmc_plugin(params, function=lambda: run_depletion_analysis(params))
+    openmc_plugin(params, function=lambda: run_steady_state(params))
     return params['keff 2D'], params['keff 3D (2D corrected)']
 
 
 def _coefficient(keff_base, keff_pert, dT):
-    """Most-limiting reactivity coefficient (pcm/K) over the burnup steps.
-    Mirrors the existing ITC formula: (k_p - k_b)/(k_p*k_b)/dT * 1e5."""
+    """Most-limiting reactivity coefficient (pcm/K) over the stored k-eff entries
+    (a single entry per state now). Mirrors the ITC formula:
+    (k_p - k_b)/(k_p*k_b)/dT * 1e5."""
     return np.max([
         (kp - kb) / (kp * kb) / dT * 1e5
         for kb, kp in zip(keff_base, keff_pert)
@@ -138,7 +209,8 @@ def _evaluate_abc_criteria(params):
 def run_abc_analysis(build_openmc_model, params):
     """Evaluate the fuel-temperature, reflector, and coolant reactivity
     coefficients (pcm/K) for the 3D LTMR with automatic thermal expansion, then
-    run the A/B/C quasi-static safety screen.
+    run the A/B/C quasi-static safety screen. Each k-eff is a single steady-state
+    eigenvalue run (no depletion).
 
       Temperature (fuel) : fuel +dT  -> axial expansion of ALL components
                            (rules 1 & 2) + fuel density/Doppler

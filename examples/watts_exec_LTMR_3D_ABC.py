@@ -76,8 +76,8 @@ update_params({
     # Build materials cold and let the geometry builder own the (mass-conserving)
     # solid-density scaling; temperatures and coolant EOS density are still applied
     # by the materials module (after the materials-module edit).
-    'Thermal Expansion': False,
-    'Reference Temperature': params['Common Temperature'],     # or set = Common Temperature to keep base
+    'Thermal Expansion': True,
+    'Reference Temperature': 600,     # or set = Common Temperature to keep base
                                          # geometry unperturbed
     'Per-Region Temperatures': True,     # isolate fuel/reflector/coolant Doppler
                                          # (requires the materials-module edit)
@@ -140,6 +140,7 @@ update_params({
     'Primary Loop Inlet Temperature': 430 + 273.15,   # K
     'Primary Loop Outlet Temperature': 520 + 273.15,  # K
     'Coolant Boiling Temperature': 1058.15,           # K (NaK ~785 C)
+    'Particles' : 100000
 })
 
 # **************************************************************************************
