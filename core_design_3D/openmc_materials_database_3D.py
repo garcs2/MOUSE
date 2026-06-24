@@ -180,58 +180,6 @@ def _volume_ratio(alpha_L, T, T_ref):
     return (1.0 + eps) ** 3
 
 
-def _apply_thermal_expansion(material, key, T, T_ref=T_REF_DEFAULT, band=TE_BAND):
-    """Set the material temperature to T and rescale its density for thermal
-    expansion. Solids use a mean linear CTE (THERMAL_EXPANSION); coolants use
-    their own density(T) function (COOLANT_DENSITY). Materials with no entry keep
-    their cold density (the temperature is still updated to T)."""
-    material.temperature = T
-
-    if not (band[0] <= T <= band[1]):
-        warnings.warn(
-            f"[thermal-expansion] T={T} K for '{key}' is outside the validated "
-            f"band {band[0]}-{band[1]} K; expansion is being extrapolated."
-        )
-
-    # Coolants: dedicated density(T) correlations
-    if key in COOLANT_DENSITY:
-        rho, units = COOLANT_DENSITY[key](T, T_ref)
-        material.set_density(units, rho)
-        return
-
-    alpha_L = THERMAL_EXPANSION.get(key)
-    if alpha_L is None:
-        return  # no data for this material -> leave cold density unchanged
-
-    rho = material.density
-    units = (material.density_units or '').lower()
-    if rho is None:
-        return
-    if units in ('g/cm3', 'g/cc', 'atom/b-cm', 'atom/cm3', 'kg/m3'):
-        material.set_density(material.density_units,
-                             rho / _volume_ratio(alpha_L, T, T_ref))
-    else:
-        warnings.warn(
-            f"[thermal-expansion] '{key}' has density units "
-            f"'{material.density_units}' that are not handled; density unchanged."
-        )
-
-
-def _apply_thermal_expansion_all(mats, params):
-    """Apply operating temperature + thermal-expansion density correction to every
-    material in `mats`. Controlled by params:
-        params['Common Temperature']     operating T in K   (required)
-        params['Reference Temperature']  cold-density T     (default 293.15 K)
-        params['Thermal Expansion']      on/off bool        (default True)
-    """
-    if not params.get('Thermal Expansion', True):
-        return
-    T = params['Common Temperature']
-    T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
-    for key, mat in mats.items():
-        _apply_thermal_expansion(mat, key, T, T_ref)
-
-
 # ==================================================================================
 #  Library-version dispatcher
 # ==================================================================================
@@ -306,7 +254,7 @@ def _build_base_materials(params):
     to recover the original cold-density behaviour.
     """
     mats = {}
-
+     
     # ------------------------------------------------------------------
     # Sec. 1.1 : Fuels
     # ------------------------------------------------------------------

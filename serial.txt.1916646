@@ -1,0 +1,53 @@
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+
+
+[92mHeat flux: 0.85 MW/m^2.[0m
+
+
+
+
+The results/plots are saved at: /home/garcsamu/.local/share/watts
+
+
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+Warning Criterion 1: A, B, C are not all negative:
+  A = 79.498 pcm
+  B = 671.024 pcm
+  C = 8.591 pcm/K
+
+================ ABC reactivity coefficients (pcm/K) ================
+  Temperature (fuel)  2D:      0.795   3D(2D-corr):      0.795
+  Reflector           2D:      4.829   3D(2D-corr):      4.829
+  Coolant             2D:      2.967   3D(2D-corr):      2.967
+---------------- A/B/C quasi-static safety screen -------------------
+  A =     79.498 pcm
+  B =    671.024 pcm
+  C =      8.591 pcm/K
+  Criteria (1,2,3): False, True, True   -> Safe: False
+=====================================================================
+
+Execution time: 0.48 minutes

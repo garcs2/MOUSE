@@ -1,0 +1,53 @@
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+
+
+[92mHeat flux: 0.85 MW/m^2.[0m
+
+
+
+
+The results/plots are saved at: /home/garcsamu/.local/share/watts
+
+
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+Warning Criterion 2: loss-of-flow temperature reaches/exceeds coolant boiling temperature:
+  T_LOF = 1103.15 K  >=  T_boil = 1058.15 K
+Warning Criterion 3: loss-of-heat-sink balance out of range (want 1 < C/B*dT < 2):
+  C/B*dT = 2.000
+
+================ ABC reactivity coefficients (pcm/K) ================
+  Temperature (fuel)  2D:     -0.051   3D(2D-corr):     -0.051
+  Reflector           2D:      0.000   3D(2D-corr):      0.000
+  Coolant             2D:     -0.000   3D(2D-corr):     -0.000
+---------------- A/B/C quasi-static safety screen -------------------
+  A =     -5.143 pcm
+  B =     -2.571 pcm
+  C =     -0.051 pcm/K
+  Criteria (1,2,3): True, False, False   -> Safe: False
+=====================================================================
+
+Execution time: 70.66 minutes
