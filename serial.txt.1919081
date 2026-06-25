@@ -1,0 +1,42 @@
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+
+
+[92mHeat flux: 0.85 MW/m^2.[0m
+
+
+
+
+The results/plots are saved at: /home/garcsamu/.local/share/watts
+
+
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+ABC Analysis shows safe nominal transient characteristics
+
+================ ABC reactivity coefficients (pcm/K) ================
+  Temperature (fuel)  2D:     -1.392   3D(2D-corr):     -1.392
+  Reflector           2D:     -0.070   3D(2D-corr):     -0.070
+  Coolant             2D:     -0.057   3D(2D-corr):     -0.057
+---------------- A/B/C quasi-static safety screen -------------------
+  A =   -139.166 pcm
+  B =    -79.451 pcm
+  C =     -1.519 pcm/K
+  Criteria (1,2,3): True, True, True   -> Safe: True
+=====================================================================
+
+Execution time: 73.51 minutes

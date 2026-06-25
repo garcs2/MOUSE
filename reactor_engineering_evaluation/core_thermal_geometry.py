@@ -218,3 +218,47 @@ def mass_conserving_density_scale(materials_database, params):
         vr = refl_vr if name in reflector_roles else axial_vr
         mat.set_density(mat.density_units, rho / vr)
     return materials_database
+
+def expand_derived_geometry(params, T_ref=None):
+    """Scale the drum-derived (cold) reflector/axial geometry for thermal
+    expansion, IN PLACE. Call inside the build AFTER
+    update_ltmr_reflector_geometry_from_drums (which sets the cold, drum-derived
+    Core Radius / thicknesses) and BEFORE the core surfaces are created.
+
+    Axial dims (Active Height, Axial Reflector Thickness) scale with the FUEL
+    temperature (rules 1 & 2). The radial reflector grows the outer boundary
+    (Core Radius) with the REFLECTOR temperature (rule 3), holding the hex apothem
+    fixed. No-op unless params['Geometric Expansion'] is True. Also sets
+    Vol Ratio Axial / Vol Ratio Reflector for mass_conserving_density_scale.
+    """
+    if not params.get('Geometric Expansion', False):
+        params.setdefault('Vol Ratio Axial', 1.0)
+        params.setdefault('Vol Ratio Reflector', 1.0)
+        return 1.0, 1.0
+    if T_ref is None:
+        T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
+    T_common = params['Common Temperature']
+    T_fuel = params.get('Fuel Temperature', T_common)
+    T_refl = params.get('Reflector Temperature', T_common)
+
+    a_fuel = _cte(params.get('Fuel'))
+    a_refl = _cte(params.get('Radial Reflector', params.get('Reflector')))
+    axial  = 1.0 + a_fuel * (T_fuel - T_ref)
+    radial = 1.0 + a_refl * (T_refl - T_ref)
+
+    H0, ax0 = params['Active Height'], params['Axial Reflector Thickness']
+    rad0, Rc0 = params['Radial Reflector Thickness'], params['Core Radius']
+    apothem = Rc0 - rad0                       # fixed hex apothem (no fuel radial expansion)
+
+    params['Active Height']              = H0 * axial
+    params['Axial Reflector Thickness']  = ax0 * axial
+    params['Radial Reflector Thickness'] = rad0 * radial
+    params['Core Radius']                = apothem + rad0 * radial
+    if 'Drum Height' in params:
+        params['Drum Height'] = params['Active Height'] + 2.0 * params['Axial Reflector Thickness']
+
+    params['Vol Ratio Axial'] = axial
+    a0 = (apothem + rad0) ** 2 - apothem ** 2
+    a1 = (apothem + rad0 * radial) ** 2 - apothem ** 2
+    params['Vol Ratio Reflector'] = (a1 / a0 if a0 else 1.0) * axial
+    return axial, radial

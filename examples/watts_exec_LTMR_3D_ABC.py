@@ -81,6 +81,7 @@ update_params({
                                          # geometry unperturbed
     'Per-Region Temperatures': True,     # isolate fuel/reflector/coolant Doppler
                                          # (requires the materials-module edit)
+    'Geometric Expansion': True
 })
 
 # **************************************************************************************

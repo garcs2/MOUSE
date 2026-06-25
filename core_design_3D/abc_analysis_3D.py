@@ -233,28 +233,28 @@ def run_abc_analysis(build_openmc_model, params):
 
     # ---- BASE STATE (operating temps, geometry expanded vs reference) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0, T0)
-    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
+    # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
     kb2d, kb3d = _run_model(build_openmc_model, params)
     params['keff 2D ABC base'] = kb2d
     params['keff 3D (2D corrected) ABC base'] = kb3d
 
     # ---- (A) FUEL TEMPERATURE COEFFICIENT: Doppler + axial expansion ----
     _set_region_temperatures(params, Tf0 + dT, Tr0, Tc0, T0)
-    apply_core_expansion(params, T_fuel=Tf0 + dT, T_reflector=Tr0, T_ref=T_ref)
+    # apply_core_expansion(params, T_fuel=Tf0 + dT, T_reflector=Tr0, T_ref=T_ref)
     kf2d, kf3d = _run_model(build_openmc_model, params)
     params['Temp Coeff 2D'] = _coefficient(kb2d, kf2d, dT)
     params['Temp Coeff 3D (2D corrected)'] = _coefficient(kb3d, kf3d, dT)
 
     # ---- (B) REFLECTOR COEFFICIENT: reflector density + radial expansion ----
     _set_region_temperatures(params, Tf0, Tr0 + dT, Tc0, T0)
-    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0 + dT, T_ref=T_ref)
+    # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0 + dT, T_ref=T_ref)
     kr2d, kr3d = _run_model(build_openmc_model, params)
     params['Reflector Coeff 2D'] = _coefficient(kb2d, kr2d, dT)
     params['Reflector Coeff 3D (2D corrected)'] = _coefficient(kb3d, kr3d, dT)
 
     # ---- (C) COOLANT COEFFICIENT: coolant EOS density only (no geometry) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0 + dT, T0)
-    apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)  # geom unchanged
+    # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)  # geom unchanged
     kc2d, kc3d = _run_model(build_openmc_model, params)
     params['Coolant Coeff 2D'] = _coefficient(kb2d, kc2d, dT)
     params['Coolant Coeff 3D (2D corrected)'] = _coefficient(kb3d, kc3d, dT)
@@ -264,4 +264,4 @@ def run_abc_analysis(build_openmc_model, params):
 
     # ---- Restore reference geometry (Common Temperature restored by run_openmc's finally) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0, T0)
-    reset_core_geometry(params)
+    # reset_core_geometry(params)
