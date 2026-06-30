@@ -141,7 +141,7 @@ update_params({
     'Primary Loop Inlet Temperature': 430 + 273.15,   # K
     'Primary Loop Outlet Temperature': 520 + 273.15,  # K
     'Coolant Boiling Temperature': 1058.15,           # K (NaK ~785 C)
-    'Particles' : 1000000
+    'Particles' : 2000000
 })
 
 # **************************************************************************************
@@ -161,11 +161,11 @@ heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_LTMR_3D, heat_flux_monitor, params)   # 3-arg signature
 
 print("\n================ ABC reactivity coefficients (pcm/K) ================")
-print(f"  Temperature (fuel)  2D: {params.get('Temp Coeff 2D'):>10.3f}   "
+print(f"  Temperature (fuel)  2D: {params.get('Temp Coeff 2D'):>10.3f} ± {params.get('Temp Coeff std'):.3f}   "
       f"3D(2D-corr): {params.get('Temp Coeff 3D (2D corrected)'):>10.3f}")
-print(f"  Reflector           2D: {params.get('Reflector Coeff 2D'):>10.3f}   "
+print(f"  Reflector           2D: {params.get('Reflector Coeff 2D'):>10.3f} ± {params.get('Reflector Coeff std'):.3f}   "
       f"3D(2D-corr): {params.get('Reflector Coeff 3D (2D corrected)'):>10.3f}")
-print(f"  Coolant             2D: {params.get('Coolant Coeff 2D'):>10.3f}   "
+print(f"  Coolant             2D: {params.get('Coolant Coeff 2D'):>10.3f} ± {params.get('Coolant Coeff std'):.3f}   "
       f"3D(2D-corr): {params.get('Coolant Coeff 3D (2D corrected)'):>10.3f}")
 print("---------------- A/B/C quasi-static safety screen -------------------")
 print(f"  A = {params.get('ABC A (pcm)'):>10.3f} pcm")

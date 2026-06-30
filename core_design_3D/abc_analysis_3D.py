@@ -94,8 +94,8 @@ def run_steady_state(params):
     _mpi_barrier()
     keff = _mpi_bcast(keff, root=0)
 
-    params['keff 2D'] = [keff]
-    params['keff 3D (2D corrected)'] = [keff]
+    params['keff 2D'] = keff
+    params['keff 3D (2D corrected)'] = keff
     return keff
 
 
@@ -103,19 +103,16 @@ def _run_model(build_openmc_model, params):
     """Run one steady-state eigenvalue case honoring the CURRENT params
     (geometry + temperatures). Returns (keff_2d_list, keff_3d_corrected_list)."""
     import watts
-    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
+    openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True, show_stdout=True)
     openmc_plugin(params, function=lambda: run_steady_state(params))
-    return params['keff 2D'], params['keff 3D (2D corrected)']
+    return params['keff 2D'], params['keff 3D (2D corrected)'], params['keff std_dev']
 
 
-def _coefficient(keff_base, keff_pert, dT):
-    """Most-limiting reactivity coefficient (pcm/K) over the stored k-eff entries
-    (a single entry per state now). Mirrors the ITC formula:
-    (k_p - k_b)/(k_p*k_b)/dT * 1e5."""
-    return np.max([
-        (kp - kb) / (kp * kb) / dT * 1e5
-        for kb, kp in zip(keff_base, keff_pert)
-    ])
+def _coefficient(keff_base, keff_pert, sd_base, sd_pert, dT):
+    C = 1e5 / dT
+    alpha = C * (1.0/keff_base - 1.0/keff_pert)
+    sigma = C * np.sqrt((sd_base/keff_base**2)**2 + (sd_pert/keff_pert**2)**2)
+    return alpha, sigma
 
 
 def _set_region_temperatures(params, T_fuel, T_reflector, T_coolant, T_common):
@@ -234,30 +231,34 @@ def run_abc_analysis(build_openmc_model, params):
     # ---- BASE STATE (operating temps, geometry expanded vs reference) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0, T0)
     # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
-    kb2d, kb3d = _run_model(build_openmc_model, params)
+    kb2d, kb3d, sd_base = _run_model(build_openmc_model, params)
     params['keff 2D ABC base'] = kb2d
+    params['keff ABC base uncertainty'] = sd_base
     params['keff 3D (2D corrected) ABC base'] = kb3d
 
     # ---- (A) FUEL TEMPERATURE COEFFICIENT: Doppler + axial expansion ----
     _set_region_temperatures(params, Tf0 + dT, Tr0, Tc0, T0)
     # apply_core_expansion(params, T_fuel=Tf0 + dT, T_reflector=Tr0, T_ref=T_ref)
-    kf2d, kf3d = _run_model(build_openmc_model, params)
-    params['Temp Coeff 2D'] = _coefficient(kb2d, kf2d, dT)
-    params['Temp Coeff 3D (2D corrected)'] = _coefficient(kb3d, kf3d, dT)
+    kf2d, kf3d, sd_kf= _run_model(build_openmc_model, params)
+    ct, st = _coefficient(kb2d, kf2d, sd_base, sd_kf, dT)
+    params['Temp Coeff 2D'] = params['Temp Coeff 3D (2D corrected)'] = ct
+    params['Temp Coeff std'] = st
 
     # ---- (B) REFLECTOR COEFFICIENT: reflector density + radial expansion ----
     _set_region_temperatures(params, Tf0, Tr0 + dT, Tc0, T0)
     # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0 + dT, T_ref=T_ref)
-    kr2d, kr3d = _run_model(build_openmc_model, params)
-    params['Reflector Coeff 2D'] = _coefficient(kb2d, kr2d, dT)
-    params['Reflector Coeff 3D (2D corrected)'] = _coefficient(kb3d, kr3d, dT)
+    kr2d, kr3d, sd_kr = _run_model(build_openmc_model, params)
+    ct, st = _coefficient(kb2d, kr2d, sd_base, sd_kr, dT)
+    params['Reflector Coeff 2D'] = params['Reflector Coeff 3D (2D corrected)'] = ct
+    params['Reflector Coeff std'] = st
 
     # ---- (C) COOLANT COEFFICIENT: coolant EOS density only (no geometry) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0 + dT, T0)
     # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)  # geom unchanged
-    kc2d, kc3d = _run_model(build_openmc_model, params)
-    params['Coolant Coeff 2D'] = _coefficient(kb2d, kc2d, dT)
-    params['Coolant Coeff 3D (2D corrected)'] = _coefficient(kb3d, kc3d, dT)
+    kc2d, kc3d, sd_kc = _run_model(build_openmc_model, params)
+    ct, st = _coefficient(kb2d, kc2d, sd_base, sd_kc, dT)
+    params['Coolant Coeff 2D'] = params['Coolant Coeff 3D (2D corrected)'] = ct
+    params['Coolant Coeff std'] = st
 
     # ---- A/B/C quasi-static inherent-safety screen ----
     _evaluate_abc_criteria(params)
