@@ -106,6 +106,19 @@ def expansion_factors(params, T_fuel, T_reflector, T_ref=None):
     return (linear_factor(a_fuel, T_fuel, T_ref),
             linear_factor(a_refl, T_reflector, T_ref))
 
+def coolant_expanded_pitch(params, T_ref=None):
+    """Fuel-pin pitch scaled by grid-plate (coolant-driven) thermal expansion.
+    Pins themselves are unchanged; only the lattice spacing grows, so the extra
+    space becomes coolant. No-op unless params['Geometric Expansion']."""
+    pitch_ref = 2.0 * params['Fuel Pin Radii'][-1] + params['Pin Gap Distance']
+    if not params.get('Geometric Expansion', False):
+        return pitch_ref
+    if T_ref is None:
+        T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
+    T_cool = params.get('Coolant Temperature', params['Common Temperature'])
+    grid_key = params.get('Grid Plate Material', 'SS304')
+    f_grid = 1.0 + _cte(grid_key) * (T_cool - T_ref)
+    return pitch_ref * f_grid
 
 def apply_core_expansion(params, T_fuel, T_reflector, T_ref=None):
     """Adjust LTMR-3D geometric parameters in-place for thermal expansion.

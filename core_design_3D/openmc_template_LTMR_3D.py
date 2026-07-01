@@ -524,7 +524,8 @@ def build_openmc_model_LTMR_3D(params):
     #                                                Sec. 1.3 : Fuel Assembly Universes (one per axial zone)
     # **************************************************************************************************************************
 
-    pin_pitch = 2 * params['Fuel Pin Radii'][-1] + params["Pin Gap Distance"]
+    from reactor_engineering_evaluation.core_thermal_geometry import coolant_expanded_pitch
+    pin_pitch = coolant_expanded_pitch(params)
 
     assembly_universes = []
     for i in range(N_AXIAL):
