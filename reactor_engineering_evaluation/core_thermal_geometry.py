@@ -48,15 +48,6 @@ MATERIAL_KEY_ALIASES = {
     'TRIGA_fuel': 'UZrH_alloy',
 }
 
-# Reserved params keys used to stash the reference (cold) geometry.
-_REF_KEYS = {
-    'Active Height':             '_ref Active Height',
-    'Axial Reflector Thickness': '_ref Axial Reflector Thickness',
-    'Radial Reflector Thickness':'_ref Radial Reflector Thickness',
-    'Core Radius':               '_ref Core Radius',
-}
-
-
 def _cte(material_key):
     """Mean linear CTE [1/K] for a material role value (params['Fuel'] etc.)."""
     key = MATERIAL_KEY_ALIASES.get(material_key, material_key)
@@ -69,42 +60,6 @@ def _cte(material_key):
         return 0.0
     return alpha
 
-
-def _stash_reference_dims(params):
-    """Capture the as-built (reference) dimensions exactly once."""
-    for dim_key, ref_key in _REF_KEYS.items():
-        if ref_key not in params and dim_key in params:
-            params[ref_key] = params[dim_key]
-
-
-def _fixed_inner_radius(params):
-    """Hex apothem = Core Radius - Radial Reflector Thickness, at the reference
-    state. This is the fuel-lattice radial extent and is held fixed (rule 1)."""
-    Rc0 = params.get('_ref Core Radius')
-    t0 = params.get('_ref Radial Reflector Thickness')
-    if Rc0 is not None and t0 is not None:
-        return Rc0 - t0
-    # Fallback if Core Radius wasn't provided
-    return params.get('Lattice Apothem')
-
-
-def linear_factor(alpha_L, T, T_ref):
-    """Linear expansion factor L(T)/L(T_ref) = 1 + alpha_L * (T - T_ref)."""
-    return 1.0 + alpha_L * (T - T_ref)
-
-
-def expansion_factors(params, T_fuel, T_reflector, T_ref=None):
-    """Return (axial_factor, radial_factor).
-
-    axial  <- FUEL CTE      (rules 1 & 2)
-    radial <- REFLECTOR CTE (rule 3)
-    """
-    if T_ref is None:
-        T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
-    a_fuel = _cte(params['Fuel'])
-    a_refl = _cte(params['Radial Reflector'])
-    return (linear_factor(a_fuel, T_fuel, T_ref),
-            linear_factor(a_refl, T_reflector, T_ref))
 
 def coolant_expanded_pitch(params, T_ref=None):
     """Fuel-pin pitch scaled by grid-plate (coolant-driven) thermal expansion.
@@ -120,81 +75,12 @@ def coolant_expanded_pitch(params, T_ref=None):
     f_grid = 1.0 + _cte(grid_key) * (T_cool - T_ref)
     return pitch_ref * f_grid
 
-def apply_core_expansion(params, T_fuel, T_reflector, T_ref=None):
-    """Adjust LTMR-3D geometric parameters in-place for thermal expansion.
-
-    T_fuel       drives AXIAL expansion of every component (rules 1 & 2)
-    T_reflector  drives RADIAL expansion of the reflector only (rule 3)
-    T_ref        reference temperature of the stored dimensions
-                 (default params['Reference Temperature'] or T_REF_DEFAULT)
-
-    Records per-region volume ratios for the optional mass-conserving density
-    scaling:
-        params['Vol Ratio Axial']      fuel + general structure (axial-only)
-        params['Vol Ratio Reflector']  reflector (radial annulus * axial height)
-    Returns (axial_factor, radial_factor).
-    """
-    if T_ref is None:
-        T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
-
-    _stash_reference_dims(params)
-    axial, radial = expansion_factors(params, T_fuel, T_reflector, T_ref)
-
-    # --- Axial dimensions (rules 1 & 2): scale from stored reference ---
-    if '_ref Active Height' in params:
-        params['Active Height'] = params['_ref Active Height'] * axial
-    if '_ref Axial Reflector Thickness' in params:
-        params['Axial Reflector Thickness'] = (
-            params['_ref Axial Reflector Thickness'] * axial)
-
-    # --- Radial reflector (rule 3) ---
-    R_inner = _fixed_inner_radius(params)   # hex apothem, fixed
-    if '_ref Radial Reflector Thickness' in params:
-        params['Radial Reflector Thickness'] = (
-            params['_ref Radial Reflector Thickness'] * radial)
-        if R_inner is not None:
-            # Core Radius = apothem + radial reflector thickness (matches
-            # calculate_core_radius_from_hex with the apothem held fixed).
-            params['Core Radius'] = R_inner + params['Radial Reflector Thickness']
-
-    # --- Derived axial dimension (kept consistent if present) ---
-    if 'Active Height' in params and 'Axial Reflector Thickness' in params and \
-            'Drum Height' in params:
-        params['Drum Height'] = (
-            params['Active Height'] + 2.0 * params['Axial Reflector Thickness'])
-
-    # --- Per-region volume ratios for optional mass conservation ---
-    params['Vol Ratio Axial'] = axial          # axial-only solids: V/V0 = axial
-    if R_inner is not None and '_ref Radial Reflector Thickness' in params:
-        t0 = params['_ref Radial Reflector Thickness']
-        annulus0 = (R_inner + t0) ** 2 - R_inner ** 2
-        annulus = (R_inner + t0 * radial) ** 2 - R_inner ** 2
-        area_ratio = (annulus / annulus0) if annulus0 != 0 else 1.0
-        params['Vol Ratio Reflector'] = area_ratio * axial
-    else:
-        params['Vol Ratio Reflector'] = axial * radial ** 2  # crude fallback
-
-    return axial, radial
-
-
-def reset_core_geometry(params):
-    """Restore geometric parameters to the stored reference (cold) values."""
-    for dim_key, ref_key in _REF_KEYS.items():
-        if ref_key in params:
-            params[dim_key] = params[ref_key]
-    if 'Active Height' in params and 'Axial Reflector Thickness' in params and \
-            'Drum Height' in params:
-        params['Drum Height'] = (
-            params['Active Height'] + 2.0 * params['Axial Reflector Thickness'])
-    params['Vol Ratio Axial'] = 1.0
-    params['Vol Ratio Reflector'] = 1.0
-
 
 def mass_conserving_density_scale(materials_database, params):
     """OPTIONAL (recommended for rigorous coefficients).
 
     Scale material densities so atom inventory is conserved under the geometric
-    expansion applied by apply_core_expansion. Call this INSIDE
+    expansion applied by expand_derived_geometry. Call this INSIDE
     build_openmc_model_LTMR_3D right after collect_materials_data, and build the
     materials at their cold reference density (params['Thermal Expansion']=False)
     so density and geometry are not double counted:

@@ -28,12 +28,6 @@ import glob
 import numpy as np
 import openmc
 
-from reactor_engineering_evaluation.core_thermal_geometry import (
-    apply_core_expansion,
-    reset_core_geometry,
-)
-
-
 # ----------------------------------------------------------------------------------
 #  MPI-safe helpers (degrade to a single rank if mpi4py is unavailable)
 # ----------------------------------------------------------------------------------
@@ -126,7 +120,7 @@ def _set_region_temperatures(params, T_fuel, T_reflector, T_coolant, T_common):
     If False (unpatched materials module), Common Temperature is set to the
     perturbed region's temperature so at least the dominant density/Doppler
     effect is captured (NOT isolated). The geometric part is isolated either way,
-    since apply_core_expansion reads T_fuel / T_reflector directly.
+    since expand_derived_geometry T_fuel / T_reflector directly.
     """
     params['Fuel Temperature'] = T_fuel
     params['Reflector Temperature'] = T_reflector
@@ -220,8 +214,12 @@ def run_abc_analysis(build_openmc_model, params):
                'Per-Region Temperatures', 'Primary Loop Inlet Temperature',
                'Coolant Boiling Temperature'
     """
+    if params.get('Geometric Expansion') and params.get('Thermal Expansion', True):
+        raise ValueError(
+            "ABC/geometry mode requires 'Thermal Expansion': False so density is "
+            "handled by mass_conserving_density_scale (not double-counted with the "
+            "isotropic solid rescale). Set 'Thermal Expansion': False.")
     dT = params['Temperature Perturbation']
-    T_ref = params.get('Reference Temperature', None)
     T0 = params['Common Temperature']
 
     Tf0 = params.get('Fuel Temperature', T0)
@@ -230,7 +228,6 @@ def run_abc_analysis(build_openmc_model, params):
 
     # ---- BASE STATE (operating temps, geometry expanded vs reference) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0, T0)
-    # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)
     kb2d, kb3d, sd_base = _run_model(build_openmc_model, params)
     params['keff 2D ABC base'] = kb2d
     params['keff ABC base uncertainty'] = sd_base
@@ -238,7 +235,6 @@ def run_abc_analysis(build_openmc_model, params):
 
     # ---- (A) FUEL TEMPERATURE COEFFICIENT: Doppler + axial expansion ----
     _set_region_temperatures(params, Tf0 + dT, Tr0, Tc0, T0)
-    # apply_core_expansion(params, T_fuel=Tf0 + dT, T_reflector=Tr0, T_ref=T_ref)
     kf2d, kf3d, sd_kf= _run_model(build_openmc_model, params)
     ct, st = _coefficient(kb2d, kf2d, sd_base, sd_kf, dT)
     params['Temp Coeff 2D'] = params['Temp Coeff 3D (2D corrected)'] = ct
@@ -246,7 +242,6 @@ def run_abc_analysis(build_openmc_model, params):
 
     # ---- (B) REFLECTOR COEFFICIENT: reflector density + radial expansion ----
     _set_region_temperatures(params, Tf0, Tr0 + dT, Tc0, T0)
-    # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0 + dT, T_ref=T_ref)
     kr2d, kr3d, sd_kr = _run_model(build_openmc_model, params)
     ct, st = _coefficient(kb2d, kr2d, sd_base, sd_kr, dT)
     params['Reflector Coeff 2D'] = params['Reflector Coeff 3D (2D corrected)'] = ct
@@ -254,7 +249,6 @@ def run_abc_analysis(build_openmc_model, params):
 
     # ---- (C) COOLANT COEFFICIENT: coolant EOS density only (no geometry) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0 + dT, T0)
-    # apply_core_expansion(params, T_fuel=Tf0, T_reflector=Tr0, T_ref=T_ref)  # geom unchanged
     kc2d, kc3d, sd_kc = _run_model(build_openmc_model, params)
     ct, st = _coefficient(kb2d, kc2d, sd_base, sd_kc, dT)
     params['Coolant Coeff 2D'] = params['Coolant Coeff 3D (2D corrected)'] = ct
@@ -265,4 +259,3 @@ def run_abc_analysis(build_openmc_model, params):
 
     # ---- Restore reference geometry (Common Temperature restored by run_openmc's finally) ----
     _set_region_temperatures(params, Tf0, Tr0, Tc0, T0)
-    # reset_core_geometry(params)

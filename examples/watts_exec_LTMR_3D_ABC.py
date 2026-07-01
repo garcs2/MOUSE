@@ -76,7 +76,7 @@ update_params({
     # Build materials cold and let the geometry builder own the (mass-conserving)
     # solid-density scaling; temperatures and coolant EOS density are still applied
     # by the materials module (after the materials-module edit).
-    'Thermal Expansion': True,
+    'Thermal Expansion': False,
     'Reference Temperature': 600,     # or set = Common Temperature to keep base
                                          # geometry unperturbed
     'Per-Region Temperatures': True,     # isolate fuel/reflector/coolant Doppler

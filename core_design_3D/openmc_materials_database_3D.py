@@ -86,7 +86,7 @@ def _resolve_region_temperature(params, key):
     fuel_key = _FUEL_KEY_ALIASES.get(params.get('Fuel'), params.get('Fuel'))
     if key == fuel_key:
         return params.get('Fuel Temperature', T_common)
-    if key in (params.get('Reflector'), params.get('Control Drum Reflector')):
+    if key in (params.get('Radial Reflector'), params.get('Control Drum Reflector')):
         return params.get('Reflector Temperature', T_common)
     if key in (params.get('Coolant'), params.get('Secondary Coolant')):
         return params.get('Coolant Temperature', T_common)
