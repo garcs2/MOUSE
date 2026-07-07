@@ -16,12 +16,14 @@ from reactor_engineering_evaluation.BOP import *
 from reactor_engineering_evaluation.vessels_calcs import *
 from reactor_engineering_evaluation.tools import *
 from cost.cost_estimation import detailed_bottom_up_cost_estimate
+import cProfile
+import pstats
+import io
 
 import warnings
 warnings.filterwarnings("ignore")
 
 import time
-time_start = time.time()
 
 params = watts.Parameters()
 
@@ -33,10 +35,12 @@ def update_params(updates):
 # **************************************************************************************************************************
 
 update_params({
-    'plotting': "Y",  # "Y" or "N": Yes or No
-    'cross_sections_xml_location': '/projects/MRP_MOUSE/openmc_data/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
-    'simplified_chain_thermal_xml': '/projects/MRP_MOUSE/openmc_data/simplified_thermal_chain11.xml'       # on INL HPC
+    'plotting': "N",  # "Y" or "N": Yes or No
+    'cross_sections_xml_location': '/hpc-common/data/openmc/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
+    'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',       # on INL HPC
+    'XS_type': 'endf8.0'
 })
+
 
 # **************************************************************************************************************************
 #                                                Sec. 1: Materials
@@ -56,7 +60,7 @@ update_params({
     'Control Drum Absorber': 'B4C_enriched',
     'Control Drum Reflector': 'Graphite',
     'Common Temperature': 600,  # Kelvins
-    'HX Material': 'SS316'
+    'HX Material': 'SS316',
 })
 # **************************************************************************************************************************
 #                                           Sec. 2: Geometry: Fuel Pins, Moderator Pins, Coolant, Hexagonal Lattice
@@ -108,7 +112,7 @@ update_params({
     'Power MWt': 20,  # MWt
     'Thermal Efficiency': 0.31,
     'Heat Flux Criteria': 0.9,  # MW/m^2
-    'Burnup Steps': [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0, 60.0, 80.0, 100.0, 120.0, 140.0]  # MWd_per_Kg
+    'Burnup Steps': [0.1, 120.0, 140.0]  # MWd_per_Kg
 })
 params['Power MWe'] = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux'] =  calculate_heat_flux(params)
@@ -130,7 +134,7 @@ params['Heat Flux'] =  calculate_heat_flux(params)
 # coefficient is then calculated in units of pcm/K.
 # A negative coefficient indicates the reactor is self-stabilizing (desired behavior).
 # Recommended: True for safety analysis; can be set to False to save computation time.
-params['Isothermal Temperature Coefficients'] = True  # True or False
+params['Isothermal Temperature Coefficients'] = False  # True or False
 
 # --- Temperature Perturbation ---
 # The temperature step (in Kelvin) used for the isothermal temperature coefficient calculation.
@@ -140,7 +144,7 @@ params['Isothermal Temperature Coefficients'] = True  # True or False
 # avoiding nonlinear effects. 
 # Units: Kelvin
 # This parameter is REQUIRED only when 'Isothermal Temperature Coefficients' is True.
-params['Temperature Perturbation'] = 100  # K
+# params['Temperature Perturbation'] = 100  # K
 
 heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
@@ -321,7 +325,7 @@ update_params({
 # Typical values: 0.06, 0.30, 0.40, 0.50
 # Note: ITC and PTC are mutually exclusive — only one can be selected per project.
 # To disable ITC, remove or comment out this parameter.
-params['ITC credit level'] = 0.30  # fraction — assumes prevailing wage requirements are met
+# params['ITC credit level'] = 0.30  # fraction — assumes prevailing wage requirements are met
 
 # --- IRA Sunset: Number of Units Claiming ITC/PTC ---
 # Under the IRA, ITC and PTC eligibility ends at a sunset year. Once the sunset
@@ -336,13 +340,27 @@ params['ITC credit level'] = 0.30  # fraction — assumes prevailing wage requir
 # Typical value: a fleet-size estimate consistent with deployments before the
 # IRA sunset (e.g. 50, 100). Set very high to keep the original behavior of
 # applying the credit to every unit.
-params['Number of Units Claiming ITC/PTC'] = 10
+# params['Number of Units Claiming ITC/PTC'] = 10
 
 # **************************************************************************************************************************
 #                                           Sec. 11: Post Processing
 # **************************************************************************************************************************
-params['Number of Samples'] = 100  # number of samples for cost uncertainty analysis
+params['Number of Samples'] = 1000  # number of samples for cost uncertainty analysis
 # Estimate costs using the cost database file and save the output to an Excel file
-estimate = detailed_bottom_up_cost_estimate('cost/Cost_Database.xlsx')
+time_start = time.time()
+profiler = cProfile.Profile()
+profiler.enable()
+estimate = detailed_bottom_up_cost_estimate('/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx')
+profiler.disable()
+stream = io.StringIO()
+stats = pstats.Stats(profiler, stream=stream).sort_stats('cumulative')
+stats.print_stats(30)  # top 30 functions by cumulative time
+print(stream.getvalue())
+ 
+print("\n\n--- sorted by tottime (self time, excludes sub-calls) ---\n")
+stream2 = io.StringIO()
+stats2 = pstats.Stats(profiler, stream=stream2).sort_stats('tottime')
+stats2.print_stats(30)
+print(stream2.getvalue())
 elapsed_time = (time.time() - time_start) / 60  # calculate execution time
 print('Execution time:', np.round(elapsed_time, 1), 'minutes')

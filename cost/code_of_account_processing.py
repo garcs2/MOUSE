@@ -41,15 +41,69 @@ def remove_irrelevant_account(df, params):
 
 
 
+# --- PERFORMANCE PATCH for cost/code_of_account_processing.py ---
+#
+# WHAT CHANGED AND WHY IT'S SAFE:
+#
+# find_children_accounts() computes, for every row, the list of "child" rows
+# that need to be summed into it (based on Account/Level structure) — but it
+# only assigns that list to rows whose own cost is still NaN (i.e. rows that
+# are aggregation targets rather than leaves with a direct cost).
+#
+# The key fact that makes caching safe: whether a given row is a "leaf" (gets
+# a real, non-NaN direct cost from scale_cost / scale_central_facility_cost)
+# or an "aggregation target" (starts NaN, to be filled in by
+# calculate_high_level_accounts_cost) is a STRUCTURAL property of the chart of
+# accounts. It does not depend on the randomly sampled cost values — a leaf
+# account always gets a real number (or an explicit 0) every sample, and a
+# parent/aggregation account always starts NaN at the point find_children_accounts
+# is called for a given stage (base/other/finance/annual). So the NaN pattern,
+# and therefore the entire children-accounts mapping, is IDENTICAL across all
+# 1000 Monte Carlo samples for a given call site (e.g. every 'base'-stage call
+# produces the same mapping, every 'other'-stage call produces the same
+# mapping, etc. — only the four stages differ from each other, since costs
+# get progressively filled in between stages within one sample).
+#
+# This patch memoizes on a fingerprint of (Account tuple, Level tuple, NaN
+# pattern of the estimated-cost column). If that fingerprint has been seen
+# before, the previously computed 'Children Accounts' column is reused instead
+# of re-running the O(n^2) nested loop. If anything about the structure ever
+# does change (e.g. a different reactor config drops/adds accounts), the
+# fingerprint changes too and it recomputes automatically — so this is a
+# strict speed optimization with no behavior change, not a shortcut that
+# could silently go stale.
+#
+# HOW TO APPLY:
+# Replace the existing find_children_accounts() function in
+# cost/code_of_account_processing.py with the version below (it keeps the
+# exact same computation logic — the numpy-array inner loop — just gates it
+# behind the cache).
+
+import pandas as pd
+
+_children_accounts_cache = {}
+
+
 def find_children_accounts(df):
     # Find the column name that starts with "Estimated Cost"
     estimated_cost_column = [col for col in df.columns if col.startswith("FOAK Estimated Cost")][0]
 
-    # Pull columns once into numpy arrays. df.iloc[i][col] in a nested loop
-    # is dominated by per-call overhead — numpy indexing on a flat array
-    # is 10–50× faster for the same logic.
     levels = df['Level'].to_numpy()
     is_nan_cost = pd.isna(df[estimated_cost_column].to_numpy())
+
+    # Fingerprint: same structure + same NaN pattern => same children mapping.
+    # tuple() of small numpy arrays is fast and hashable.
+    fingerprint = (
+        tuple(df['Account'].to_numpy()),
+        tuple(levels),
+        tuple(is_nan_cost),
+    )
+
+    cached = _children_accounts_cache.get(fingerprint)
+    if cached is not None:
+        df['Children Accounts'] = cached
+        return df
+
     index_strs = [str(idx) for idx in df.index]
     n = len(df)
 
@@ -68,8 +122,21 @@ def find_children_accounts(df):
                         break
                 children_accounts[i] = ','.join(children) if children else None
 
+    _children_accounts_cache[fingerprint] = children_accounts
     df['Children Accounts'] = children_accounts
     return df
+
+
+def clear_children_accounts_cache():
+    """
+    Call this if you run multiple *different* reactor configurations in the
+    same Python process/session (e.g. a parametric sweep that changes which
+    accounts are active between runs) and want to guard against unbounded
+    cache growth. Not required for correctness — the fingerprint already
+    prevents stale hits — this is purely to free memory if you run many
+    distinct configurations back to back.
+    """
+    _children_accounts_cache.clear()
 
 
 def get_estimated_cost_column(df, option):
