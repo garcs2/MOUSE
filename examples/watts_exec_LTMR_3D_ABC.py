@@ -141,7 +141,7 @@ update_params({
     'Primary Loop Inlet Temperature': 430 + 273.15,   # K
     'Primary Loop Outlet Temperature': 520 + 273.15,  # K
     'Coolant Boiling Temperature': 1058.15,           # K (NaK ~785 C)
-    'Particles' : 2000000
+    'Particles' : 4000000
 })
 
 # **************************************************************************************
