@@ -445,18 +445,18 @@ def _run_isothermal_temperature_coefficients(build_openmc_model, params):
         )
     ])
 
-
 def run_openmc(build_openmc_model, heat_flux_monitor, params):
- 
+
     params.setdefault('Shutdown Margin Calc', False)
     params.setdefault('Isothermal Temperature Coefficients', False)
+    params.setdefault('ABC Analysis', False)                     # <-- ADDED
     params.setdefault('Cold Shutdown Temperature', 300)
     params.setdefault('3D', False)
- 
+
     original_shutdown_margin_calc                  = params['Shutdown Margin Calc']
     original_isothermal_temperature_coefficients   = params['Isothermal Temperature Coefficients']
     original_common_temperature                    = params['Common Temperature']
- 
+
     if params['Isothermal Temperature Coefficients']:
         if 'Temperature Perturbation' not in params:
             raise ValueError(
@@ -466,12 +466,21 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
                 "Please add it to your params (e.g. 'Temperature Perturbation': 100  # Kelvin)\n"
                 "Typical range: 50-300K depending on your Monte Carlo statistical noise level.\n"
             )
- 
+
     try:
         print(f"\n\nThe results/plots are saved at: {watts.Database().path}\n\n")
- 
+
+        # ----------------------------- ADDED: ABC analysis path -----------------------------
+        if params['ABC Analysis']:
+            if 'Temperature Perturbation' not in params:
+                raise ValueError("ABC Analysis requires 'Temperature Perturbation' (K).")
+            from core_design_3D.abc_analysis_3D import run_abc_analysis
+            run_abc_analysis(build_openmc_model, params)
+            return   # the 'finally' below restores Common Temperature
+        # ------------------------------------------------------------------------------------
+
         if params['Shutdown Margin Calc']:
- 
+
             if params['Isothermal Temperature Coefficients']:
                 params['Shutdown Margin Calc'] = False
                 params['Common Temperature']   = original_common_temperature
@@ -480,20 +489,20 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
             else:
                 params['Temp Coeff 2D']                = np.nan
                 params['Temp Coeff 3D (2D corrected)'] = np.nan
- 
+
             params['Common Temperature'] = params['Cold Shutdown Temperature']
             openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
             openmc_plugin(params, function=lambda: run_depletion_analysis(params))
             params['keff 2D ARI']                = params['keff 2D']
             params['keff 3D (2D corrected) ARI'] = params['keff 3D (2D corrected)']
- 
+
             params['Shutdown Margin Calc'] = False
             params['Common Temperature']   = original_common_temperature
             openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
             openmc_plugin(params, function=lambda: run_depletion_analysis(params))
             params['keff 2D ARO']                = params['keff 2D']
             params['keff 3D (2D corrected) ARO'] = params['keff 3D (2D corrected)']
- 
+
             sdm_2d_per_step = [
                 ((1.0 - k_s) / k_s) * 1e5
                 for k_s in params['keff 2D ARI']
@@ -502,33 +511,33 @@ def run_openmc(build_openmc_model, heat_flux_monitor, params):
                 ((1.0 - k_s) / k_s) * 1e5
                 for k_s in params['keff 3D (2D corrected) ARI']
             ]
-            params['Most Limiting Shutdown Margin 2D']              = np.min(sdm_2d_per_step)
-            params['Maximum Shutdown Margin 2D']                    = np.max(sdm_2d_per_step)
+            params['Most Limiting Shutdown Margin 2D']               = np.min(sdm_2d_per_step)
+            params['Maximum Shutdown Margin 2D']                     = np.max(sdm_2d_per_step)
             params['Most Limiting Shutdown Margin 3D (2D corrected)'] = np.min(sdm_3d_per_step)
-            params['Maximum Shutdown Margin 3D (2D corrected)']     = np.max(sdm_3d_per_step)
- 
+            params['Maximum Shutdown Margin 3D (2D corrected)']      = np.max(sdm_3d_per_step)
+
         else:
             params['Most Limiting Shutdown Margin 2D']                = np.nan
             params['Maximum Shutdown Margin 2D']                      = np.nan
             params['Most Limiting Shutdown Margin 3D (2D corrected)'] = np.nan
             params['Maximum Shutdown Margin 3D (2D corrected)']       = np.nan
- 
+
             if params['Isothermal Temperature Coefficients']:
                 _run_isothermal_temperature_coefficients(build_openmc_model, params)
             else:
                 params['Temp Coeff 2D']                = np.nan
                 params['Temp Coeff 3D (2D corrected)'] = np.nan
- 
+
                 openmc_plugin = watts.PluginOpenMC(build_openmc_model, show_stderr=True)
                 openmc_plugin(params, function=lambda: run_depletion_analysis(params))
                 params['keff 2D ARO']                = params['keff 2D']
                 params['keff 3D (2D corrected) ARO'] = params['keff 3D (2D corrected)']
- 
+
     except Exception as e:
         print("\n\n\033[91mAn error occurred while running the OpenMC simulation:\033[0m\n\n")
         traceback.print_exc()
         raise
- 
+
     finally:
         params['Shutdown Margin Calc']                  = original_shutdown_margin_calc
         params['Isothermal Temperature Coefficients']   = original_isothermal_temperature_coefficients

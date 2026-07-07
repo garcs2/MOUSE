@@ -1,6 +1,183 @@
 # Copyright 2025, Battelle Energy Alliance, LLC, ALL RIGHTS RESERVED
 # Importing libraries
+import warnings
+
 import openmc
+
+
+# ==================================================================================
+#  Thermal expansion model  (validated band: 500 K - 1100 K)
+# ==================================================================================
+#
+# The densities defined in `_build_base_materials` are room-temperature ("cold")
+# reference values. At operating temperature the materials expand, so their
+# number/mass density drops. For an isotropic solid with mean linear coefficient
+# of thermal expansion alpha_L (1/K) between T_ref and T:
+#
+#       linear strain      eps(T)   = alpha_L * (T - T_ref)
+#       volume ratio       V(T)/V0  = (1 + eps)**3
+#       density            rho(T)   = rho(T_ref) / (1 + eps)**3
+#
+# The same 1/(1+eps)**3 factor is applied whether density is stored as g/cm3 or
+# atom/b-cm: mass and atom counts are conserved while the volume grows.
+#
+# IMPORTANT - ABOUT THE VALUES BELOW
+# ----------------------------------
+# These alpha_L values are mean linear CTEs over roughly 300-1100 K from standard
+# handbook / open-literature data. They are reasonable starting points but are NOT
+# a substitute for correlations you may already trust (MATPRO, Martin's UO2 fit,
+# vendor data, etc.). Entries flagged "VERIFY" are anisotropic, phase-sensitive,
+# or homogenized materials where a single constant is a coarse approximation;
+# review those before relying on results quantitatively. The coolants (He, NaK)
+# are NOT solids and are handled by dedicated density(T) functions, not a CTE.
+
+T_REF_DEFAULT = 293.15          # K, assumed reference temperature of cold densities
+TE_BAND = (500.0, 1100.0)       # K, validated temperature band
+_FUEL_KEY_ALIASES = {'TRIGA_fuel': 'UZrH_alloy'}
+
+# Mean linear coefficient of thermal expansion, alpha_L  [1/K]
+THERMAL_EXPANSION = {
+    # --- Fuels ---
+    'U_met':            14.0e-6,   # alpha-U polycrystalline mean; valid < ~935 K.  VERIFY (anisotropic)
+    'UZrH_alloy':       2.5e-5,    # ZrH-matrix dominated.                          VERIFY (hydride)
+    'UO2':              10.8e-6,   # mean 300-1100 K (cf. Martin / MATPRO)
+    'UC':               11.5e-6,
+    'UCO':              11.0e-6,   # UO2/UC blend, representative
+    'UN':               9.4e-6,
+    'UZr':              17.0e-6,   # U-10Zr metallic alloy.                         VERIFY
+    'homog_TRISO':      4.5e-6,    # smeared compact, matrix/graphite dominated.    VERIFY (homogenized)
+    # --- Hydrides (moderator) ---
+    'ZrH':              2.5e-5,    # delta-ZrH ~1.85.                               VERIFY (sensitive moderator)
+    'YHx':              1.5e-5,    # yttrium hydride.                               VERIFY
+    # --- Beryllium ---
+    'Be':               11.5e-6,
+    'BeO':              8.5e-6,
+    # --- Zirconium ---
+    'Zr':               5.8e-6,
+    # --- Steel ---
+    'SS304':            18.0e-6,   # austenitic stainless mean 300-1100 K
+    # --- Carbides / absorbers ---
+    'B4C_natural':      5.0e-6,
+    'B4C_enriched':     5.0e-6,
+    'SiC':              4.5e-6,     # mean 300-1100 K
+    'ZrC':              6.7e-6,
+    # --- Carbon ---
+    'Graphite':         4.0e-6,    # nuclear graphite, with-grain.                  VERIFY (anisotropic)
+    'buffer_graphite':  4.0e-6,
+    'PyC':              5.5e-6,     # pyrolytic carbon.                              VERIFY (anisotropic)
+    'monolith_graphite':4.0e-6,
+    # --- Oxides ---
+    'MgO':              13.5e-6,
+    # --- Tungsten compounds ---
+    'WB':               6.5e-6,     #                                               VERIFY
+    'W2B':              6.5e-6,     #                                               VERIFY
+    'WB4':              6.5e-6,     #                                               VERIFY
+    'WC':               5.0e-6,
+    # --- Homogenized heat-pipe block ---
+    'heatpipe':         16.0e-6,    # SS/Mo/Na smear.                               VERIFY (homogenized)
+}
+
+def _resolve_region_temperature(params, key):
+    """Per-region temperature for material `key`, falling back to Common
+    Temperature. Active only when params['Per-Region Temperatures'] is True."""
+    T_common = params['Common Temperature']
+    if not params.get('Per-Region Temperatures', False):
+        return T_common
+    fuel_key = _FUEL_KEY_ALIASES.get(params.get('Fuel'), params.get('Fuel'))
+    if key == fuel_key:
+        return params.get('Fuel Temperature', T_common)
+    if key in (params.get('Radial Reflector'), params.get('Control Drum Reflector')):
+        return params.get('Reflector Temperature', T_common)
+    if key in (params.get('Coolant'), params.get('Secondary Coolant')):
+        return params.get('Coolant Temperature', T_common)
+    return T_common
+
+def _apply_thermal_expansion(material, key, T, T_ref=T_REF_DEFAULT, band=TE_BAND,
+                             scale_solid_density=True):
+    """Set the material temperature to T and (optionally) rescale solid density.
+    Temperature is ALWAYS set (Doppler/XS) and coolant EOS density is ALWAYS
+    applied (a fluid property of T); the solid linear-CTE rescale is applied only
+    when scale_solid_density is True (left to the geometry builder's mass-
+    conserving scaling in ABC mode)."""
+    material.temperature = T
+
+    if not (band[0] <= T <= band[1]):
+        warnings.warn(
+            f"[thermal-expansion] T={T} K for '{key}' is outside the validated "
+            f"band {band[0]}-{band[1]} K; expansion is being extrapolated."
+        )
+
+    if key in COOLANT_DENSITY:                       # fluid EOS: always
+        rho, units = COOLANT_DENSITY[key](T, T_ref)
+        material.set_density(units, rho)
+        return
+
+    if not scale_solid_density:                      # solids handled elsewhere (ABC)
+        return
+
+    alpha_L = THERMAL_EXPANSION.get(key)
+    if alpha_L is None:
+        return
+    rho = material.density
+    units = (material.density_units or '').lower()
+    if rho is None:
+        return
+    if units in ('g/cm3', 'g/cc', 'atom/b-cm', 'atom/cm3', 'kg/m3'):
+        material.set_density(material.density_units,
+                             rho / _volume_ratio(alpha_L, T, T_ref))
+    else:
+        warnings.warn(
+            f"[thermal-expansion] '{key}' has density units "
+            f"'{material.density_units}' that are not handled; density unchanged."
+        )
+
+
+def _apply_thermal_expansion_all(mats, params):
+    """Set every material's temperature (per region) and, unless disabled, rescale
+    solid densities for thermal expansion.
+
+        params['Thermal Expansion']        solid CTE rescale on/off (default True)
+        params['Per-Region Temperatures']  use Fuel/Reflector/Coolant Temperature (default False)
+
+    Temperatures and coolant EOS density are always applied so Doppler and
+    coolant-density feedback work even when the solid rescale is off (ABC mode
+    pairs Thermal Expansion=False with mass_conserving_density_scale)."""
+    T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
+    scale_solid = params.get('Thermal Expansion', True)
+    for key, mat in mats.items():
+        T = _resolve_region_temperature(params, key)
+        _apply_thermal_expansion(mat, key, T, T_ref,
+                                 scale_solid_density=scale_solid)
+# --- Coolant density(T) functions: return (density_value, density_units) ----------
+# Coolants do not follow a solid linear-CTE law, so they get their own correlations.
+
+def _density_He(T, T_ref):
+    """Helium: ideal gas at (assumed) constant pressure, rho ~ 1/T.
+    Cold reference 0.000166 g/cm3 at ~293 K, 1 atm.
+    VERIFY: in a sealed plenum helium is NOT at constant pressure."""
+    return 0.000166 * (293.15 / T), 'g/cm3'
+
+
+def _density_NaK(T, T_ref):
+    """Liquid NaK-78: fluid properties taken from engineering handbook"""
+    T_c = T-273.15
+    rho_na = 0.9453 - 2.2473e-4 * T_c
+    rho_k = 0.8415 - 2.172e-4 * T_c - 2.7e-8 * T_c**2 + 4.77e-12 * T_c**3
+    N_na = 0.22
+    N_k = 1 - N_na
+    return 1/(N_k/rho_k + N_na/rho_na), 'g/cm3'
+
+
+COOLANT_DENSITY = {
+    'Helium': _density_He,
+    'NaK':    _density_NaK,
+}
+
+
+def _volume_ratio(alpha_L, T, T_ref):
+    """Isotropic volumetric expansion ratio V(T)/V(T_ref)."""
+    eps = alpha_L * (T - T_ref)
+    return (1.0 + eps) ** 3
 
 
 # ==================================================================================
@@ -69,9 +246,15 @@ def _build_base_materials(params):
 
     Both ENDF/B-VIII.0 and VIII.1 collectors call this first, then add
     their library-specific S(α,β) tables on top.
+
+    Thermal expansion: after every material is built (including the
+    mix_materials products), `_apply_thermal_expansion_all` sets each material's
+    temperature to params['Common Temperature'] and rescales its cold density for
+    expansion over the 500-1100 K band. Set params['Thermal Expansion'] = False
+    to recover the original cold-density behaviour.
     """
     mats = {}
-
+     
     # ------------------------------------------------------------------
     # Sec. 1.1 : Fuels
     # ------------------------------------------------------------------
@@ -392,6 +575,13 @@ def _build_base_materials(params):
     monolith_graphite.add_nuclide('C12', 0.9893, 'ao')
     monolith_graphite.add_nuclide('C13', 0.0107, 'ao')
     mats['monolith_graphite'] = monolith_graphite
+
+    # ------------------------------------------------------------------
+    # Apply operating temperature + thermal-expansion density correction to
+    # every material built above (including the mix_materials products).
+    # See the THERMAL_EXPANSION table near the top of this module.
+    # ------------------------------------------------------------------
+    _apply_thermal_expansion_all(mats, params)
 
     return mats
 

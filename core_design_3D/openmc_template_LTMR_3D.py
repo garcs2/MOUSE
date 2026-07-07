@@ -422,11 +422,25 @@ def build_openmc_model_LTMR_3D(params):
     # Ensure Drum Radius is always numeric before any downstream drum geometry use
     resolve_drum_radius(params)
 
+    # Derive the cold, drum-driven reflector/axial geometry up front, then apply
+    # thermal expansion, so Vol Ratios exist before the materials are scaled and the
+    # EXPANDED dimensions are what the core surfaces are built from.
+    from reactor_engineering_evaluation.core_thermal_geometry import expand_derived_geometry
+    control_drum_positions = update_ltmr_reflector_geometry_from_drums(params)   # cold
+    expand_derived_geometry(params)                                             # scale (ABC)
     # **************************************************************************************************************************
     #                                                Sec. 1.1 : MATERIALS
     # **************************************************************************************************************************
 
     materials_database    = collect_materials_data(params)
+
+    # --- Mass-conserving thermal-expansion density scaling (ABC / geometry mode) ---
+    # When materials are built cold (params['Thermal Expansion'] = False) and the
+    # core geometry has been expanded (Vol Ratio * set by core_thermal_geometry),
+    # scale solid densities so atom inventory is conserved. No-op otherwise.
+    if not params.get('Thermal Expansion', True):
+        from reactor_engineering_evaluation.core_thermal_geometry import mass_conserving_density_scale
+        mass_conserving_density_scale(materials_database, params)
     fuel                  = materials_database[params['Fuel']]
     coolant               = materials_database[params['Coolant']]
     reflector             = materials_database[params['Radial Reflector']]
@@ -510,7 +524,8 @@ def build_openmc_model_LTMR_3D(params):
     #                                                Sec. 1.3 : Fuel Assembly Universes (one per axial zone)
     # **************************************************************************************************************************
 
-    pin_pitch = 2 * params['Fuel Pin Radii'][-1] + params["Pin Gap Distance"]
+    from reactor_engineering_evaluation.core_thermal_geometry import coolant_expanded_pitch
+    pin_pitch = coolant_expanded_pitch(params)
 
     assembly_universes = []
     for i in range(N_AXIAL):
@@ -531,7 +546,7 @@ def build_openmc_model_LTMR_3D(params):
 
     # Derive Core Radius and reflector thicknesses from the actual drum layout,
     # then build the drum positions and universes.
-    control_drum_positions = update_ltmr_reflector_geometry_from_drums(params)
+    # control_drum_positions = update_ltmr_reflector_geometry_from_drums(params)
     drums = create_drums_universe(
         params, control_drum_absorber, control_drum_reflector, control_drum_positions
     )

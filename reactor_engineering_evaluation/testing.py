@@ -1,41 +1,10 @@
-import numpy as np
-import pandas as pd
-import sys
-sys.path.insert(0, '/home/garcsamu/OpenMC/MOUSE')
-
-from reactor_engineering_evaluation.pin_temperatures import (
-    LTMRPinGeometry, LTMRThermalProperties,
-    LTMRCoolantConditions, compute_pin_temperatures_abc,
-)
-
-# --- Geometry and properties ---
-geom  = LTMRPinGeometry()
-props = LTMRThermalProperties()
-props.set_fuel_k_from_name('UZrH_alloy')
-
-# --- Coolant conditions ---
-cond = LTMRCoolantConditions(
-    T_inlet     = 703.15,   # K
-    DeltaT_coolant = 90,   # K
-    P_total_W   = 20.0e6,   # W
-    N_fuel_pins = 300,
-)
-
-q_nom = 20.0e6 / (300 * geom.L_active)
-
-# --- Mock per_step_data with PF = 1.0 ---
-mock = {
-    1: pd.DataFrame([{
-        'Region_ID':      0,
-        'Peaking_Factor': 1.0,
-        'Step':           1,
-    }])
-}
-
-summary, per_step = compute_pin_temperatures_abc(
-    per_step_data = mock,
-    geom          = geom,
-    props         = props,
-    cond          = cond,
-    q_prime_nom   = q_nom,
-)
+from core_design_3D.openmc_materials_database_3D import collect_materials_data
+p = {'XS_type':'endf8.0','Enrichment':0.1975,
+     'Common Temperature':600,'Reference Temperature':293.15,
+     'Thermal Expansion':False,'Per-Region Temperatures':True,
+     'Fuel':'UO2','Reflector':'BeO','Coolant':'NaK','Moderator':'ZrH',
+     'UO2 atom fraction':0.75,
+     'Fuel Temperature':600,'Reflector Temperature':700,'Coolant Temperature':600}
+mats = collect_materials_data(p)
+for n in ('UO2','BeO','NaK','ZrH'):
+    if n in mats: print(f'{n:5s} T={mats[n].temperature}  rho={mats[n].density}')
