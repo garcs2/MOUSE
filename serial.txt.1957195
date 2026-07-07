@@ -1,0 +1,1030 @@
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+
+
+[92mHeat flux: 0.85 MW/m^2.[0m
+
+
+
+
+The results/plots are saved at: /home/garcsamu/.local/share/watts
+
+
+[watts] Calling OpenMC...
+XS_type = 'endf8.0' → loading ENDF/B-VIII.0 material definitions
+Reading the Materials Database
+Skipping UCO due to missing parameter/material: 'UO2 atom fraction'
+                                %%%%%%%%%%%%%%%
+                           %%%%%%%%%%%%%%%%%%%%%%%%
+                        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                                    %%%%%%%%%%%%%%%%%%%%%%%%
+                                     %%%%%%%%%%%%%%%%%%%%%%%%
+                 ###############      %%%%%%%%%%%%%%%%%%%%%%%%
+                ##################     %%%%%%%%%%%%%%%%%%%%%%%
+                ###################     %%%%%%%%%%%%%%%%%%%%%%%
+                ####################     %%%%%%%%%%%%%%%%%%%%%%
+                #####################     %%%%%%%%%%%%%%%%%%%%%
+                ######################     %%%%%%%%%%%%%%%%%%%%
+                #######################     %%%%%%%%%%%%%%%%%%
+                 #######################     %%%%%%%%%%%%%%%%%
+                 ######################     %%%%%%%%%%%%%%%%%
+                  ####################     %%%%%%%%%%%%%%%%%
+                    #################     %%%%%%%%%%%%%%%%%
+                     ###############     %%%%%%%%%%%%%%%%
+                       ############     %%%%%%%%%%%%%%%
+                          ########     %%%%%%%%%%%%%%
+                                      %%%%%%%%%%%
+
+                 | The OpenMC Monte Carlo Code
+       Copyright | 2011-2025 MIT, UChicago Argonne LLC, and contributors
+         License | https://docs.openmc.org/en/latest/license.html
+         Version | 0.15.3
+     Commit Hash | 27e38e894697bb32a1dac7848d2618818b6b8daf
+       Date/Time | 2026-07-07 13:30:09
+   MPI Processes | 1
+  OpenMP Threads | 224
+
+ Reading settings XML file...
+ Reading cross sections XML file...
+ Reading materials XML file...
+ Reading geometry XML file...
+ Reading Zr90 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Zr90.h5
+ Reading Zr91 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Zr91.h5
+ Reading Zr92 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Zr92.h5
+ Reading Zr94 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Zr94.h5
+ Reading Zr96 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Zr96.h5
+ Reading Er162 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Er162.h5
+ Reading Er164 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Er164.h5
+ Reading Er166 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Er166.h5
+ Reading Er167 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Er167.h5
+ Reading Er168 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Er168.h5
+ Reading Er170 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Er170.h5
+ Reading U235 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U235.h5
+ Reading U238 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U238.h5
+ Reading H1 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/H1.h5
+ Reading K39 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/K39.h5
+ Reading K41 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/K41.h5
+ Reading Na23 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Na23.h5
+ Reading C12 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/C12.h5
+ Reading C13 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/C13.h5
+ Reading Cr50 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cr50.h5
+ Reading Cr52 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cr52.h5
+ Reading Cr53 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cr53.h5
+ Reading Cr54 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cr54.h5
+ Reading Fe54 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Fe54.h5
+ Reading Fe56 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Fe56.h5
+ Reading Fe57 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Fe57.h5
+ Reading Fe58 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Fe58.h5
+ Reading Mn55 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mn55.h5
+ Reading Ni58 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ni58.h5
+ Reading Ni60 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ni60.h5
+ Reading Ni61 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ni61.h5
+ Reading Ni62 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ni62.h5
+ Reading Ni64 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ni64.h5
+ Reading P31 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/P31.h5
+ Reading S32 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/S32.h5
+ Reading S33 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/S33.h5
+ Reading S34 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/S34.h5
+ Reading S36 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/S36.h5
+ Reading Si28 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Si28.h5
+ Reading Si29 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Si29.h5
+ Reading Si30 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Si30.h5
+ Reading B10 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/B10.h5
+ Reading B11 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/B11.h5
+ Reading c_H_in_ZrH from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/c_H_in_ZrH.h5
+ Reading c_Graphite from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/c_Graphite.h5
+ Minimum neutron data temperature: 250 K
+ Maximum neutron data temperature: 900 K
+ Reading tallies XML file...
+ Preparing distributed cell instances...
+ Reading plot XML file...
+ Writing summary.h5 file...
+ Reading O16 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/O16.h5
+ Reading Br81 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Br81.h5
+ Reading Kr82 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Kr82.h5
+ Reading Kr83 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Kr83.h5
+ Reading Kr84 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Kr84.h5
+ Reading Kr85 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Kr85.h5
+ Reading Kr86 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Kr86.h5
+ Reading Sr89 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sr89.h5
+ Reading Sr90 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sr90.h5
+ Reading Y89 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Y89.h5
+ Reading Y90 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Y90.h5
+ Reading Y91 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Y91.h5
+ Reading Zr93 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Zr93.h5
+ Reading Zr95 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Zr95.h5
+ Reading Nb95 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nb95.h5
+ Reading Mo92 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo92.h5
+ Reading Mo94 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo94.h5
+ Reading Mo95 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo95.h5
+ Reading Mo96 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo96.h5
+ Reading Mo97 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo97.h5
+ Reading Mo98 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo98.h5
+ Reading Mo99 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo99.h5
+ Reading Mo100 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Mo100.h5
+ Reading Tc99 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Tc99.h5
+ Reading Ru100 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ru100.h5
+ Reading Ru101 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ru101.h5
+ Reading Ru102 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ru102.h5
+ Reading Ru103 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ru103.h5
+ Reading Ru104 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ru104.h5
+ Reading Ru105 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ru105.h5
+ Reading Ru106 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ru106.h5
+ Reading Rh103 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Rh103.h5
+ Reading Rh104 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Rh104.h5
+ Reading Rh105 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Rh105.h5
+ Reading Pd104 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pd104.h5
+ Reading Pd105 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pd105.h5
+ Reading Pd106 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pd106.h5
+ Reading Pd107 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pd107.h5
+ Reading Pd108 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pd108.h5
+ Reading Pd109 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pd109.h5
+ Reading Ag107 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ag107.h5
+ Reading Ag109 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ag109.h5
+ Reading Ag110_m1 from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ag110_m1.h5
+ Reading Ag111 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ag111.h5
+ Reading Cd110 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cd110.h5
+ Reading Cd111 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cd111.h5
+ Reading Cd112 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cd112.h5
+ Reading Cd113 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cd113.h5
+ Reading Cd114 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cd114.h5
+ Reading In113 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/In113.h5
+ Reading In115 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/In115.h5
+ Reading Sb121 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sb121.h5
+ Reading Sb123 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sb123.h5
+ Reading Sb125 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sb125.h5
+ Reading Te127_m1 from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Te127_m1.h5
+ Reading Te129_m1 from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Te129_m1.h5
+ Reading Te132 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Te132.h5
+ Reading I127 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/I127.h5
+ Reading I128 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/I128.h5
+ Reading I129 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/I129.h5
+ Reading I130 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/I130.h5
+ Reading I131 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/I131.h5
+ Reading I132 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/I132.h5
+ Reading I135 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/I135.h5
+ Reading Xe128 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe128.h5
+ Reading Xe130 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe130.h5
+ Reading Xe131 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe131.h5
+ Reading Xe132 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe132.h5
+ Reading Xe133 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe133.h5
+ Reading Xe134 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe134.h5
+ Reading Xe135 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe135.h5
+ Reading Xe136 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Xe136.h5
+ Reading Cs133 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cs133.h5
+ Reading Cs134 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cs134.h5
+ Reading Cs135 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cs135.h5
+ Reading Cs136 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cs136.h5
+ Reading Cs137 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cs137.h5
+ Reading Ba134 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ba134.h5
+ Reading Ba137 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ba137.h5
+ Reading Ba140 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ba140.h5
+ Reading La139 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/La139.h5
+ Reading La140 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/La140.h5
+ Reading Ce140 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ce140.h5
+ Reading Ce141 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ce141.h5
+ Reading Ce142 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ce142.h5
+ Reading Ce143 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ce143.h5
+ Reading Ce144 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ce144.h5
+ Reading Pr141 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pr141.h5
+ Reading Pr142 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pr142.h5
+ Reading Pr143 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pr143.h5
+ Reading Nd142 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd142.h5
+ Reading Nd143 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd143.h5
+ Reading Nd144 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd144.h5
+ Reading Nd145 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd145.h5
+ Reading Nd146 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd146.h5
+ Reading Nd147 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd147.h5
+ Reading Nd148 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd148.h5
+ Reading Nd149 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd149.h5
+ Reading Nd150 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Nd150.h5
+ Reading Pm147 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pm147.h5
+ Reading Pm148 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pm148.h5
+ Reading Pm148_m1 from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pm148_m1.h5
+ Reading Pm149 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pm149.h5
+ Reading Pm150 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pm150.h5
+ Reading Pm151 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pm151.h5
+ Reading Sm147 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm147.h5
+ Reading Sm148 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm148.h5
+ Reading Sm149 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm149.h5
+ Reading Sm150 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm150.h5
+ Reading Sm151 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm151.h5
+ Reading Sm152 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm152.h5
+ Reading Sm153 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm153.h5
+ Reading Sm154 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Sm154.h5
+ Reading Eu151 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Eu151.h5
+ Reading Eu152 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Eu152.h5
+ Reading Eu153 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Eu153.h5
+ Reading Eu154 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Eu154.h5
+ Reading Eu155 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Eu155.h5
+ Reading Eu156 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Eu156.h5
+ Reading Eu157 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Eu157.h5
+ Reading Gd152 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd152.h5
+ Reading Gd154 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd154.h5
+ Reading Gd155 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd155.h5
+ Reading Gd156 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd156.h5
+ Reading Gd157 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd157.h5
+ Reading Gd158 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd158.h5
+ Reading Gd159 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd159.h5
+ Reading Gd160 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Gd160.h5
+ Reading Tb159 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Tb159.h5
+ Reading Tb160 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Tb160.h5
+ Reading Tb161 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Tb161.h5
+ Reading Dy160 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Dy160.h5
+ Reading Dy161 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Dy161.h5
+ Reading Dy162 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Dy162.h5
+ Reading Dy163 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Dy163.h5
+ Reading Dy164 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Dy164.h5
+ Reading Ho165 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ho165.h5
+ Reading Er169 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Er169.h5
+ Reading Tm169 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Tm169.h5
+ Reading Tm170 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Tm170.h5
+ Reading Tm171 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Tm171.h5
+ Reading Hf174 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Hf174.h5
+ Reading Hf176 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Hf176.h5
+ Reading Hf177 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Hf177.h5
+ Reading Hf178 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Hf178.h5
+ Reading Hf179 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Hf179.h5
+ Reading Hf180 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Hf180.h5
+ Reading Hf181 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Hf181.h5
+ Reading Ta181 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ta181.h5
+ Reading Ta182 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Ta182.h5
+ Reading Th230 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Th230.h5
+ Reading Th231 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Th231.h5
+ Reading Th232 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Th232.h5
+ Reading Th233 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Th233.h5
+ Reading Th234 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Th234.h5
+ Reading Pa231 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pa231.h5
+ Reading Pa232 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pa232.h5
+ Reading Pa233 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pa233.h5
+ Reading U232 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U232.h5
+ Reading U233 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U233.h5
+ Reading U234 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U234.h5
+ Reading U236 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U236.h5
+ Reading U237 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U237.h5
+ Reading U239 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/U239.h5
+ Reading Np236 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Np236.h5
+ Reading Np237 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Np237.h5
+ Reading Np238 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Np238.h5
+ Reading Np239 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Np239.h5
+ Reading Pu236 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu236.h5
+ Reading Pu237 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu237.h5
+ Reading Pu238 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu238.h5
+ Reading Pu239 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu239.h5
+ Reading Pu240 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu240.h5
+ Reading Pu241 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu241.h5
+ Reading Pu242 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu242.h5
+ Reading Pu243 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Pu243.h5
+ Reading Am241 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Am241.h5
+ Reading Am242 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Am242.h5
+ Reading Am242_m1 from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Am242_m1.h5
+ Reading Am243 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Am243.h5
+ Reading Am244 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Am244.h5
+ Reading Am244_m1 from
+ /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Am244_m1.h5
+ Reading Cm242 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cm242.h5
+ Reading Cm243 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cm243.h5
+ Reading Cm244 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cm244.h5
+ Reading Cm245 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cm245.h5
+ Reading Cm246 from /hpc-common/data/openmc/endfb-viii.0-hdf5/neutron/Cm246.h5
+ Maximum neutron transport energy: 20000000 eV for Zr90
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+        1/1    1.56983
+        2/1    1.55201
+        3/1    1.52943
+        4/1    1.39237
+        5/1    1.29781
+        6/1    1.41428
+        7/1    1.36559
+        8/1    1.43383
+        9/1    1.33793
+       10/1    1.37596
+       11/1    1.39884
+       12/1    1.35614
+       13/1    1.33169
+       14/1    1.35754
+       15/1    1.44136
+       16/1    1.44308
+       17/1    1.33763
+       18/1    1.40503
+       19/1    1.42795
+       20/1    1.36967
+       21/1    1.48647
+       22/1    1.39452
+       23/1    1.37407
+       24/1    1.42393
+       25/1    1.33789
+       26/1    1.38059
+       27/1    1.44578
+       28/1    1.42633
+       29/1    1.32051
+       30/1    1.42111
+       31/1    1.42844
+       32/1    1.35540
+       33/1    1.38916
+       34/1    1.36401
+       35/1    1.40880
+       36/1    1.36351
+       37/1    1.37213
+       38/1    1.40409
+       39/1    1.36133
+       40/1    1.41166
+       41/1    1.32099
+       42/1    1.38830
+       43/1    1.39099
+       44/1    1.34190
+       45/1    1.40670
+       46/1    1.35071
+       47/1    1.38041
+       48/1    1.30692
+       49/1    1.32318
+       50/1    1.43403
+       51/1    1.37680
+       52/1    1.51978    1.44829 +/- 0.07149
+       53/1    1.38889    1.42849 +/- 0.04578
+       54/1    1.45398    1.43486 +/- 0.03299
+       55/1    1.39580    1.42705 +/- 0.02672
+       56/1    1.40988    1.42419 +/- 0.02201
+       57/1    1.39399    1.41987 +/- 0.01909
+       58/1    1.43398    1.42164 +/- 0.01663
+       59/1    1.28423    1.40637 +/- 0.02117
+       60/1    1.38979    1.40471 +/- 0.01901
+       61/1    1.40425    1.40467 +/- 0.01719
+       62/1    1.43038    1.40681 +/- 0.01584
+       63/1    1.43559    1.40903 +/- 0.01474
+       64/1    1.48708    1.41460 +/- 0.01474
+       65/1    1.44018    1.41631 +/- 0.01383
+       66/1    1.40510    1.41561 +/- 0.01295
+       67/1    1.40140    1.41477 +/- 0.01220
+       68/1    1.39030    1.41341 +/- 0.01158
+       69/1    1.42569    1.41406 +/- 0.01097
+       70/1    1.30398    1.40855 +/- 0.01177
+       71/1    1.37487    1.40695 +/- 0.01131
+       72/1    1.27979    1.40117 +/- 0.01224
+       73/1    1.50555    1.40571 +/- 0.01254
+       74/1    1.36132    1.40386 +/- 0.01215
+       75/1    1.33438    1.40108 +/- 0.01198
+       76/1    1.40971    1.40141 +/- 0.01152
+       77/1    1.41147    1.40178 +/- 0.01109
+       78/1    1.38133    1.40105 +/- 0.01071
+       79/1    1.36641    1.39986 +/- 0.01040
+       80/1    1.34468    1.39802 +/- 0.01022
+       81/1    1.41363    1.39852 +/- 0.00989
+       82/1    1.38935    1.39824 +/- 0.00958
+       83/1    1.28619    1.39484 +/- 0.00989
+       84/1    1.31574    1.39251 +/- 0.00987
+       85/1    1.28057    1.38932 +/- 0.01011
+       86/1    1.40173    1.38966 +/- 0.00983
+       87/1    1.34931    1.38857 +/- 0.00962
+       88/1    1.33635    1.38720 +/- 0.00946
+       89/1    1.36695    1.38668 +/- 0.00923
+       90/1    1.39942    1.38700 +/- 0.00900
+       91/1    1.43554    1.38818 +/- 0.00886
+       92/1    1.38047    1.38800 +/- 0.00865
+       93/1    1.35492    1.38723 +/- 0.00848
+       94/1    1.36975    1.38683 +/- 0.00830
+       95/1    1.34966    1.38600 +/- 0.00815
+       96/1    1.41252    1.38658 +/- 0.00799
+       97/1    1.34810    1.38576 +/- 0.00786
+       98/1    1.37150    1.38546 +/- 0.00770
+       99/1    1.39382    1.38563 +/- 0.00755
+      100/1    1.42494    1.38642 +/- 0.00744
+ Creating state point statepoint.100.h5...
+
+ =======================>     TIMING STATISTICS     <=======================
+
+ Total time for initialization     = 3.2799e+00 seconds
+   Reading cross sections          = 3.1486e+00 seconds
+ Total time in simulation          = 4.1886e+00 seconds
+   Time in transport only          = 3.9574e+00 seconds
+   Time in inactive batches        = 8.6583e-02 seconds
+   Time in active batches          = 4.1020e+00 seconds
+   Time synchronizing fission bank = 5.6829e-03 seconds
+     Sampling source sites         = 4.4865e-03 seconds
+     SEND/RECV source sites        = 9.1095e-04 seconds
+   Time accumulating tallies       = 2.1229e-01 seconds
+   Time writing statepoints        = 8.6882e-03 seconds
+ Total time for finalization       = 1.3629e-03 seconds
+ Total time elapsed                = 7.7711e+00 seconds
+ Calculation Rate (inactive)       = 577479 particles/second
+ Calculation Rate (active)         = 12189.2 particles/second
+
+ ============================>     RESULTS     <============================
+
+ k-effective (Collision)     = 1.38460 +/- 0.00663
+ k-effective (Track-length)  = 1.38642 +/- 0.00744
+ k-effective (Absorption)    = 1.38729 +/- 0.00367
+ Combined k-effective        = 1.38701 +/- 0.00374
+ Leakage Fraction            = 0.04152 +/- 0.00110
+
+ Creating state point openmc_simulation_n0.h5...
+ Maximum neutron transport energy: 20000000 eV for Zr90
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+        1/1    1.50448
+        2/1    1.42863
+        3/1    1.48630
+        4/1    1.37166
+        5/1    1.40338
+        6/1    1.41240
+        7/1    1.32823
+        8/1    1.48274
+        9/1    1.35263
+       10/1    1.38108
+       11/1    1.32666
+       12/1    1.41412
+       13/1    1.31580
+       14/1    1.31918
+       15/1    1.29968
+       16/1    1.36523
+       17/1    1.37661
+       18/1    1.29939
+       19/1    1.24194
+       20/1    1.35644
+       21/1    1.40893
+       22/1    1.41578
+       23/1    1.34542
+       24/1    1.45074
+       25/1    1.32353
+       26/1    1.40212
+       27/1    1.34990
+       28/1    1.36580
+       29/1    1.33310
+       30/1    1.33338
+       31/1    1.27061
+       32/1    1.37519
+       33/1    1.41046
+       34/1    1.33613
+       35/1    1.45563
+       36/1    1.34317
+       37/1    1.38404
+       38/1    1.39489
+       39/1    1.39712
+       40/1    1.32169
+       41/1    1.35347
+       42/1    1.29642
+       43/1    1.33715
+       44/1    1.34135
+       45/1    1.39269
+       46/1    1.44474
+       47/1    1.33266
+       48/1    1.37882
+       49/1    1.40052
+       50/1    1.28559
+       51/1    1.25009
+       52/1    1.33455    1.29232 +/- 0.04223
+       53/1    1.32527    1.30330 +/- 0.02674
+       54/1    1.26446    1.29359 +/- 0.02126
+       55/1    1.24852    1.28458 +/- 0.01877
+       56/1    1.38438    1.30121 +/- 0.02262
+       57/1    1.28748    1.29925 +/- 0.01922
+       58/1    1.33992    1.30433 +/- 0.01740
+       59/1    1.34877    1.30927 +/- 0.01612
+       60/1    1.34354    1.31270 +/- 0.01482
+       61/1    1.36119    1.31711 +/- 0.01411
+       62/1    1.33658    1.31873 +/- 0.01298
+       63/1    1.52166    1.33434 +/- 0.01966
+       64/1    1.33729    1.33455 +/- 0.01820
+       65/1    1.34605    1.33532 +/- 0.01696
+       66/1    1.39202    1.33886 +/- 0.01625
+       67/1    1.38065    1.34132 +/- 0.01547
+       68/1    1.36141    1.34244 +/- 0.01462
+       69/1    1.39966    1.34545 +/- 0.01416
+       70/1    1.30349    1.34335 +/- 0.01359
+       71/1    1.25316    1.33905 +/- 0.01362
+       72/1    1.36835    1.34039 +/- 0.01306
+       73/1    1.35363    1.34096 +/- 0.01249
+       74/1    1.28164    1.33849 +/- 0.01221
+       75/1    1.37412    1.33992 +/- 0.01180
+       76/1    1.30384    1.33853 +/- 0.01142
+       77/1    1.50424    1.34467 +/- 0.01259
+       78/1    1.45889    1.34874 +/- 0.01280
+       79/1    1.41870    1.35116 +/- 0.01258
+       80/1    1.35526    1.35129 +/- 0.01216
+       81/1    1.34341    1.35104 +/- 0.01176
+       82/1    1.31330    1.34986 +/- 0.01145
+       83/1    1.44856    1.35285 +/- 0.01149
+       84/1    1.26955    1.35040 +/- 0.01141
+       85/1    1.30590    1.34913 +/- 0.01116
+       86/1    1.35900    1.34940 +/- 0.01085
+       87/1    1.37833    1.35019 +/- 0.01058
+       88/1    1.36747    1.35064 +/- 0.01030
+       89/1    1.32471    1.34998 +/- 0.01006
+       90/1    1.30261    1.34879 +/- 0.00988
+       91/1    1.43590    1.35092 +/- 0.00986
+       92/1    1.39882    1.35206 +/- 0.00969
+       93/1    1.37636    1.35262 +/- 0.00948
+       94/1    1.39839    1.35366 +/- 0.00932
+       95/1    1.34240    1.35341 +/- 0.00912
+       96/1    1.33094    1.35292 +/- 0.00893
+       97/1    1.41056    1.35415 +/- 0.00882
+       98/1    1.36114    1.35430 +/- 0.00864
+       99/1    1.32856    1.35377 +/- 0.00848
+      100/1    1.37864    1.35427 +/- 0.00832
+ Creating state point statepoint.100.h5...
+
+ =======================>     TIMING STATISTICS     <=======================
+
+ Total time for initialization     = 0.0000e+00 seconds
+   Reading cross sections          = 0.0000e+00 seconds
+ Total time in simulation          = 4.0128e+00 seconds
+   Time in transport only          = 3.8419e+00 seconds
+   Time in inactive batches        = 3.9177e-01 seconds
+   Time in active batches          = 3.6211e+00 seconds
+   Time synchronizing fission bank = 6.7385e-03 seconds
+     Sampling source sites         = 5.3249e-03 seconds
+     SEND/RECV source sites        = 9.7597e-04 seconds
+   Time accumulating tallies       = 1.5033e-01 seconds
+   Time writing statepoints        = 9.1627e-03 seconds
+ Total time for finalization       = 1.3721e-03 seconds
+ Total time elapsed                = 4.3036e+00 seconds
+ Calculation Rate (inactive)       = 127625 particles/second
+ Calculation Rate (active)         = 13808.1 particles/second
+
+ ============================>     RESULTS     <============================
+
+ k-effective (Collision)     = 1.35529 +/- 0.00769
+ k-effective (Track-length)  = 1.35427 +/- 0.00832
+ k-effective (Absorption)    = 1.36006 +/- 0.00318
+ Combined k-effective        = 1.36004 +/- 0.00327
+ Leakage Fraction            = 0.04130 +/- 0.00086
+
+ Creating state point openmc_simulation_n1.h5...
+ Maximum neutron transport energy: 20000000 eV for Zr90
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+        1/1    1.16017
+        2/1    1.21951
+        3/1    1.12471
+        4/1    1.10278
+        5/1    1.10061
+        6/1    1.09213
+        7/1    1.11564
+        8/1    1.09923
+        9/1    1.09810
+       10/1    1.05740
+       11/1    1.08257
+       12/1    1.09386
+       13/1    1.07575
+       14/1    1.10786
+       15/1    1.11682
+       16/1    1.08731
+       17/1    1.08231
+       18/1    1.07455
+       19/1    0.96948
+       20/1    1.10982
+       21/1    1.13019
+       22/1    1.11514
+       23/1    1.02098
+       24/1    1.06865
+       25/1    1.06443
+       26/1    1.12466
+       27/1    1.16434
+       28/1    1.04107
+       29/1    0.99239
+       30/1    1.04369
+       31/1    1.05398
+       32/1    1.08773
+       33/1    1.03212
+       34/1    1.05459
+       35/1    1.06625
+       36/1    1.07014
+       37/1    1.05732
+       38/1    1.04543
+       39/1    1.04499
+       40/1    1.05747
+       41/1    1.08530
+       42/1    1.07621
+       43/1    1.02006
+       44/1    1.10266
+       45/1    1.06824
+       46/1    1.11041
+       47/1    1.14237
+       48/1    1.03617
+       49/1    1.09410
+       50/1    1.10179
+       51/1    1.09740
+       52/1    1.02849    1.06295 +/- 0.03446
+       53/1    1.05804    1.06131 +/- 0.01996
+       54/1    1.05621    1.06004 +/- 0.01417
+       55/1    1.08057    1.06414 +/- 0.01172
+       56/1    1.11939    1.07335 +/- 0.01328
+       57/1    1.10151    1.07737 +/- 0.01192
+       58/1    1.17415    1.08947 +/- 0.01590
+       59/1    1.09203    1.08975 +/- 0.01403
+       60/1    1.01785    1.08256 +/- 0.01446
+       61/1    1.07549    1.08192 +/- 0.01310
+       62/1    1.08533    1.08220 +/- 0.01196
+       63/1    1.14069    1.08670 +/- 0.01189
+       64/1    1.15101    1.09130 +/- 0.01192
+       65/1    1.12364    1.09345 +/- 0.01131
+       66/1    1.01000    1.08824 +/- 0.01179
+       67/1    1.06032    1.08660 +/- 0.01120
+       68/1    1.09980    1.08733 +/- 0.01058
+       69/1    1.07977    1.08693 +/- 0.01002
+       70/1    1.07770    1.08647 +/- 0.00952
+       71/1    1.04645    1.08456 +/- 0.00925
+       72/1    1.05473    1.08321 +/- 0.00892
+       73/1    1.14913    1.08607 +/- 0.00900
+       74/1    1.11142    1.08713 +/- 0.00868
+       75/1    1.07141    1.08650 +/- 0.00835
+       76/1    1.03661    1.08458 +/- 0.00825
+       77/1    1.05184    1.08337 +/- 0.00803
+       78/1    1.07007    1.08289 +/- 0.00775
+       79/1    1.08571    1.08299 +/- 0.00748
+       80/1    1.12341    1.08434 +/- 0.00735
+       81/1    1.10712    1.08507 +/- 0.00715
+       82/1    0.98721    1.08202 +/- 0.00756
+       83/1    1.10907    1.08284 +/- 0.00738
+       84/1    1.02771    1.08121 +/- 0.00734
+       85/1    1.05693    1.08052 +/- 0.00716
+       86/1    1.04215    1.07945 +/- 0.00704
+       87/1    1.05285    1.07874 +/- 0.00688
+       88/1    1.02106    1.07722 +/- 0.00687
+       89/1    1.11066    1.07808 +/- 0.00675
+       90/1    1.10936    1.07886 +/- 0.00662
+       91/1    1.10826    1.07957 +/- 0.00650
+       92/1    1.01709    1.07809 +/- 0.00651
+       93/1    1.04407    1.07730 +/- 0.00641
+       94/1    1.05027    1.07668 +/- 0.00629
+       95/1    1.07897    1.07673 +/- 0.00615
+       96/1    1.06444    1.07647 +/- 0.00602
+       97/1    0.96777    1.07415 +/- 0.00633
+       98/1    1.03268    1.07329 +/- 0.00626
+       99/1    1.06322    1.07308 +/- 0.00613
+      100/1    1.04340    1.07249 +/- 0.00604
+ Creating state point statepoint.100.h5...
+
+ =======================>     TIMING STATISTICS     <=======================
+
+ Total time for initialization     = 0.0000e+00 seconds
+   Reading cross sections          = 0.0000e+00 seconds
+ Total time in simulation          = 4.3045e+00 seconds
+   Time in transport only          = 4.1137e+00 seconds
+   Time in inactive batches        = 4.0413e-01 seconds
+   Time in active batches          = 3.9003e+00 seconds
+   Time synchronizing fission bank = 5.9765e-03 seconds
+     Sampling source sites         = 4.6329e-03 seconds
+     SEND/RECV source sites        = 9.5811e-04 seconds
+   Time accumulating tallies       = 1.7095e-01 seconds
+   Time writing statepoints        = 9.5956e-03 seconds
+ Total time for finalization       = 1.3557e-03 seconds
+ Total time elapsed                = 4.6007e+00 seconds
+ Calculation Rate (inactive)       = 123723 particles/second
+ Calculation Rate (active)         = 12819.4 particles/second
+
+ ============================>     RESULTS     <============================
+
+ k-effective (Collision)     = 1.07465 +/- 0.00540
+ k-effective (Track-length)  = 1.07249 +/- 0.00604
+ k-effective (Absorption)    = 1.07806 +/- 0.00494
+ Combined k-effective        = 1.07658 +/- 0.00417
+ Leakage Fraction            = 0.04182 +/- 0.00084
+
+ Creating state point openmc_simulation_n2.h5...
+ Maximum neutron transport energy: 20000000 eV for Zr90
+ Initializing source particles...
+
+ ====================>     K EIGENVALUE SIMULATION     <====================
+
+  Bat./Gen.      k            Average k
+  =========   ========   ====================
+        1/1    1.12444
+        2/1    0.98182
+        3/1    1.03453
+        4/1    1.05024
+        5/1    1.08879
+        6/1    1.04731
+        7/1    1.09664
+        8/1    0.92304
+        9/1    0.96917
+       10/1    1.00445
+       11/1    1.01950
+       12/1    0.93962
+       13/1    1.02216
+       14/1    1.05029
+       15/1    1.05219
+       16/1    0.98368
+       17/1    0.95726
+       18/1    0.92187
+       19/1    0.95588
+       20/1    0.97993
+       21/1    0.95839
+       22/1    1.04592
+       23/1    1.05066
+       24/1    0.96543
+       25/1    1.01876
+       26/1    0.97867
+       27/1    0.93936
+       28/1    1.09334
+       29/1    0.95151
+       30/1    1.02443
+       31/1    1.00324
+       32/1    0.96654
+       33/1    0.96623
+       34/1    0.98484
+       35/1    1.00592
+       36/1    1.05590
+       37/1    1.01327
+       38/1    0.98829
+       39/1    0.99458
+       40/1    0.96984
+       41/1    1.02297
+       42/1    1.07047
+       43/1    0.99639
+       44/1    0.95587
+       45/1    1.04416
+       46/1    1.00133
+       47/1    0.96050
+       48/1    0.93039
+       49/1    1.00637
+       50/1    0.95894
+       51/1    0.91087
+       52/1    1.04805    0.97946 +/- 0.06859
+       53/1    1.09636    1.01843 +/- 0.05556
+       54/1    0.96162    1.00422 +/- 0.04177
+       55/1    0.96571    0.99652 +/- 0.03326
+       56/1    1.09234    1.01249 +/- 0.03150
+       57/1    0.96272    1.00538 +/- 0.02756
+       58/1    0.99325    1.00386 +/- 0.02392
+       59/1    0.98575    1.00185 +/- 0.02119
+       60/1    1.04683    1.00635 +/- 0.01948
+       61/1    1.07272    1.01238 +/- 0.01862
+       62/1    1.02763    1.01365 +/- 0.01705
+       63/1    1.00348    1.01287 +/- 0.01570
+       64/1    0.97179    1.00994 +/- 0.01483
+       65/1    1.01573    1.01032 +/- 0.01381
+       66/1    0.97165    1.00791 +/- 0.01314
+       67/1    1.06310    1.01115 +/- 0.01277
+       68/1    0.99621    1.01032 +/- 0.01206
+       69/1    0.95403    1.00736 +/- 0.01179
+       70/1    0.95297    1.00464 +/- 0.01151
+       71/1    1.01634    1.00520 +/- 0.01096
+       72/1    0.95910    1.00310 +/- 0.01066
+       73/1    1.00935    1.00337 +/- 0.01019
+       74/1    0.99621    1.00308 +/- 0.00976
+       75/1    0.94517    1.00076 +/- 0.00964
+       76/1    1.02080    1.00153 +/- 0.00930
+       77/1    0.97053    1.00038 +/- 0.00902
+       78/1    0.96206    0.99901 +/- 0.00880
+       79/1    1.03361    1.00021 +/- 0.00857
+       80/1    1.03560    1.00139 +/- 0.00837
+       81/1    0.98999    1.00102 +/- 0.00810
+       82/1    1.02606    1.00180 +/- 0.00788
+       83/1    0.96821    1.00078 +/- 0.00771
+       84/1    1.04110    1.00197 +/- 0.00757
+       85/1    0.99188    1.00168 +/- 0.00736
+       86/1    0.99844    1.00159 +/- 0.00715
+       87/1    1.02704    1.00228 +/- 0.00699
+       88/1    0.96601    1.00132 +/- 0.00687
+       89/1    0.98003    1.00078 +/- 0.00671
+       90/1    0.97729    1.00019 +/- 0.00657
+       91/1    1.02425    1.00078 +/- 0.00643
+       92/1    1.09871    1.00311 +/- 0.00670
+       93/1    0.94608    1.00178 +/- 0.00667
+       94/1    1.02935    1.00241 +/- 0.00655
+       95/1    1.04951    1.00346 +/- 0.00649
+       96/1    0.96101    1.00253 +/- 0.00641
+       97/1    0.99785    1.00243 +/- 0.00627
+       98/1    1.01776    1.00275 +/- 0.00615
+       99/1    1.03115    1.00333 +/- 0.00605
+      100/1    0.95701    1.00241 +/- 0.00600
+ Creating state point statepoint.100.h5...
+
+ =======================>     TIMING STATISTICS     <=======================
+
+ Total time for initialization     = 0.0000e+00 seconds
+   Reading cross sections          = 0.0000e+00 seconds
+ Total time in simulation          = 4.4133e+00 seconds
+   Time in transport only          = 4.2181e+00 seconds
+   Time in inactive batches        = 4.0737e-01 seconds
+   Time in active batches          = 4.0059e+00 seconds
+   Time synchronizing fission bank = 6.0788e-03 seconds
+     Sampling source sites         = 4.7536e-03 seconds
+     SEND/RECV source sites        = 9.0437e-04 seconds
+   Time accumulating tallies       = 1.7532e-01 seconds
+   Time writing statepoints        = 9.6070e-03 seconds
+ Total time for finalization       = 1.3589e-03 seconds
+ Total time elapsed                = 4.7089e+00 seconds
+ Calculation Rate (inactive)       = 122739 particles/second
+ Calculation Rate (active)         = 12481.5 particles/second
+
+ ============================>     RESULTS     <============================
+
+ k-effective (Collision)     = 0.99975 +/- 0.00582
+ k-effective (Track-length)  = 1.00241 +/- 0.00600
+ k-effective (Absorption)    = 0.99962 +/- 0.00411
+ Combined k-effective        = 0.99937 +/- 0.00405
+ Leakage Fraction            = 0.04162 +/- 0.00083
+
+ Creating state point openmc_simulation_n3.h5...
+
+
+For the cost of the Account 221.12: Outer Vessel Structure, the Guard Vessel Material is selected to be stainless_steel
+
+
+For the cost of the Account 221.13: Inner Vessel Structure, the Vessel Material is selected to be stainless_steel
+
+
+For the cost of the Account 221.213: Control Drums Materials (Absorber), the Control Drum Absorber is selected to be B4C_enriched
+
+
+For the cost of the Account 221.214: Control Drums Materials (Reflector), the Control Drum Reflector is selected to be Graphite
+
+
+For the cost of the Account 221.311: Radial Reflector, the Radial Reflector is selected to be Graphite
+
+
+For the cost of the Account 221.312: Axial Reflector, the Axial Reflector is selected to be Graphite
+
+
+For the cost of the Account 221.321: In Vessel Shield Materials, the In Vessel Shield Material is selected to be B4C_natural
+
+
+For the cost of the Account 221.322: Out The Vessel Shield Materials, the Out Of Vessel Shield Material is selected to be WEP
+
+
+For the cost of the Account 221.33: Moderator, the Moderator is selected to be ZrH
+
+
+For the cost of the Account 222.11: Primary Pump, the Primary Pump is selected to be Yes
+
+
+For the cost of the Account 222.2: Reactor Heat Transfer Piping System, the reactor type is selected to be LTMR
+
+
+For the cost of the Account 222.31: Primary Heat Exchanger, the HX Material is selected to be SS316
+
+
+For the cost of the Account 222.32: Secondary Heat Exchanger, the HX Material is selected to be SS316
+
+
+For the cost of the Account 222.5: Initial Coolant Inventory, the Coolant is selected to be NaK
+
+
+For the cost of the Account 226.0: Other Reactor Plant Equipment, the reactor type is selected to be LTMR
+
+
+For the cost of the Account 254.0: First Core Fuel Assembly Fabrication , the TRISO Fueled is selected to be No
+
+
+For the cost of the Account 254.0: First Core Fuel Assembly Fabrication , the TRISO Fueled is selected to be No
+
+
+For the cost of the Account 712.0: Remote Monitoring Technicians , the Operation Mode is selected to be Remotely Monitored
+
+
+For the cost of the Account 721.0: Coolant, the Coolant is selected to be NaK
+
+
+Sample # 100
+
+
+Sample # 200
+
+
+Sample # 300
+
+
+Sample # 400
+
+
+Sample # 500
+
+
+Sample # 600
+
+
+Sample # 700
+
+
+Sample # 800
+
+
+Sample # 900
+
+
+Sample # 1000
+
+
+Parameters saved — 232 entries across 16 groups.
+
+
+
+
+The cost estimate and all the parameters are saved at /home/garcsamu/OpenMC/MOUSE/examples/watts_exec_LTMR_output.xlsx
+
+
+         435603619 function calls (427484883 primitive calls) in 205.680 seconds
+
+   Ordered by: cumulative time
+   List reduced from 2995 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.006    0.006  205.683  205.683 /home/garcsamu/OpenMC/MOUSE/cost/cost_estimation.py:460(detailed_bottom_up_cost_estimate)
+        1    0.098    0.098  205.088  205.088 /home/garcsamu/OpenMC/MOUSE/cost/cost_estimation.py:319(bottom_up_cost_estimate)
+     4000    0.330    0.000   86.874    0.022 /home/garcsamu/OpenMC/MOUSE/cost/cost_estimation.py:57(update_high_level_costs)
+    40000    0.989    0.000   66.756    0.002 /home/garcsamu/OpenMC/MOUSE/cost/cost_estimation.py:20(calculate_high_level_accounts_cost)
+     1000    0.749    0.001   57.701    0.058 /home/garcsamu/OpenMC/MOUSE/cost/non_direct_cost.py:329(energy_cost_levelized)
+   169008    1.032    0.000   43.972    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:882(__setitem__)
+989754/989751    6.633    0.000   43.840    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:389(__init__)
+425571/297319    0.921    0.000   36.327    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1176(__getitem__)
+   462253    0.460    0.000   35.635    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/ops/common.py:62(new_method)
+   128252    0.320    0.000   32.445    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1365(_getitem_tuple)
+   128298    0.748    0.000   31.857    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1032(_getitem_lowerdim)
+   256507    0.649    0.000   29.665    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1397(_getitem_axis)
+170008/169008    0.965    0.000   29.179    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1785(_setitem_with_indexer)
+   169008    0.622    0.000   26.487    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1946(_setitem_with_indexer_split_path)
+   169008    1.038    0.000   24.177    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:2111(_setitem_single_column)
+   462251    1.121    0.000   23.969    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:6201(_construct_result)
+   258265    0.160    0.000   20.431    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/arraylike.py:38(__eq__)
+   258265    0.570    0.000   20.271    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:6110(_cmp_method)
+     1000    0.913    0.001   19.952    0.020 /home/garcsamu/OpenMC/MOUSE/cost/cost_scaling.py:75(scale_cost)
+    88001    0.151    0.000   19.186    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1334(_getitem_iterable)
+94847938/93966978   10.405    0.000   17.784    0.000 {built-in method builtins.isinstance}
+   647914    1.807    0.000   16.996    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/frame.py:4062(__getitem__)
+     1000    0.219    0.000   16.726    0.017 /home/garcsamu/OpenMC/MOUSE/cost/non_direct_cost.py:43(calculate_accounts_31_32_75_82_cost)
+    90006    0.459    0.000   14.846    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexes/base.py:6186(_get_indexer_strict)
+    88001    0.108    0.000   14.597    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:1532(_get_listlike_indexer)
+   200000    0.111    0.000   14.022    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/arraylike.py:68(__and__)
+   200000    0.504    0.000   13.911    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:6123(_logical_method)
+    10002    0.040    0.000   13.021    0.001 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/reshape/concat.py:157(concat)
+   169018    0.310    0.000   12.701    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/generic.py:6432(dtypes)
+    10002    0.159    0.000   12.683    0.001 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/reshape/concat.py:622(get_result)
+
+
+
+
+
+--- sorted by tottime (self time, excludes sub-calls) ---
+
+         435603619 function calls (427484883 primitive calls) in 205.680 seconds
+
+   Ordered by: internal time
+   List reduced from 2995 to 30 due to restriction <30>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+94847938/93966978   10.405    0.000   17.784    0.000 {built-in method builtins.isinstance}
+989754/989751    6.633    0.000   43.840    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:389(__init__)
+  1225846    4.474    0.000   12.548    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/construction.py:517(sanitize_array)
+  1441177    3.708    0.000    5.807    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/generic.py:6236(__finalize__)
+25523615/18881204    3.378    0.000    4.997    0.000 {built-in method builtins.len}
+ 12185224    3.226    0.000    7.196    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/dtypes/generic.py:42(_instancecheck)
+  3250808    3.019    0.000    8.454    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/generic.py:6301(__setattr__)
+ 12185224    2.896    0.000    3.884    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/dtypes/generic.py:37(_check)
+  1624250    2.525    0.000    3.103    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/generic.py:278(__init__)
+   715150    2.497    0.000    3.368    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/internals/managers.py:1012(iget)
+  3696700    2.350    0.000    4.141    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexing.py:2765(check_dict_or_set_indexers)
+    64006    2.189    0.000    2.329    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/dtypes/astype.py:56(_astype_nansafe)
+    64022    2.167    0.000    6.071    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/strings/object_array.py:46(_str_map)
+  2116191    2.084    0.000    7.515    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:1095(__getitem__)
+   193075    2.082    0.000    2.082    0.000 {built-in method numpy.array}
+ 20422669    1.951    0.000    1.994    0.000 {built-in method builtins.getattr}
+   647914    1.807    0.000   16.996    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/frame.py:4062(__getitem__)
+  3078357    1.763    0.000    2.088    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexes/base.py:3777(get_loc)
+   917569    1.736    0.000    1.736    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+   987743    1.656    0.000    5.961    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/internals/managers.py:1863(from_array)
+  1007630    1.390    0.000    3.405    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/dtypes/common.py:1596(pandas_dtype)
+  1623387    1.361    0.000    4.633    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/generic.py:6284(__getattr__)
+  2204191    1.306    0.000    3.367    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:1220(_get_value)
+1999687/1679347    1.299    0.000    5.676    0.000 {built-in method numpy.asarray}
+   156019    1.267    0.000    1.625    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/ops/array_ops.py:113(comp_method_OBJECT_ARRAY)
+   209050    1.261    0.000    6.100    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/indexes/base.py:475(__new__)
+  1237838    1.260    0.000    2.157    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/internals/blocks.py:2645(maybe_coerce_values)
+   639854    1.227    0.000   10.456    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/frame.py:4626(_get_item_cache)
+  1516007    1.194    0.000    3.962    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/series.py:784(name)
+  8892000    1.182    0.000    1.904    0.000 /home/garcsamu/.conda/envs/snap/lib/python3.11/site-packages/pandas/core/strings/object_array.py:148(<lambda>)
+
+
+
+Execution time: 3.4 minutes
