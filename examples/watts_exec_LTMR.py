@@ -22,7 +22,6 @@ warnings.filterwarnings("ignore")
 
 import time
 time_start = time.time()
-
 params = watts.Parameters()
 
 def update_params(updates):
@@ -35,8 +34,9 @@ def update_params(updates):
 update_params({
     'plotting': "Y",  # "Y" or "N": Yes or No
     'cross_sections_xml_location': '/projects/MRP_MOUSE/openmc_data/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
-    'simplified_chain_thermal_xml': '/projects/MRP_MOUSE/openmc_data/simplified_thermal_chain11.xml'       # on INL HPC
+    'simplified_chain_thermal_xml': '/projects/MRP_MOUSE/openmc_data/simplified_thermal_chain11.xml' 
 })
+
 
 # **************************************************************************************************************************
 #                                                Sec. 1: Materials
@@ -56,7 +56,7 @@ update_params({
     'Control Drum Absorber': 'B4C_enriched',
     'Control Drum Reflector': 'Graphite',
     'Common Temperature': 600,  # Kelvins
-    'HX Material': 'SS316'
+    'HX Material': 'SS316',
 })
 # **************************************************************************************************************************
 #                                           Sec. 2: Geometry: Fuel Pins, Moderator Pins, Coolant, Hexagonal Lattice
@@ -343,6 +343,6 @@ params['Number of Units Claiming ITC/PTC'] = 10
 # **************************************************************************************************************************
 params['Number of Samples'] = 100  # number of samples for cost uncertainty analysis
 # Estimate costs using the cost database file and save the output to an Excel file
-estimate = detailed_bottom_up_cost_estimate('cost/Cost_Database.xlsx')
+estimate = detailed_bottom_up_cost_estimate('/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx')
 elapsed_time = (time.time() - time_start) / 60  # calculate execution time
 print('Execution time:', np.round(elapsed_time, 1), 'minutes')

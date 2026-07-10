@@ -7,38 +7,42 @@ import numpy as np
 # **************************************************************************************************************************
 
 
-def calculate_inflation_multiplier(file_path, base_dollar_year, cost_type, escalation_year):
-    
-    base_dollar_year = int(base_dollar_year)
-    escalation_year  = int(escalation_year)
-    
+from functools import lru_cache
+import pandas as pd
+ 
+ 
+@lru_cache(maxsize=None)
+def _load_inflation_table(file_path):
+    """
+    Reads and cleans the 'Inflation Adjustment' sheet once per unique
+    file_path and caches the result. Subsequent calls with the same
+    file_path reuse the cached DataFrame instead of re-reading the workbook.
+    """
     df = pd.read_excel(file_path, sheet_name="Inflation Adjustment")
-    # print("Shape:", df.shape)
-    # print("First 5 rows raw:")
-    # print(df.head(5))
-    # print("\nYear column raw values:")
-    # print(df['Year'].tolist())
-
     df = df.dropna(subset=['Year'])
     df['Year'] = df['Year'].astype(int)
-
-    # --- DEBUG: remove after issue is resolved ---
-    # print("Year column dtype:", df['Year'].dtype)
-    # print("Year values:", df['Year'].values)
-    # print("Looking for:", base_dollar_year, type(base_dollar_year))
-
+    return df
+ 
+ 
+def calculate_inflation_multiplier(file_path, base_dollar_year, cost_type, escalation_year):
+ 
+    base_dollar_year = int(base_dollar_year)
+    escalation_year = int(escalation_year)
+ 
+    df = _load_inflation_table(file_path)
+ 
     if base_dollar_year not in df['Year'].values:
         print(f"\033[91mBase Year : {base_dollar_year} not found in the Excel file.\033[0m")
-
+ 
     if escalation_year not in df['Year'].values:
         print(f"\033[91mEscalation Year:  {escalation_year} not found in the Excel file.\033[0m")
-
+ 
     if cost_type == 'NA':
         multiplier = 1
-    else:    
+    else:
         multiplier = df.loc[df['Year'] == base_dollar_year, cost_type].values[0] / \
                      df.loc[df['Year'] == escalation_year, cost_type].values[0]
-
+ 
     return multiplier
 
 
