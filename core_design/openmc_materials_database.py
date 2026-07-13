@@ -358,7 +358,20 @@ def _build_base_materials(params):
     mats['WC'] = WC
 
     # ------------------------------------------------------------------
-    # Sec. 1.11 : Heat Pipe Microreactor
+    # Sec. 1.11 : Hydrogenous Plastics
+    # ------------------------------------------------------------------
+
+    WEP = openmc.Material(name = 'WEP')
+    WEP.set_density('g/cm3', 1.1)
+    WEP.add_element('H', 9.7, "wo")
+    WEP.add_element('C', 25.3, "wo")
+    WEP.add_element('O', 65.0, "wo")
+    mats['WEP'] = WEP
+
+
+
+    # ------------------------------------------------------------------
+    # Sec. 1.12 : Heat Pipe Microreactor
     # ------------------------------------------------------------------
 
     heatpipe = openmc.Material(name='heatpipe')
@@ -481,6 +494,9 @@ def _collect_materials_endf80(params):
     # ZrC: no TSL in VIII.0
     materials.extend([mats['B4C_natural'], mats['B4C_enriched'], mats['SiC']])
 
+    # --- Hydrogenous Plastics ---
+    materials.append(mats["WEP"])
+
     # --- Graphite family ---
     for key in ('Graphite', 'buffer_graphite', 'PyC'):
         mats[key].add_s_alpha_beta('c_Graphite')
@@ -583,7 +599,7 @@ def _collect_materials_endf81(params):
     materials.extend([mats['Be'], mats['BeO']])
 
     # --- Zr, SS304 (no TSL) ---
-    materials.extend([mats['Zr'], mats['SS304']])
+    materials.extend([mats['Zr'], mats['SS304'], mats['carbon_steel']])
 
     # --- Carbides ---
     mats['SiC'].add_s_alpha_beta("c_C_in_SiC")
@@ -591,6 +607,9 @@ def _collect_materials_endf81(params):
     mats['ZrC'].add_s_alpha_beta("c_Zr_in_ZrC")                  # new in VIII.1
     mats['ZrC'].add_s_alpha_beta("c_C_in_ZrC")                   # new in VIII.1
     materials.extend([mats['B4C_natural'], mats['B4C_enriched'], mats['SiC']])
+
+    # --- Hydrogenous Plastics ---
+    materials.append(mats["WEP"])
 
     # --- Graphite family ---
     for key in ('Graphite', 'buffer_graphite', 'PyC'):
