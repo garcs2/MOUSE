@@ -38,7 +38,8 @@ from core_design.openmc_template_LTMR import (
     create_pin_regions,
     create_drums_universe,
     create_assembly_universe,
-    create_control_drums_positions,
+    resolve_drum_radius,
+    update_ltmr_reflector_geometry_from_drums,
     create_core_geometry,
 )
 from core_design.openmc_materials_database import collect_materials_data
@@ -334,7 +335,7 @@ def build_openmc_shielding_model_LTMR(params):
     params.setdefault('Shielding Particles',                2_000_000)
     params.setdefault('Shielding Batches',                  50)
 
-
+    resolve_drum_radius(params)
     # **************************************************************************************************************************
     #                                                Sec. 1.1 : MATERIALS
     # **************************************************************************************************************************
@@ -408,7 +409,18 @@ def build_openmc_shielding_model_LTMR(params):
     #                                                Sec. 1.3 : GEOMETRY — Control Drums
     # **************************************************************************************************************************
 
-    drums = create_drums_universe(params, control_drum_absorber, control_drum_reflector)
+    # Derive Core Radius / Radial Reflector Thickness / Axial Reflector Thickness /
+    # Drum Height from the actual drum layout, and get the drum positions in the
+    # same call — mirrors Sec. 1.5 of openmc_template_LTMR.py. This must happen
+    # before create_drums_universe, which now requires drum_positions as an input.
+    control_drum_positions = update_ltmr_reflector_geometry_from_drums(params)
+
+    drums = create_drums_universe(
+        params,
+        control_drum_absorber,
+        control_drum_reflector,
+        control_drum_positions
+    )
 
 
     # **************************************************************************************************************************
@@ -431,7 +443,9 @@ def build_openmc_shielding_model_LTMR(params):
     #                                                Sec. 1.5 : GEOMETRY — Core (drums + assembly)
     # **************************************************************************************************************************
 
-    control_drum_positions = create_control_drums_positions(number_of_drums=len(drums))
+    # control_drum_positions was already computed in Sec. 1.3 alongside the drum
+    # universe list — reuse it here rather than recomputing (create_control_drums_positions
+    # takes params, not number_of_drums, and recomputing here would be redundant anyway).
 
     # create_core_geometry returns the core universe with the vacuum outer surface on
     # the core cylinder.  For the shielding model we need the inner (core) universe

@@ -251,7 +251,7 @@ def _build_base_materials(params):
     mats['Zr'] = Zr
 
     # ------------------------------------------------------------------
-    # Sec. 1.6 : SS304
+    # Sec. 1.6 : Steels
     # ------------------------------------------------------------------
 
     SS304 = openmc.Material(name="SS304", temperature=params['Common Temperature'])
@@ -266,6 +266,11 @@ def _build_base_materials(params):
     SS304.add_element("nickel",     9.25,   "wo")
     mats['SS304'] = SS304
 
+    carbon_steel = openmc.Material(name = "carbon_steel", temperature = params['Common Temperature'])
+    carbon_steel.set_density("g/cm3", 7.82)
+    carbon_steel.add_element("carbon",  0.5, "wo")
+    carbon_steel.add_element("iron",   99.5, "wo")
+    mats['carbon_steel'] = carbon_steel
     # ------------------------------------------------------------------
     # Sec. 1.7 : Carbides
     # ------------------------------------------------------------------
@@ -469,7 +474,7 @@ def _collect_materials_endf80(params):
     materials.extend([mats['Be'], mats['BeO']])
 
     # --- Zr, SS304 (no TSL) ---
-    materials.extend([mats['Zr'], mats['SS304']])
+    materials.extend([mats['Zr'], mats['SS304'], mats['carbon_steel']])
 
     # --- Carbides ---
     mats['SiC'].add_s_alpha_beta("c_C_in_SiC")   # C side only in VIII.0

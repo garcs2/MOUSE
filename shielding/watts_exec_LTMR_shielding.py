@@ -39,7 +39,7 @@ from cost.cost_estimation import parametric_studies
 
 # New shielding-specific imports
 from shielding.openmc_shielding_template_LTMR import build_openmc_shielding_model_LTMR
-from core_design.utils import run_openmc_shielding
+from shielding.shielding_analysis import run_openmc_shielding
 from shielding.shielding_calcs import summarize_shielding_results
 
 try:
@@ -67,9 +67,10 @@ def update_params(updates):
 
 update_params({
     'plotting': "N",  # Shielding runs are expensive; disable geometry plots by default
-    'cross_sections_xml_location': '/hpc-common/data/openmc/endfb-viii.0-hdf5/cross_sections.xml',
-    'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/data/chain_casl_pwr.xml',
-    'shielding_output_dir': '/home/garcsamu/OpenMC/TEMA/results',
+    'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml',
+    'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',
+    'shielding_output_dir': '/home/garcsamu/MOUSE',
+    'XS_type': 'endf8.1'
 })
 
 os.makedirs(params['shielding_output_dir'], exist_ok=True)
@@ -80,12 +81,13 @@ os.makedirs(params['shielding_output_dir'], exist_ok=True)
 
 update_params({
     'reactor type': "LTMR",
-    'Fuel': 'UN',               # Fix fuel type for shielding study; change as needed
+    'Fuel': 'UZrH_alloy',               # Fix fuel type for shielding study; change as needed
     'Enrichment': 0.1975,
     'TRISO Fueled': "No",
     "H_Zr_ratio": 1.6,
     'U_met_wo': 0.3,
     'Coolant': 'NaK',
+    'er_wo': 0,
     'Radial Reflector': 'Graphite',
     'Axial Reflector': 'Graphite',
     'Moderator': 'ZrH',
@@ -109,36 +111,40 @@ update_params({
     "Pin Gap Distance": 0.1,  # cm
     'Pins Arrangement': LTMR_pins_arrangement,
     'Number of Rings per Assembly': 12,
-    'Reflector Thickness': 14,  # cm
+    'Radial Reflector Thickness': 14,  # cm
 })
 
-params['Lattice Radius']            = calculate_lattice_radius(params)
-params['Active Height']             = 78.4   # cm
-params['Axial Reflector Thickness'] = params['Reflector Thickness']
+params['Lattice Apothem'] = calculate_hex_apothem(params)
+params['Lattice Radius']            = params['Lattice Apothem']
+params['Active Height']             = 78.4   # cm1
+params['Assembly FTF']              = 2 * params['Lattice Apothem']
+params['Axial Reflector Thickness'] = params['Radial Reflector Thickness']
 params['Fuel Pin Count']            = calculate_pins_in_assembly(params, "FUEL")
 params['Moderator Pin Count']       = calculate_pins_in_assembly(params, "MODERATOR")
 params['Moderator Mass']            = calculate_moderator_mass(params)
-params['Core Radius']               = params['Lattice Radius'] + params['Reflector Thickness']
+params['Core Radius']               = calculate_core_radius_from_hex(params)
 
 # **************************************************************************************************************************
 #                                                Sec. 3: Control Drums (fixed)
 # **************************************************************************************************************************
 
 update_params({
-    'Drum Radius': 9.016,  # cm
+    'Number of Drums': 12,
+    # 'Drum Radius': 9.016,  # cm
     'Drum Absorber Thickness': 1,  # cm
+    'Drum Absorber Arc Degrees': 120,
     'Drum Height': params['Active Height'] + 2 * params['Axial Reflector Thickness'],
 })
 
-drum_tube_radius = params['Drum Radius'] + params['Drum Radius'] / 90
-cd_distance      = 0.86602540378 * params['Lattice Radius'] + drum_tube_radius
-core_radius      = params['Lattice Radius'] + params['Reflector Thickness']
+# drum_tube_radius = params['Drum Radius'] + params['Drum Radius'] / 90
+# cd_distance      = 0.86602540378 * params['Lattice Radius'] + drum_tube_radius
+# core_radius      = params['Lattice Radius'] + params['Reflector Thickness']
 
-if cd_distance + drum_tube_radius >= core_radius:
-    max_drum_radius     = (core_radius - 0.86602540378 * params['Lattice Radius']) / (2 * (1 + 1/90))
-    adjusted_drum_radius = max_drum_radius * 0.95
-    print(f"WARNING: Drum radius auto-adjusted: {params['Drum Radius']:.3f} -> {adjusted_drum_radius:.3f} cm")
-    update_params({'Drum Radius': adjusted_drum_radius})
+# if cd_distance + drum_tube_radius >= core_radius:
+#     max_drum_radius     = (core_radius - 0.86602540378 * params['Lattice Radius']) / (2 * (1 + 1/90))
+#     adjusted_drum_radius = max_drum_radius * 0.95
+#     print(f"WARNING: Drum radius auto-adjusted: {params['Drum Radius']:.3f} -> {adjusted_drum_radius:.3f} cm")
+#     update_params({'Drum Radius': adjusted_drum_radius})
 
 calculate_drums_volumes_and_masses(params)
 calculate_reflector_mass_LTMR(params)
@@ -152,6 +158,7 @@ update_params({
     'Thermal Efficiency': 0.31,
     'Heat Flux Criteria': 0.9,  # MW/m^2
     'Burnup Steps': [0.1, 0.5, 160],  # MWd/kg (trimmed for speed)
+    'Particles': 1000
 })
 params['Power MWe']   = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux']   = calculate_heat_flux(params)
@@ -169,7 +176,7 @@ params['Isothermal Temperature Coefficients'] = False
 params['Shielding Run']                   = False  # tells template: normal k-eigen mode
 
 heat_flux_monitor = monitor_heat_flux(params)
-run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params, mpi_args)
+run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
 fuel_calculations(params)
 
 # The k-eigenvalue run writes a source file; record its path for Step 2.
@@ -228,12 +235,13 @@ update_params({
     'Gap Between Cooling Vessel And Intake Vessel': 3,
     'Intake Vessel Thickness': 0.5,
     'Intake Vessel Material': 'stainless_steel',
+    'Out Of Vessel Shield Effective Density Factor': 0.5
 })
 
 params['In Vessel Shield Outer Radius'] = params['Core Radius'] + params['In Vessel Shield Thickness']
 
 vessels_specs(params)
-calculate_shielding_masses(params)
+
 
 # **************************************************************************************************************************
 #   Sec. 9: STEP 2 — Shielding Parametric Sweep (fixed-source transport)
@@ -279,7 +287,7 @@ tracked_params_list = [
 ]
 
 for params['Mobile'] in [False, True]:
-    for params['Out Of Vessel Shield Material'] in ['WEP', 'B4C_natural', 'polyethylene']:
+    for params['Out Of Vessel Shield Material'] in ['WEP', 'B4C_natural']:
         for params['Out Of Vessel Shield Thickness'] in [20.0, 30.0, 39.37, 50.0]:  # cm
 
             mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
@@ -302,7 +310,7 @@ for params['Mobile'] in [False, True]:
                 params['Out Of Vessel Shield Inner Radius']
                 + params['Out Of Vessel Shield Thickness']
             )
-
+            calculate_shielding_masses(params)
             if params['Mobile']:
                 params['Isocontainer Steel Thickness'] = ISO_CONTAINER_STEEL_THICKNESS_CM
                 params['Isocontainer Steel Material']  = ISO_CONTAINER_MATERIAL
