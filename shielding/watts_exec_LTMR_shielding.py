@@ -24,6 +24,7 @@ loops over:
 """
 
 import os
+import shutil
 import sys
 import numpy as np
 import watts
@@ -39,7 +40,7 @@ from cost.cost_estimation import parametric_studies
 
 # New shielding-specific imports
 from shielding.openmc_shielding_template_LTMR import build_openmc_shielding_model_LTMR
-from shielding.shielding_analysis import run_openmc_shielding
+from shielding.shielding_analysis import run_openmc_shielding, run_bol_source_run
 from shielding.shielding_calcs import summarize_shielding_results
 
 try:
@@ -69,7 +70,7 @@ update_params({
     'plotting': "N",  # Shielding runs are expensive; disable geometry plots by default
     'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml',
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',
-    'shielding_output_dir': '/home/garcsamu/MOUSE',
+    'shielding_output_dir': '/home/garcsamu/OpenMC/MOUSE',
     'XS_type': 'endf8.1'
 })
 
@@ -179,14 +180,11 @@ heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
 fuel_calculations(params)
 
-# The k-eigenvalue run writes a source file; record its path for Step 2.
-# OpenMC writes the last-batch source to 'source.{batch}.h5' in the run dir.
-# watts_exec typically lands run artifacts in a dated subfolder; adjust path if needed.
-params['Fission Source File'] = os.path.join(
-    params.get('openmc_run_dir', '.'),
-    'source.h5'
-)
-
+print("STEP 1b: Generating persistent BOL fission source for shielding reuse")
+os.makedirs(params['shielding_output_dir'], exist_ok=True)  # ensure it exists before the plugin runs
+openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR, show_stdout=True, show_stderr=True)
+openmc_plugin(params, function=lambda: run_bol_source_run(params))
+print(f"BOL fission source saved for reuse at: {params['Fission Source File']}")
 # **************************************************************************************************************************
 #                                                Sec. 6: Primary Loop + BoP (for mass/cost context)
 # **************************************************************************************************************************

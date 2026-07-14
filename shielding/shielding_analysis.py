@@ -9,44 +9,81 @@ import matplotlib.patches as mpatches
 from core_design.correction_factor import corrected_keff_2d
 from core_design.peaking_factor import compute_pin_peaking_factors
 import glob
+import os
 import pandas,copy
 
+import shutil  # add to the top of shielding_analysis.py if not already imported
+
+def run_bol_source_run(params):
+    """
+    One-time, standalone BOL (fresh-fuel) k-eigenvalue solve used only to
+    generate a fission source for reuse across the shielding parametric sweep.
+
+    IMPORTANT: WATTS deletes its tmp run directory as soon as this callback
+    returns, so the persistent copy of the source file MUST happen here,
+    while cwd is still the WATTS-managed run directory — copying it back
+    in the exec script after the plugin call is too late.
+    """
+    settings = openmc.Settings.from_xml()
+    settings.sourcepoint = {'batches': [settings.batches], 'separate': True, 'write': True}
+    settings.export_to_xml()
+
+    openmc.run()
+
+    source_candidates = sorted(glob.glob('source.*.h5'))
+    if not source_candidates:
+        raise FileNotFoundError(
+            "BOL source run completed but no source.*.h5 was written — "
+            "check that settings.sourcepoint write=True took effect."
+        )
+    source_file = source_candidates[-1]
+
+    persistent_dir = params['shielding_output_dir']
+    os.makedirs(persistent_dir, exist_ok=True)
+    persistent_source_path = os.path.join(persistent_dir, 'bol_fission_source.h5')
+    shutil.copy2(source_file, persistent_source_path)
+
+    params['Fission Source File'] = persistent_source_path
+    print(f"  [Shielding] BOL fission source saved for reuse at: {persistent_source_path}")
 
 def run_shielding_analysis(params):
     """
     Callback passed to the WATTS plugin for the shielding transport run.
 
-    Executes a two-step sequence entirely within the single WATTS working
-    directory, avoiding any cross-directory file access issues:
-
-    Step 1 — Eigenvalue run:
-        openmc.run() executes the k-eigenvalue calculation built by
-        build_openmc_shielding_model_LTMR, converging the fission source
-        and writing it to source.{batch}.h5 in the current directory.
+    Step 1 — Fission source acquisition:
+        If params['Fission Source File'] points to an existing persistent
+        source file (written once, up front, by run_bol_source_run via the
+        exec script), that file is reused directly and no eigenvalue solve
+        happens here at all. Otherwise, falls back to a local eigenvalue
+        solve via openmc.run() on the geometry built by
+        build_openmc_shielding_model_LTMR, writing statepoint.*.h5.
 
     Step 2 — Fixed-source shielding run:
-        The converged source file is found via glob, the settings are
-        modified in-place to fixed-source mode with photon transport,
-        and openmc.run() is called again in the same directory.
-        extract_dose_results() then reads the resulting statepoint.
+        settings.xml is modified in-place to fixed-source mode using the
+        source file from Step 1, and openmc.run() executes the neutron +
+        photon transport. extract_dose_results() then reads the resulting
+        statepoint.
 
     @ In, params, watts.Parameters, Simulation parameters.
     """
     from shielding.shielding_calcs import extract_dose_results
 
-    # ---- Step 1: Eigenvalue run to converge fission source ----
-    print("\n  [Shielding] Step 1: Eigenvalue run to converge fission source...")
-    openmc.run()
-
-    # Find the source file written at the final batch
-    source_files = sorted(glob.glob('statepoint.*.h5'))
-    if not source_files:
-        raise FileNotFoundError(
-            "No source.*.h5 file found after eigenvalue run. "
-            "Ensure OpenMC is writing source files (check settings.batches)."
-        )
-    source_file = source_files[-1]
-    print(f"  [Shielding] Converged source: {source_file}")
+    # ---- Step 1: Reuse persistent BOL source if available, else run locally ----
+    source_file = params.get('Fission Source File')
+    if source_file and os.path.isfile(source_file):
+        print(f"\n  [Shielding] Reusing persistent fission source: {source_file}")
+        local_source_file = source_file
+    else:
+        print("\n  [Shielding] No persistent source found — running local eigenvalue solve...")
+        openmc.run()
+        source_files = sorted(glob.glob('statepoint.*.h5'))
+        if not source_files:
+            raise FileNotFoundError(
+                "No statepoint.*.h5 file found after local eigenvalue run. "
+                "Ensure OpenMC is writing statepoints (check settings.batches)."
+            )
+        local_source_file = source_files[-1]
+    print(f"  [Shielding] Converged source: {local_source_file}")
 
     # ---- Step 2: Switch to fixed-source mode and rerun ----
     print("\n  [Shielding] Step 2: Fixed-source shielding transport run...")
@@ -56,7 +93,7 @@ def run_shielding_analysis(params):
     settings.batches          = params.get('Shielding Batches', 50)
     settings.inactive         = 0
     settings.photon_transport = params.get('Photon Transport', True)
-    settings.source           = openmc.FileSource(source_file)
+    settings.source           = openmc.FileSource(local_source_file)
     settings.create_fission_neutrons = False
     settings.export_to_xml()
 
