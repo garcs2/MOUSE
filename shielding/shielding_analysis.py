@@ -133,7 +133,7 @@ def run_openmc_shielding(build_openmc_shielding_model, params):
     # that any shared helper functions that read them do not raise KeyErrors.
     params.setdefault('SD Margin Calc', False)
     params.setdefault('Isothermal Temperature Coefficients', False)
-    watts.Database().clear()  # force fresh run, bypass caching
+    # watts.Database().clear()  # force fresh run, bypass caching
     try:
         print(f"\n\nThe shielding results are saved at: {watts.Database().path}\n\n")
 

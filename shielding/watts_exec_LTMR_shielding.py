@@ -262,7 +262,7 @@ update_params({
         '30m_exclusion':  3000,   # fixed: 30 m from core axis
     },
     # Fixed-source transport settings
-    'Shielding Particles':  2_000_000,  # particles per batch for shielding run
+    'Shielding Particles':  20_000,  # particles per batch for shielding run
     'Shielding Batches':    50,
     'Shielding Inactive':   0,          # no inactive batches in fixed-source mode
 })
