@@ -137,16 +137,6 @@ update_params({
     'Drum Height': params['Active Height'] + 2 * params['Axial Reflector Thickness'],
 })
 
-# drum_tube_radius = params['Drum Radius'] + params['Drum Radius'] / 90
-# cd_distance      = 0.86602540378 * params['Lattice Radius'] + drum_tube_radius
-# core_radius      = params['Lattice Radius'] + params['Reflector Thickness']
-
-# if cd_distance + drum_tube_radius >= core_radius:
-#     max_drum_radius     = (core_radius - 0.86602540378 * params['Lattice Radius']) / (2 * (1 + 1/90))
-#     adjusted_drum_radius = max_drum_radius * 0.95
-#     print(f"WARNING: Drum radius auto-adjusted: {params['Drum Radius']:.3f} -> {adjusted_drum_radius:.3f} cm")
-#     update_params({'Drum Radius': adjusted_drum_radius})
-
 calculate_drums_volumes_and_masses(params)
 calculate_reflector_mass_LTMR(params)
 
@@ -240,6 +230,104 @@ params['In Vessel Shield Outer Radius'] = params['Core Radius'] + params['In Ves
 
 vessels_specs(params)
 
+# **************************************************************************************************************************
+#                                                Sec. 8b: Operation (fixed for shielding study)
+# **************************************************************************************************************************
+
+update_params({
+    'Operation Mode': "Autonomous",
+    'Number of Operators': 2,
+    'Levelization Period': 60,  # years
+    'Refueling Period': 7,
+    'Emergency Shutdowns Per Year': 0.2,
+    'Startup Duration after Refueling': 2,
+    'Startup Duration after Emergency Shutdown': 14,
+    'Reactors Monitored Per Operator': 10,
+    'Security Staff Per Shift': 2 if params['Enrichment'] > 0.1 else 1,
+    'FTEs Per Onsite Operator Per Year': 1,
+    })
+## Calculated based on 1 tank; Density of NaK = 855 kg/m^3, Volume = 8.2402 m^3 (standard tank size)
+params['Onsite Coolant Inventory']      = 1 * 855 * 8.2402  # kg
+params['Replacement Coolant Inventory'] = 0  # NaK assumed not to need replacement
+
+total_refueling_period    = params['Fuel Lifetime'] + params['Refueling Period'] + params['Startup Duration after Refueling']  # days
+total_refueling_period_yr = total_refueling_period / 365
+for key in ['Vessel', 'Core Barrel', 'Reflector', 'Drum']:
+    params[f'A75: {key} Replacement Period (cycles)'] = np.floor(10 / total_refueling_period_yr)
+params['Mainenance to Direct Cost Ratio']          = 0.015
+params['A78: CAPEX to Decommissioning Cost Ratio'] = 0.15
+
+# **************************************************************************************************************************
+#                                                Sec. 8c: Buildings & Economic Parameters (fixed for shielding study)
+# **************************************************************************************************************************
+
+update_params({
+    'Land Area': 18,               # acres
+    'Escalation Year': 2024,
+    'Discount Rate': 0.07,
+    'Excavation Volume': 412.605,  # m^3
+
+    'Reactor Building Slab Roof Volume':      (9750 * 6502.4 * 1500) / 1e9,
+    'Reactor Building Basement Volume':       (9750 * 6502.4 * 1500) / 1e9,
+    'Reactor Building Exterior Walls Volume': ((2 * 9750 * 3500 * 1500) + (3502.4 * 3500 * (1500 + 750))) / 1e9,
+    'Reactor Building Superstructure Area':   ((2 * 3500 * 3500) + (2 * 7500 * 3500)) / 1e6,
+
+    'Integrated Heat Exchanger Building Slab Roof Volume':      0,
+    'Integrated Heat Exchanger Building Basement Volume':       0,
+    'Integrated Heat Exchanger Building Exterior Walls Volume': 0,
+    'Integrated Heat Exchanger Building Superstructure Area':   0,
+
+    'Turbine Building Slab Roof Volume':      (12192 * 2438 * 200) / 1e9,
+    'Turbine Building Basement Volume':       (12192 * 2438 * 200) / 1e9,
+    'Turbine Building Exterior Walls Volume': ((12192 * 2496 * 200) + (2038 * 2496 * 200)) * 2 / 1e9,
+
+    'Control Building Slab Roof Volume':      (12192 * 2438 * 200) / 1e9,
+    'Control Building Basement Volume':       (12192 * 2438 * 200) / 1e9,
+    'Control Building Exterior Walls Volume': ((12192 * 2496 * 200) + (2038 * 2496 * 200)) * 2 / 1e9,
+
+    'Manipulator Building Slab Roof Volume':      (4876.8 * 2438.4 * 400) / 1e9,
+    'Manipulator Building Basement Volume':       (4876.8 * 2438.4 * 1500) / 1e9,
+    'Manipulator Building Exterior Walls Volume': ((4876.8 * 4445 * 400) + (2038.4 * 4445 * 400 * 2)) / 1e9,
+
+    'Refueling Building Slab Roof Volume':      0,
+    'Refueling Building Basement Volume':       0,
+    'Refueling Building Exterior Walls Volume': 0,
+
+    'Spent Fuel Building Slab Roof Volume':      0,
+    'Spent Fuel Building Basement Volume':       0,
+    'Spent Fuel Building Exterior Walls Volume': 0,
+
+    'Emergency Building Slab Roof Volume':      0,
+    'Emergency Building Basement Volume':       0,
+    'Emergency Building Exterior Walls Volume': 0,
+
+    'Storage Building Slab Roof Volume':      (8400 * 3500 * 400) / 1e9,
+    'Storage Building Basement Volume':       (8400 * 3500 * 400) / 1e9,
+    'Storage Building Exterior Walls Volume': ((8400 * 2700 * 400) + (3100 * 2700 * 400 * 2)) / 1e9,
+
+    'Radwaste Building Slab Roof Volume':      0,
+    'Radwaste Building Basement Volume':       0,
+    'Radwaste Building Exterior Walls Volume': 0,
+
+    'Interest Rate': 0.07,
+    'Discount Rate': 0.07,
+    'Construction Duration': 12,   # months
+    'Debt To Equity Ratio': 0.5,
+    'Annual Return': 0.0475,       # decommissioning reserve fund return
+    'NOAK Unit Number': 100,
+})
+
+params['Number of Samples'] = 100  # Monte Carlo samples for cost uncertainty (raise for tighter CIs, at compute cost)
+
+cost_database_filename = '/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx'
+cost_tracked_params_list = [
+    'Mobile', 'Out Of Vessel Shield Material', 'Out Of Vessel Shield Thickness',
+    'Isocontainer Steel Thickness',
+    'In Vessel Shield Mass', 'Out Of Vessel Shield Mass',
+    'Dose Rate iso_surface mSv_hr', 'Dose Rate 1m_standoff mSv_hr', 'Dose Rate 30m_exclusion mSv_hr',
+    'Meets Public Limit', 'Meets Worker Limit',
+    'Fuel', 'Enrichment', 'Power MWt',
+]
 
 # **************************************************************************************************************************
 #   Sec. 9: STEP 2 — Shielding Parametric Sweep (fixed-source transport)
@@ -353,6 +441,7 @@ for params['Mobile'] in [False, True]:
                 tracked_params_list,
                 os.path.join(params['shielding_output_dir'], 'output_shielding_study.csv')
             )
+            parametric_studies(cost_database_filename, cost_tracked_params_list)
 
 elapsed_time = (time.time() - time_start) / 60
 print(f'\nTotal execution time: {np.round(elapsed_time, 2)} minutes')
