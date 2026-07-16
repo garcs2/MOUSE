@@ -10,6 +10,7 @@ def circle_area(r):
 
 def materials_densities(material):
     material_densities = {
+    "carbon_steel": 7.82,
     "stainless_steel": 8.0,  # Approximate density of stainless steel
     "SS316": 8.0,            # Approximate density of SS316
     "SS304": 7.93,           # Approximate density of SS304
@@ -34,6 +35,14 @@ def cylinder_annulus_mass(outer_radius , inner_radius,height, material ):
     mass = volume* materials_densities(material)/1000  # kg
     return mass # in kg
 
+def concentric_rectangular_prism_mass(thickness, material):
+    inner_volume = 239 * 235 * 589 # standard dimensions of ISO-cointainer in height x width x length in cm
+    outer_volume = (239 + 2 * thickness) * (235 + 2 * thickness) * (589 + 2 * thickness)
+    volume = outer_volume - inner_volume
+    mass = volume * materials_densities(material)/1000
+    return mass # in kg
+
+
 def calculate_shielding_masses(params):
     params['In Vessel Shield Mass'] = cylinder_annulus_mass(params['In Vessel Shield Outer Radius'],\
     params['In Vessel Shield Inner Radius'], params['Vessel Height'], params['In Vessel Shield Material'] )
@@ -43,6 +52,14 @@ def calculate_shielding_masses(params):
     outer_shield_mass = cylinder_annulus_mass(params['Outer Shield Outer Radius'], params['Outer Shield Inner Radius'],\
     params['Vessels Total Height'], params['Out Of Vessel Shield Material']) 
     params['Out Of Vessel Shield Mass'] = params['Out Of Vessel Shield Effective Density Factor'] * outer_shield_mass
+    
+    if params.get('Mobile', False):
+        params['Isocontainer Mass'] = concentric_rectangular_prism_mass(
+            params['Isocontainer Steel Thickness'],
+            params['Isocontainer Steel Material']
+        )
+    else:
+        params['Isocontainer Mass'] = 0
 
 def mass_flow_rate(params):
     loop_factor = 1
