@@ -127,7 +127,7 @@ def create_shielding_annuli(params, shielding_mats):
     # Collapsed into a single stainless steel annulus for shielding transport.
     # Detailed vessel-by-vessel geometry adds negligible accuracy to dose results
     # at the outer shield boundary while substantially increasing geometry complexity.
-    s_vessel_inner = openmc.ZCylinder(r=params['In Vessel Shield Outer Radius'])
+    s_vessel_inner = openmc.ZCylinder(r=params['In Vessael Shield Outer Radius'])
     s_vessel_outer = openmc.ZCylinder(r=params['Out Of Vessel Shield Inner Radius'])
     cells.append(openmc.Cell(
         name='vessel_stack',
