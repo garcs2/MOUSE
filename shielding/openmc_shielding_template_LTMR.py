@@ -127,7 +127,7 @@ def create_shielding_annuli(params, shielding_mats):
     # Collapsed into a single stainless steel annulus for shielding transport.
     # Detailed vessel-by-vessel geometry adds negligible accuracy to dose results
     # at the outer shield boundary while substantially increasing geometry complexity.
-    s_vessel_inner = openmc.ZCylinder(r=params['In Vessael Shield Outer Radius'])
+    s_vessel_inner = openmc.ZCylinder(r=params['In Vessel Shield Outer Radius'])
     s_vessel_outer = openmc.ZCylinder(r=params['Out Of Vessel Shield Inner Radius'])
     cells.append(openmc.Cell(
         name='vessel_stack',
@@ -488,6 +488,42 @@ def build_openmc_shielding_model_LTMR(params):
     all_cells = [core_fill_cell] + shielding_cells + [outer_void_cell]
 
     geometry = openmc.Geometry(all_cells)
+        # TEMPORARY DIAGNOSTIC — probe every drum's absorber location in both
+    # geometries to find where they diverge. Remove once resolved.
+    # TEMPORARY DIAGNOSTIC — sweep 360 degrees around ONE drum to empirically
+    # locate the absorber wedge (if any) in both geometries. Remove once resolved.
+    drum_idx = 0
+    x0, y0, face_angle_deg = control_drum_positions[drum_idx]
+    probe_radius = params['Drum Radius'] - 0.5
+ 
+    print("\n" + "=" * 70)
+    print(f"Angular sweep around drum {drum_idx} at ({x0:.2f}, {y0:.2f}), "
+          f"face_angle_deg={face_angle_deg:.1f}, probe_radius={probe_radius:.2f}")
+    print(f"{'angle_deg':>10} | {'CORE deepest cell':>25} | {'SHIELD deepest cell':>25}")
+    print("=" * 70)
+ 
+    for angle_deg in range(0, 360, 5):
+        angle_rad = np.deg2rad(angle_deg)
+        px = x0 + probe_radius * np.cos(angle_rad)
+        py = y0 + probe_radius * np.sin(angle_rad)
+ 
+        try:
+            path_a = core_geometry.root_universe.find((px, py, 0.0))
+            name_a = getattr(path_a[-1], 'name', '?')
+        except Exception as e:
+            name_a = f"ERR:{e}"
+ 
+        try:
+            path_b = geometry.root_universe.find((px, py, 0.0))
+            name_b = getattr(path_b[-1], 'name', '?')
+        except Exception as e:
+            name_b = f"ERR:{e}"
+ 
+        marker = "  <-- MISMATCH" if name_a != name_b else ""
+        print(f"{angle_deg:>10} | {name_a:>25} | {name_b:>25}{marker}")
+ 
+    print("=" * 70 + "\n")
+    # END TEMPORARY DIAGNOSTIC
     geometry.export_to_xml()
 
     if params['plotting'] == "Y":
@@ -504,6 +540,17 @@ def build_openmc_shielding_model_LTMR(params):
             fig_size=8,
             output_file_name="shielding_geometry.png"
         )
+
+    if params['plotting'] == "Y":
+        create_universe_plot(
+        materials_database, geometry,
+        plot_width=2.01 * params['Core Radius'],
+        num_pixels=2000,
+        font_size=32,
+        title="LTMR Shielding Geometry (core zoom)",
+        fig_size=8,
+        output_file_name="shielding_geometry_core_zoom.png"
+    )
 
 
     # **************************************************************************************************************************

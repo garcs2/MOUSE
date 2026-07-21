@@ -62,12 +62,127 @@ params = watts.Parameters()
 def update_params(updates):
     params.update(updates)
 
+
+PERSISTENT_DIR = '/home/garcsamu/OpenMC/MOUSE/shielding/testing_xml_output'
+ 
+ 
+# def run_func():
+#     plot = openmc.Plot()
+#     plot.basis = 'xy'
+#     plot.origin = (0, 0, 0)
+#     plot.width = (400, 400)      # cm — adjust to comfortably frame your geometry
+#     plot.pixels = (2000, 2000)
+#     plot.color_by = 'material'
+#     openmc.Plots([plot]).export_to_xml()
+ 
+#     openmc.plot_geometry()
+ 
+#     os.makedirs(PERSISTENT_DIR, exist_ok=True)
+#     for pattern in ('*.xml', '*.ppm', '*.png'):
+#         for f in glob.glob(pattern):
+#             shutil.copy2(f, os.path.join(PERSISTENT_DIR, f))
+ 
+#     print(f"  [Testing] XML + plot files copied to: {PERSISTENT_DIR}")
+
+def build_layer1_model(params):
+    resolve_drum_radius(params)
+    materials_database = collect_materials_data(params)
+ 
+    fuel = materials_database[params['Fuel']]
+    coolant = materials_database[params['Coolant']]
+    reflector = materials_database[params['Radial Reflector']]
+    control_drum_absorber = materials_database[params['Control Drum Absorber']]
+    control_drum_reflector = materials_database[params['Control Drum Reflector']]
+ 
+    fuel_materials = [None if m is None else materials_database[m] for m in params['Fuel Pin Materials']]
+    fuel_materials.append(coolant)
+    moderator_materials = [None if m is None else materials_database[m] for m in params['Moderator Pin Materials']]
+    moderator_materials.append(coolant)
+ 
+    all_materials = fuel_materials + moderator_materials + [coolant, reflector, control_drum_absorber, control_drum_reflector]
+    all_materials_cleaned = list(set(m for m in all_materials if m is not None))
+    materials = openmc.Materials(all_materials_cleaned)
+    openmc.Materials.cross_sections = params['cross_sections_xml_location']
+    materials.export_to_xml()
+ 
+    fuel_pin_regions = create_pin_regions(params, 'fuel')
+    fuel_cells = create_cells(fuel_pin_regions, fuel_materials)
+    fuel_pin_universe = openmc.Universe(cells=fuel_cells.values())
+ 
+    moderator_pin_regions = create_pin_regions(params, 'moderator')
+    moderator_cells = create_cells(moderator_pin_regions, moderator_materials)
+    moderator_pin_universe = openmc.Universe(cells=moderator_cells.values())
+ 
+    coolant_cell = openmc.Cell(fill=coolant)
+    coolant_universe = openmc.Universe(cells=(coolant_cell,))
+ 
+    control_drum_positions = update_ltmr_reflector_geometry_from_drums(params)
+    drums = create_drums_universe(params, control_drum_absorber, control_drum_reflector, control_drum_positions)
+ 
+    pin_pitch = 2 * params['Fuel Pin Radii'][-1] + params['Pin Gap Distance']
+    assembly_universe = create_assembly_universe(params, fuel_pin_universe, moderator_pin_universe, pin_pitch, reflector, coolant_universe)
+ 
+    core_geometry, core_universe = create_core_geometry(
+        params, drums, drums_positions=control_drum_positions, assembly_universe=assembly_universe
+    )
+ 
+    # Same boundary-type patch the shielding template applies
+    for surface in core_geometry.get_all_surfaces().values():
+        if hasattr(surface, 'boundary_type') and surface.boundary_type == 'vacuum':
+            surface.boundary_type = 'transmission'
+ 
+    # Same wrapping the shielding template applies — but with a plain large
+    # vacuum outer boundary instead of real shielding annuli
+    core_inner_surface = openmc.ZCylinder(r=params['Core Radius'])
+    core_fill_cell = openmc.Cell(name='core_fill', fill=core_universe, region=-core_inner_surface)
+ 
+    outer_surface = openmc.ZCylinder(r=params['Core Radius'] * 3.0, boundary_type='vacuum')
+    outer_ring_cell = openmc.Cell(name='outer_ring_void', region=+core_inner_surface & -outer_surface)
+    outer_void_cell = openmc.Cell(name='outer_void', fill=None, region=+outer_surface)
+ 
+    geometry = openmc.Geometry([core_fill_cell, outer_ring_cell, outer_void_cell])
+    geometry.export_to_xml()
+ 
+    settings = openmc.Settings()
+    settings.batches = 10
+    settings.inactive = 5
+    settings.particles = 100
+    settings.source = openmc.Source(space=openmc.stats.Point((0, 0, 0)))
+    settings.export_to_xml()
+ 
+    openmc.Tallies([]).export_to_xml()
+ 
+    params['_layer1_materials_database'] = materials_database
+    params['_layer1_geometry'] = geometry
+ 
+ 
+def run_func():
+    build_layer1_model(params)
+    create_universe_plot(
+        params['_layer1_materials_database'], params['_layer1_geometry'],
+        plot_width=2.01 * params['Core Radius'],
+        num_pixels=2000,
+        font_size=32,
+        title="Layer 1: Core wrapped like shielding template (no shield materials)",
+        fig_size=8,
+        output_file_name="layer1_wrapped_core.png"
+    )
+    os.makedirs(PERSISTENT_DIR, exist_ok=True)
+    for f in glob.glob('*.png') + glob.glob('*.xml'):
+        shutil.copy2(f, os.path.join(PERSISTENT_DIR, f))
+    print(f"  [Layer 1] Copied outputs to: {PERSISTENT_DIR}")
+
+
+
+
+
+
 # **************************************************************************************************************************
 #                                                Sec. 0: Settings
 # **************************************************************************************************************************
 
 update_params({
-    'plotting': "N",  # Shielding runs are expensive; disable geometry plots by default
+    'plotting': "Y",  # Shielding runs are expensive; disable geometry plots by default
     'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml',
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',
     'shielding_output_dir': '/home/garcsamu/OpenMC/MOUSE',
@@ -167,41 +282,6 @@ params['Isothermal Temperature Coefficients'] = False
 params['Shielding Run']                   = False  # tells template: normal k-eigen mode
 
 heat_flux_monitor = monitor_heat_flux(params)
-run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
-fuel_calculations(params)
-
-print("STEP 1b: Generating persistent BOL fission source for shielding reuse")
-os.makedirs(params['shielding_output_dir'], exist_ok=True)  # ensure it exists before the plugin runs
-openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR, show_stdout=True, show_stderr=True)
-openmc_plugin(params, function=lambda: run_bol_source_run(params))
-print(f"BOL fission source saved for reuse at: {params['Fission Source File']}")
-# **************************************************************************************************************************
-#                                                Sec. 6: Primary Loop + BoP (for mass/cost context)
-# **************************************************************************************************************************
-
-update_params({
-    'Secondary HX Mass': 0,
-    'Primary Pump': 'Yes',
-    'Secondary Pump': 'No',
-    'Pump Isentropic Efficiency': 0.8,
-    'Primary Loop Inlet Temperature':  430 + 273.15,  # K
-    'Primary Loop Outlet Temperature': 520 + 273.15,  # K
-    'Secondary Loop Inlet Temperature':  395 + 273.15,  # K
-    'Secondary Loop Outlet Temperature': 495 + 273.15,  # K
-})
-
-params['Primary HX Mass'] = calculate_heat_exchanger_mass(params)
-params.update({
-    'BoP Count': 2,
-    'BoP per loop load fraction': 0.5,
-})
-params['BoP Power kWe'] = 1000 * params['Power MWe'] * params['BoP per loop load fraction']
-mass_flow_rate(params)
-calculate_primary_pump_mechanical_power(params)
-
-# **************************************************************************************************************************
-#                                                Sec. 8: Vessels (fixed geometry)
-# **************************************************************************************************************************
 
 update_params({
     'In Vessel Shield Thickness': 10.16,          # cm
@@ -250,12 +330,6 @@ update_params({
 params['Onsite Coolant Inventory']      = 1 * 855 * 8.2402  # kg
 params['Replacement Coolant Inventory'] = 0  # NaK assumed not to need replacement
 
-total_refueling_period    = params['Fuel Lifetime'] + params['Refueling Period'] + params['Startup Duration after Refueling']  # days
-total_refueling_period_yr = total_refueling_period / 365
-for key in ['Vessel', 'Core Barrel', 'Reflector', 'Drum']:
-    params[f'A75: {key} Replacement Period (cycles)'] = np.floor(10 / total_refueling_period_yr)
-params['Mainenance to Direct Cost Ratio']          = 0.015
-params['A78: CAPEX to Decommissioning Cost Ratio'] = 0.15
 
 # **************************************************************************************************************************
 #                                                Sec. 8c: Buildings & Economic Parameters (fixed for shielding study)
@@ -372,78 +446,48 @@ tracked_params_list = [
     'Meets Public Limit', 'Meets Worker Limit',
     'Fuel', 'Enrichment', 'Power MWt',
 ]
+update_params({
+    'Out Of Vessel Shield Material': 'B4C_natural',
+    'Mobile': True,
+    'Out Of Vessel Shield Thickness': 50,
+    'Shutdown Margin Calc': False
+    })
 
-for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx', '/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database_TEMA_updated.xlsx']:
-    for params['Mobile'] in [True, False]:
-        for params['Out Of Vessel Shield Material'] in ['WEP', 'B4C_natural']:
-            for params['Out Of Vessel Shield Thickness'] in [50.0]:  # cm
-                params['Cost_Data'] = cost_database_filename
-                mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
-                print(f"\n--- {mobile_tag} | Shield: {params['Out Of Vessel Shield Material']} "
-                    f"| Thickness: {params['Out Of Vessel Shield Thickness']} cm ---")
+# ---- Geometry: derive outer radii for this iteration ----
+params['Out Of Vessel Shield Thickness'] = params['Out Of Vessel Shield Thickness']
+params['Out Of Vessel Shield Inner Radius'] = params['In Vessel Shield Outer Radius'] \
+    + sum([
+        params['Vessel Thickness'],
+        params['Gap Between Vessel And Guard Vessel'],
+        params['Guard Vessel Thickness'],
+        params['Gap Between Guard Vessel And Cooling Vessel'],
+        params['Cooling Vessel Thickness'],
+        params['Gap Between Cooling Vessel And Intake Vessel'],
+        params['Intake Vessel Thickness'],
+    ])
+params['Out Of Vessel Shield Outer Radius'] = (
+    params['Out Of Vessel Shield Inner Radius']
+    + params['Out Of Vessel Shield Thickness']
+)
 
-                # ---- Geometry: derive outer radii for this iteration ----
-                params['Out Of Vessel Shield Thickness'] = params['Out Of Vessel Shield Thickness']
-                params['Out Of Vessel Shield Inner Radius'] = params['In Vessel Shield Outer Radius'] \
-                    + sum([
-                        params['Vessel Thickness'],
-                        params['Gap Between Vessel And Guard Vessel'],
-                        params['Guard Vessel Thickness'],
-                        params['Gap Between Guard Vessel And Cooling Vessel'],
-                        params['Cooling Vessel Thickness'],
-                        params['Gap Between Cooling Vessel And Intake Vessel'],
-                        params['Intake Vessel Thickness'],
-                    ])
-                params['Out Of Vessel Shield Outer Radius'] = (
-                    params['Out Of Vessel Shield Inner Radius']
-                    + params['Out Of Vessel Shield Thickness']
-                )
-                
-                if params['Mobile']:
-                    params['Isocontainer Steel Thickness'] = ISO_CONTAINER_STEEL_THICKNESS_CM
-                    params['Isocontainer Steel Material']  = ISO_CONTAINER_MATERIAL
-                    params['Isocontainer Inner Radius']    = params['Out Of Vessel Shield Outer Radius']
-                    params['Isocontainer Outer Radius']    = (
-                        params['Isocontainer Inner Radius'] + params['Isocontainer Steel Thickness']
-                    )
-                    outer_boundary_r = params['Isocontainer Outer Radius']
-                else:
-                    params['Isocontainer Steel Thickness'] = 0.0
-                    params['Isocontainer Steel Material']  = None
-                    params['Isocontainer Inner Radius']    = None
-                    params['Isocontainer Outer Radius']    = None
-                    outer_boundary_r = params['Out Of Vessel Shield Outer Radius']
-                calculate_shielding_masses(params)
-                # Fill in the dynamic dose evaluation radii
-                params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
-                params['Dose Evaluation Radii cm']['1m_standoff'] = outer_boundary_r + 100.0
-
-                # ---- Flag shielding run for the template builder ----
-                params['Shielding Run'] = True
-
-                # ---- Run Step-2 fixed-source shielding transport ----
-                run_openmc_shielding(build_openmc_shielding_model_LTMR, params)
-
-                # ---- Report compliance ----
-                dose_surface = params.get('Dose Rate iso_surface mSv_hr', float('nan'))
-                dose_1m      = params.get('Dose Rate 1m_standoff mSv_hr', float('nan'))
-                dose_30m     = params.get('Dose Rate 30m_exclusion mSv_hr', float('nan'))
-
-                params['Meets Public Limit']  = dose_surface <= params['Dose Rate Limit mSv_hr']
-                params['Meets Worker Limit']  = dose_surface <= params['Dose Rate Limit Workers mSv_hr']
-
-                print(f"  Dose @ ISO surface : {dose_surface:.4e} mSv/hr  "
-                    f"({'PASS' if params['Meets Public Limit'] else 'FAIL'} public limit)")
-                print(f"  Dose @ 1m standoff : {dose_1m:.4e} mSv/hr")
-                print(f"  Dose @ 30m exclusion: {dose_30m:.4e} mSv/hr")
-
-                # ---- Save results ----
-                summarize_shielding_results(
-                    params,
-                    tracked_params_list,
-                    os.path.join(params['shielding_output_dir'], 'output_shielding_study.csv')
-                )
-                parametric_studies(cost_database_filename, cost_tracked_params_list)
-
-elapsed_time = (time.time() - time_start) / 60
-print(f'\nTotal execution time: {np.round(elapsed_time, 2)} minutes')
+if params['Mobile']:
+    params['Isocontainer Steel Thickness'] = ISO_CONTAINER_STEEL_THICKNESS_CM
+    params['Isocontainer Steel Material']  = ISO_CONTAINER_MATERIAL
+    params['Isocontainer Inner Radius']    = params['Out Of Vessel Shield Outer Radius']
+    params['Isocontainer Outer Radius']    = (
+        params['Isocontainer Inner Radius'] + params['Isocontainer Steel Thickness']
+    )
+    outer_boundary_r = params['Isocontainer Outer Radius']
+else:
+    params['Isocontainer Steel Thickness'] = 0.0
+    params['Isocontainer Steel Material']  = None
+    params['Isocontainer Inner Radius']    = None
+    params['Isocontainer Outer Radius']    = None
+    outer_boundary_r = params['Out Of Vessel Shield Outer Radius']
+calculate_shielding_masses(params)
+# Fill in the dynamic dose evaluation radii
+params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
+params['Dose Evaluation Radii cm']['1m_standoff'] = outer_boundary_r + 100.0
+# openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR)
+openmc_plugin = watts.PluginOpenMC(build_layer1_model, show_stdout=True, show_stderr=True)
+openmc_result = openmc_plugin(params, function=run_func)
