@@ -39,7 +39,7 @@ from reactor_engineering_evaluation.tools import *
 from cost.cost_estimation import parametric_studies
 
 # New shielding-specific imports
-from shielding.openmc_shielding_template_LTMR import build_openmc_shielding_model_LTMR
+from shielding.openmc_shielding_template_LTMR import build_openmc_shielding_model_LTMR, create_shielding_materials, create_shielding_annuli
 from shielding.shielding_analysis import run_openmc_shielding, run_bol_source_run
 from shielding.shielding_calcs import summarize_shielding_results
 
@@ -66,25 +66,25 @@ def update_params(updates):
 PERSISTENT_DIR = '/home/garcsamu/OpenMC/MOUSE/shielding/testing_xml_output'
  
  
-# def run_func():
-#     plot = openmc.Plot()
-#     plot.basis = 'xy'
-#     plot.origin = (0, 0, 0)
-#     plot.width = (400, 400)      # cm — adjust to comfortably frame your geometry
-#     plot.pixels = (2000, 2000)
-#     plot.color_by = 'material'
-#     openmc.Plots([plot]).export_to_xml()
+def run_func():
+    plot = openmc.Plot()
+    plot.basis = 'xy'
+    plot.origin = (0, 0, 0)
+    plot.width = (400, 400)      # cm — adjust to comfortably frame your geometry
+    plot.pixels = (2000, 2000)
+    plot.color_by = 'material'
+    openmc.Plots([plot]).export_to_xml()
  
-#     openmc.plot_geometry()
+    openmc.plot_geometry()
  
-#     os.makedirs(PERSISTENT_DIR, exist_ok=True)
-#     for pattern in ('*.xml', '*.ppm', '*.png'):
-#         for f in glob.glob(pattern):
-#             shutil.copy2(f, os.path.join(PERSISTENT_DIR, f))
+    os.makedirs(PERSISTENT_DIR, exist_ok=True)
+    for pattern in ('*.xml', '*.ppm', '*.png'):
+        for f in glob.glob(pattern):
+            shutil.copy2(f, os.path.join(PERSISTENT_DIR, f))
  
-#     print(f"  [Testing] XML + plot files copied to: {PERSISTENT_DIR}")
+    print(f"  [Testing] XML + plot files copied to: {PERSISTENT_DIR}")
 
-def build_layer1_model(params):
+def build_layer2_model(params):
     resolve_drum_radius(params)
     materials_database = collect_materials_data(params)
  
@@ -99,7 +99,12 @@ def build_layer1_model(params):
     moderator_materials = [None if m is None else materials_database[m] for m in params['Moderator Pin Materials']]
     moderator_materials.append(coolant)
  
-    all_materials = fuel_materials + moderator_materials + [coolant, reflector, control_drum_absorber, control_drum_reflector]
+    # --- LAYER 2 CHANGE START: include shielding materials in materials.xml too ---
+    shielding_mats = create_shielding_materials(params, materials_database)
+    all_materials = (fuel_materials + moderator_materials
+                      + [coolant, reflector, control_drum_absorber, control_drum_reflector]
+                      + list(shielding_mats.values()))
+    # --- LAYER 2 CHANGE END ---
     all_materials_cleaned = list(set(m for m in all_materials if m is not None))
     materials = openmc.Materials(all_materials_cleaned)
     openmc.Materials.cross_sections = params['cross_sections_xml_location']
@@ -126,21 +131,18 @@ def build_layer1_model(params):
         params, drums, drums_positions=control_drum_positions, assembly_universe=assembly_universe
     )
  
-    # Same boundary-type patch the shielding template applies
     for surface in core_geometry.get_all_surfaces().values():
         if hasattr(surface, 'boundary_type') and surface.boundary_type == 'vacuum':
             surface.boundary_type = 'transmission'
  
-    # Same wrapping the shielding template applies — but with a plain large
-    # vacuum outer boundary instead of real shielding annuli
     core_inner_surface = openmc.ZCylinder(r=params['Core Radius'])
     core_fill_cell = openmc.Cell(name='core_fill', fill=core_universe, region=-core_inner_surface)
  
-    outer_surface = openmc.ZCylinder(r=params['Core Radius'] * 3.0, boundary_type='vacuum')
-    outer_ring_cell = openmc.Cell(name='outer_ring_void', region=+core_inner_surface & -outer_surface)
+    # --- LAYER 2 CHANGE START: real shielding annuli instead of placeholder void ---
+    shielding_cells, outer_surface = create_shielding_annuli(params, shielding_mats)
     outer_void_cell = openmc.Cell(name='outer_void', fill=None, region=+outer_surface)
- 
-    geometry = openmc.Geometry([core_fill_cell, outer_ring_cell, outer_void_cell])
+    geometry = openmc.Geometry([core_fill_cell] + shielding_cells + [outer_void_cell])
+    # --- LAYER 2 CHANGE END ---
     geometry.export_to_xml()
  
     settings = openmc.Settings()
@@ -152,26 +154,35 @@ def build_layer1_model(params):
  
     openmc.Tallies([]).export_to_xml()
  
-    params['_layer1_materials_database'] = materials_database
-    params['_layer1_geometry'] = geometry
+    params['_layer2_materials_database'] = materials_database
+    params['_layer2_geometry'] = geometry
  
  
-def run_func():
-    build_layer1_model(params)
-    create_universe_plot(
-        params['_layer1_materials_database'], params['_layer1_geometry'],
-        plot_width=2.01 * params['Core Radius'],
-        num_pixels=2000,
-        font_size=32,
-        title="Layer 1: Core wrapped like shielding template (no shield materials)",
-        fig_size=8,
-        output_file_name="layer1_wrapped_core.png"
-    )
-    os.makedirs(PERSISTENT_DIR, exist_ok=True)
-    for f in glob.glob('*.png') + glob.glob('*.xml'):
-        shutil.copy2(f, os.path.join(PERSISTENT_DIR, f))
-    print(f"  [Layer 1] Copied outputs to: {PERSISTENT_DIR}")
-
+# def run_func():
+#     build_layer2_model(params)
+#     create_universe_plot(
+#         params['_layer2_materials_database'], params['_layer2_geometry'],
+#         plot_width=2.01 * params['Core Radius'],   # SAME zoom as Layer 1 — core only, deliberately
+#         num_pixels=2000,
+#         font_size=32,
+#         title="Layer 2: Core + real shielding annuli (core zoom)",
+#         fig_size=8,
+#         output_file_name="layer2_core_zoom.png"
+#     )
+#     # Also do a full-stack view for reference
+#     create_universe_plot(
+#         params['_layer2_materials_database'], params['_layer2_geometry'],
+#         plot_width=2.01 * params['Out Of Vessel Shield Outer Radius'],
+#         num_pixels=2000,
+#         font_size=32,
+#         title="Layer 2: Core + real shielding annuli (full stack)",
+#         fig_size=8,
+#         output_file_name="layer2_full_stack.png"
+#     )
+#     os.makedirs(PERSISTENT_DIR, exist_ok=True)
+#     for f in glob.glob('*.png') + glob.glob('*.xml'):
+#         shutil.copy2(f, os.path.join(PERSISTENT_DIR, f))
+#     print(f"  [Layer 2] Copied outputs to: {PERSISTENT_DIR}")
 
 
 
@@ -227,18 +238,15 @@ update_params({
     "Pin Gap Distance": 0.1,  # cm
     'Pins Arrangement': LTMR_pins_arrangement,
     'Number of Rings per Assembly': 12,
-    'Radial Reflector Thickness': 14,  # cm
 })
 
 params['Lattice Apothem'] = calculate_hex_apothem(params)
 params['Lattice Radius']            = params['Lattice Apothem']
 params['Active Height']             = 78.4   # cm1
 params['Assembly FTF']              = 2 * params['Lattice Apothem']
-params['Axial Reflector Thickness'] = params['Radial Reflector Thickness']
 params['Fuel Pin Count']            = calculate_pins_in_assembly(params, "FUEL")
 params['Moderator Pin Count']       = calculate_pins_in_assembly(params, "MODERATOR")
 params['Moderator Mass']            = calculate_moderator_mass(params)
-params['Core Radius']               = calculate_core_radius_from_hex(params)
 
 # **************************************************************************************************************************
 #                                                Sec. 3: Control Drums (fixed)
@@ -246,14 +254,15 @@ params['Core Radius']               = calculate_core_radius_from_hex(params)
 
 update_params({
     'Number of Drums': 12,
-    # 'Drum Radius': 9.016,  # cm
+    'Drum Radius': 6.016,  # cm
     'Drum Absorber Thickness': 1,  # cm
     'Drum Absorber Arc Degrees': 120,
-    'Drum Height': params['Active Height'] + 2 * params['Axial Reflector Thickness'],
 })
 
+update_ltmr_reflector_geometry_from_drums(params)
 calculate_drums_volumes_and_masses(params)
 calculate_reflector_mass_LTMR(params)
+
 
 # **************************************************************************************************************************
 #                                                Sec. 4: Overall System (fixed)
@@ -276,7 +285,12 @@ params['Heat Flux']   = calculate_heat_flux(params)
 print("\n\n" + "="*70)
 print("STEP 1: Criticality run to generate converged fission source")
 print("="*70)
+print("Before plugin call:", id(params))
 
+openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR, show_stdout=True, show_stderr=True)
+openmc_result = openmc_plugin(params, function=run_func)
+
+print("After plugin call: ", id(params))
 params['SD Margin Calc']                  = False
 params['Isothermal Temperature Coefficients'] = False
 params['Shielding Run']                   = False  # tells template: normal k-eigen mode
@@ -489,5 +503,5 @@ calculate_shielding_masses(params)
 params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
 params['Dose Evaluation Radii cm']['1m_standoff'] = outer_boundary_r + 100.0
 # openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR)
-openmc_plugin = watts.PluginOpenMC(build_layer1_model, show_stdout=True, show_stderr=True)
+openmc_plugin = watts.PluginOpenMC(build_openmc_shielding_model_LTMR, show_stdout=True, show_stderr=True)
 openmc_result = openmc_plugin(params, function=run_func)

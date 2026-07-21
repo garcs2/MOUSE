@@ -421,7 +421,13 @@ def build_openmc_shielding_model_LTMR(params):
         control_drum_reflector,
         control_drum_positions
     )
-
+    print(f"Drum Radius: {params['Drum Radius']}")
+    print(f"Drum Tube Radius: {params.get('Drum Tube Radius', 'not yet set')}")
+    print(f"Core Radius: {params['Core Radius']}")
+    print(f"Drum center distance from origin (drum 0): "
+        f"{(control_drum_positions[0][0]**2 + control_drum_positions[0][1]**2)**0.5:.4f}")
+    print(f"Distance from drum 0 center to Core Radius edge: "
+        f"{params['Core Radius'] - (control_drum_positions[0][0]**2 + control_drum_positions[0][1]**2)**0.5:.4f}")
 
     # **************************************************************************************************************************
     #                                                Sec. 1.4 : GEOMETRY — Fuel Assembly
@@ -488,42 +494,6 @@ def build_openmc_shielding_model_LTMR(params):
     all_cells = [core_fill_cell] + shielding_cells + [outer_void_cell]
 
     geometry = openmc.Geometry(all_cells)
-        # TEMPORARY DIAGNOSTIC — probe every drum's absorber location in both
-    # geometries to find where they diverge. Remove once resolved.
-    # TEMPORARY DIAGNOSTIC — sweep 360 degrees around ONE drum to empirically
-    # locate the absorber wedge (if any) in both geometries. Remove once resolved.
-    drum_idx = 0
-    x0, y0, face_angle_deg = control_drum_positions[drum_idx]
-    probe_radius = params['Drum Radius'] - 0.5
- 
-    print("\n" + "=" * 70)
-    print(f"Angular sweep around drum {drum_idx} at ({x0:.2f}, {y0:.2f}), "
-          f"face_angle_deg={face_angle_deg:.1f}, probe_radius={probe_radius:.2f}")
-    print(f"{'angle_deg':>10} | {'CORE deepest cell':>25} | {'SHIELD deepest cell':>25}")
-    print("=" * 70)
- 
-    for angle_deg in range(0, 360, 5):
-        angle_rad = np.deg2rad(angle_deg)
-        px = x0 + probe_radius * np.cos(angle_rad)
-        py = y0 + probe_radius * np.sin(angle_rad)
- 
-        try:
-            path_a = core_geometry.root_universe.find((px, py, 0.0))
-            name_a = getattr(path_a[-1], 'name', '?')
-        except Exception as e:
-            name_a = f"ERR:{e}"
- 
-        try:
-            path_b = geometry.root_universe.find((px, py, 0.0))
-            name_b = getattr(path_b[-1], 'name', '?')
-        except Exception as e:
-            name_b = f"ERR:{e}"
- 
-        marker = "  <-- MISMATCH" if name_a != name_b else ""
-        print(f"{angle_deg:>10} | {name_a:>25} | {name_b:>25}{marker}")
- 
-    print("=" * 70 + "\n")
-    # END TEMPORARY DIAGNOSTIC
     geometry.export_to_xml()
 
     if params['plotting'] == "Y":
