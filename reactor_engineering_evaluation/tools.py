@@ -35,12 +35,20 @@ def cylinder_annulus_mass(outer_radius , inner_radius,height, material ):
     mass = volume* materials_densities(material)/1000  # kg
     return mass # in kg
 
-def concentric_rectangular_prism_mass(thickness, material):
-    inner_volume = 239 * 235 * 589 # standard dimensions of ISO-cointainer in height x width x length in cm
-    outer_volume = (239 + 2 * thickness) * (235 + 2 * thickness) * (589 + 2 * thickness)
+def concentric_rectangular_prism_mass(thickness, material, params):
+    # Standard ISO container interior dimensions — now read from params
+    # (Isocontainer Interior Height/Width/Length) so the mass calculation
+    # and the transport geometry (create_shielding_annuli) always agree,
+    # rather than each having its own hardcoded copy of these numbers.
+    height = params['Isocontainer Interior Height']
+    width  = params['Isocontainer Interior Width']
+    length = params['Isocontainer Interior Length']
+ 
+    inner_volume = height * width * length
+    outer_volume = (height + 2 * thickness) * (width + 2 * thickness) * (length + 2 * thickness)
     volume = outer_volume - inner_volume
-    mass = volume * materials_densities(material)/1000
-    return mass # in kg
+    mass = volume * materials_densities(material) / 1000
+    return mass  # in kg
 
 
 def calculate_shielding_masses(params):
@@ -53,13 +61,11 @@ def calculate_shielding_masses(params):
     params['Vessels Total Height'], params['Out Of Vessel Shield Material']) 
     params['Out Of Vessel Shield Mass'] = params['Out Of Vessel Shield Effective Density Factor'] * outer_shield_mass
     
-    if params.get('Mobile', False):
-        params['Isocontainer Mass'] = concentric_rectangular_prism_mass(
-            params['Isocontainer Steel Thickness'],
-            params['Isocontainer Steel Material']
-        )
-    else:
-        params['Isocontainer Mass'] = 0
+    params['Isocontainer Mass'] = concentric_rectangular_prism_mass(
+        params['Isocontainer Steel Thickness'],
+        params['Isocontainer Steel Material'],
+        params,
+    ) if params.get('Mobile', False) else 0
 
 def mass_flow_rate(params):
     loop_factor = 1

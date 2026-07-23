@@ -411,9 +411,32 @@ def _build_base_materials(params):
     monolith_graphite.add_nuclide('C13', 0.0107, 'ao')
     mats['monolith_graphite'] = monolith_graphite
 
+    # ------------------------------------------------------------------
+    # Sec. 1.13 : Ambient Materials
+    # ------------------------------------------------------------------
+    air = openmc.Material(name='air')
+    air.set_density('g/cm3', 0.001205)
+    air.add_element('C',  0.000124, percent_type='wo')
+    air.add_element('N',  0.784431, percent_type='wo')
+    air.add_element('O',  0.231781, percent_type='wo')
+    air.add_element('Ar', 0.012827, percent_type='wo')
+    mats['air'] = air
+
+    soil = openmc.Material(name='soil')
+    soil.set_density('g/cm3', 1.52)
+    soil.add_element('O',  0.513713, percent_type='wo')
+    soil.add_element('Na', 0.006140, percent_type='wo')
+    soil.add_element('Mg', 0.013303, percent_type='wo')
+    soil.add_element('Al', 0.068563, percent_type='wo')
+    soil.add_element('Si', 0.271183, percent_type='wo')
+    soil.add_element('K',  0.014327, percent_type='wo')
+    soil.add_element('Ca', 0.051167, percent_type='wo')
+    soil.add_element('Ti', 0.004605, percent_type='wo')
+    soil.add_element('Mn', 0.000716, percent_type='wo')
+    soil.add_element('Fe', 0.056283, percent_type='wo')
+    mats['soil'] = soil
+
     return mats
-
-
 # ==================================================================================
 #  ENDF/B-VIII.0 builder
 # ==================================================================================
@@ -510,6 +533,9 @@ def _collect_materials_endf80(params):
     mats['monolith_graphite'].add_s_alpha_beta('c_Graphite')
     materials.extend([mats['heatpipe'], mats['monolith_graphite']])
 
+    # --- Ambient Materials ---
+    materials.append(mats['air'])
+    materials.append(mats['soil'])
     return mats
 
 
@@ -624,5 +650,9 @@ def _collect_materials_endf81(params):
     # --- Heatpipe + monolith graphite ---
     mats['monolith_graphite'].add_s_alpha_beta('c_Graphite')
     materials.extend([mats['heatpipe'], mats['monolith_graphite']])
+
+    # --- Ambient Materials ---
+    materials.append(mats['air'])
+    materials.append(mats['soil'])
 
     return mats

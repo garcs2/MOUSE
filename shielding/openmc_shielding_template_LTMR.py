@@ -93,27 +93,45 @@ def create_shielding_materials(params, materials_database):
     if params.get('Mobile', False):
         shielding_mats['isocontainer_steel'] = materials_database[params['Isocontainer Steel Material']]
 
+    shielding_mats['soil'] = materials_database['soil']
+    shielding_mats['air'] = materials_database['air']
     return shielding_mats
 
 
 def create_shielding_annuli(params, shielding_mats):
     """
-    Build the concentric annular shielding cells that surround the core universe.
-    Cells are axially unbounded (infinite cylinders), consistent with the original
-    openmc_template_LTMR.py which uses only a ZCylinder as its outer boundary.
-
-    Radial order (outward):
-      in-vessel B4C  →  vessel stack (SS)  →  out-of-vessel shield  →  [ISO steel]
-
-    The outermost surface carries boundary_type='vacuum'.
-
+    Build the shielding cells surrounding the core universe: the concentric
+    circular annuli (in-vessel shield, vessel stack, out-of-vessel shield —
+    unchanged, still azimuthally symmetric), plus a non-symmetric outer
+    environment representing the reactor lying on its side within (or, for
+    stationary deployments, simply sitting within) a rectangular ISO
+    container footprint, surrounded by air, with a ground plane below which
+    soil replaces air.
+ 
+    Coordinate convention: the reactor's own cylindrical axis remains the
+    (unbounded) z-axis, exactly as before. Within the transverse (x, y)
+    plane, +y is "up" (sky direction) and -y is "down" (ground direction) —
+    this is the SAME plane used for the (r, theta) dose mesh.
+ 
+    Mobile case, radial/rectangular order (outward):
+      in-vessel B4C -> vessel stack (SS) -> out-of-vessel shield
+        -> void gap -> ISO container steel (rectangular shell)
+          -> air (sides + top) / soil (below ground line)
+ 
+    Stationary case:
+      in-vessel B4C -> vessel stack (SS) -> out-of-vessel shield
+        -> air (sides + top) / soil (below ground line)
+ 
+    All outer boundary planes carry boundary_type='vacuum'.
+ 
     @ In,  params,         dict,                      Simulation parameters.
     @ In,  shielding_mats, dict[str,openmc.Material],  Output of create_shielding_materials().
-    @ Out, cells,          list[openmc.Cell],          Ordered list of shielding cells (inner → outer).
-    @ Out, outer_surface,  openmc.ZCylinder,           The vacuum boundary surface.
+    @ Out, cells,          list[openmc.Cell],          Ordered list of shielding cells (inner -> outer).
+                                                        No separate outer_surface/outer_void_cell needed —
+                                                        vacuum boundary is on the air/soil bounding planes.
     """
     cells = []
-
+ 
     # ---- In-vessel shield (B4C) ----
     s_iv_inner = openmc.ZCylinder(r=params['In Vessel Shield Inner Radius'])
     s_iv_outer = openmc.ZCylinder(r=params['In Vessel Shield Outer Radius'])
@@ -122,11 +140,8 @@ def create_shielding_annuli(params, shielding_mats):
         fill=shielding_mats['in_vessel_shield'],
         region=+s_iv_inner & -s_iv_outer
     ))
-
+ 
     # ---- Vessel stack (primary + guard + cooling + intake vessels and NaK gaps) ----
-    # Collapsed into a single stainless steel annulus for shielding transport.
-    # Detailed vessel-by-vessel geometry adds negligible accuracy to dose results
-    # at the outer shield boundary while substantially increasing geometry complexity.
     s_vessel_inner = openmc.ZCylinder(r=params['In Vessel Shield Outer Radius'])
     s_vessel_outer = openmc.ZCylinder(r=params['Out Of Vessel Shield Inner Radius'])
     cells.append(openmc.Cell(
@@ -134,7 +149,7 @@ def create_shielding_annuli(params, shielding_mats):
         fill=shielding_mats['vessel_stack'],
         region=+s_vessel_inner & -s_vessel_outer
     ))
-
+ 
     # ---- Out-of-vessel shield (WEP / B4C_natural / polyethylene) ----
     s_oov_inner = openmc.ZCylinder(r=params['Out Of Vessel Shield Inner Radius'])
     s_oov_outer = openmc.ZCylinder(r=params['Out Of Vessel Shield Outer Radius'])
@@ -143,25 +158,96 @@ def create_shielding_annuli(params, shielding_mats):
         fill=shielding_mats['out_of_vessel_shield'],
         region=+s_oov_inner & -s_oov_outer
     ))
-
-    # ---- ISO container steel (mobile case only) ----
+ 
+    shield_outer_radius = params['Out Of Vessel Shield Outer Radius']
+ 
     if params.get('Mobile', False):
-        s_iso_inner = openmc.ZCylinder(r=params['Isocontainer Inner Radius'])
-        s_iso_outer = openmc.ZCylinder(r=params['Isocontainer Outer Radius'],
-                                        boundary_type='vacuum')
+        # ---- Rectangular ISO container (interior + steel shell) ----
+        half_w_int = params['Isocontainer Interior Width']  / 2.0
+        half_h_int = params['Isocontainer Interior Height'] / 2.0
+        t          = params['Isocontainer Steel Thickness']
+ 
+        if shield_outer_radius >= min(half_w_int, half_h_int):
+            raise ValueError(
+                f"Out Of Vessel Shield Outer Radius ({shield_outer_radius:.2f} cm) does not "
+                f"fit inside the ISO container interior (half-width={half_w_int:.2f} cm, "
+                f"half-height={half_h_int:.2f} cm). Reduce shield thickness or reconsider "
+                f"the deployment — a standard ISO container's interior dimensions are fixed."
+            )
+ 
+        half_w_out = half_w_int + t
+        half_h_out = half_h_int + t
+ 
+        x_int_pos = openmc.XPlane(x0=+half_w_int)
+        x_int_neg = openmc.XPlane(x0=-half_w_int)
+        y_int_pos = openmc.YPlane(y0=+half_h_int)
+        y_int_neg = openmc.YPlane(y0=-half_h_int)
+ 
+        x_out_pos = openmc.XPlane(x0=+half_w_out)
+        x_out_neg = openmc.XPlane(x0=-half_w_out)
+        y_out_pos = openmc.YPlane(y0=+half_h_out)
+        y_out_neg = openmc.YPlane(y0=-half_h_out)
+ 
+        inner_rect_region = -x_int_pos & +x_int_neg & -y_int_pos & +y_int_neg
+        outer_rect_region = -x_out_pos & +x_out_neg & -y_out_pos & +y_out_neg
+ 
+        # ---- Void gap: outside the shield cylinder, inside the ISO container interior ----
+        cells.append(openmc.Cell(
+            name='isocontainer_void_gap',
+            fill=None,
+            region=+s_oov_outer & inner_rect_region
+        ))
+ 
+        # ---- ISO container steel shell: inside outer rect, outside inner rect ----
         cells.append(openmc.Cell(
             name='isocontainer_steel',
             fill=shielding_mats['isocontainer_steel'],
-            region=+s_iso_inner & -s_iso_outer
+            region=outer_rect_region & ~inner_rect_region
         ))
-        outer_surface = s_iso_outer
-
+ 
+        outermost_solid_region = outer_rect_region
+        half_w_outer_solid = half_w_out
+        half_h_outer_solid = half_h_out
+ 
     else:
-        # Non-mobile: out-of-vessel shield outer surface is the vacuum boundary
-        s_oov_outer.boundary_type = 'vacuum'
-        outer_surface = s_oov_outer
-
-    return cells, outer_surface
+        # ---- Stationary: no isocontainer — out-of-vessel shield cylinder is the outermost solid ----
+        outermost_solid_region = -s_oov_outer
+        half_w_outer_solid = shield_outer_radius
+        half_h_outer_solid = shield_outer_radius
+ 
+    # ---- Ground / air / soil environment ----
+    air_margin      = params['Air Margin']
+    ground_clear    = params['Shielding Ground Clearance']
+    soil_depth      = params['Soil Depth']
+ 
+    x_max     = half_w_outer_solid + air_margin
+    y_top     = half_h_outer_solid + air_margin
+    y_ground  = -(half_h_outer_solid + ground_clear)     # ground surface, below the outermost solid's bottom edge
+    y_bottom  = y_ground - soil_depth                     # bottom of the soil layer — outer vacuum boundary
+ 
+    x_env_pos      = openmc.XPlane(x0=+x_max,  boundary_type='vacuum')
+    x_env_neg      = openmc.XPlane(x0=-x_max,  boundary_type='vacuum')
+    y_env_top      = openmc.YPlane(y0=y_top,   boundary_type='vacuum')
+    y_ground_plane = openmc.YPlane(y0=y_ground)                          # internal boundary, NOT vacuum — air above, soil below
+    y_env_bottom   = openmc.YPlane(y0=y_bottom, boundary_type='vacuum')
+ 
+    # ---- Air: from ground level up to the top, minus whatever solid occupies the middle ----
+    air_box_region = -x_env_pos & +x_env_neg & -y_env_top & +y_ground_plane
+    cells.append(openmc.Cell(
+        name='ambient_air',
+        fill=shielding_mats['air'],
+        region=air_box_region & ~outermost_solid_region
+    ))
+ 
+    # ---- Soil: below the ground line, down to the outer vacuum boundary ----
+    soil_box_region = -x_env_pos & +x_env_neg & -y_ground_plane & +y_env_bottom
+    cells.append(openmc.Cell(
+        name='soil',
+        fill=shielding_mats['soil'],
+        region=soil_box_region
+    ))
+ 
+    return cells
 
 
 def create_dose_energy_filters():
@@ -185,32 +271,33 @@ def create_dose_energy_filters():
 
 def create_shielding_mesh(params):
     """
-    Build a cylindrical mesh spanning the full shielding geometry for 2-D
-    (r, z) dose rate mapping.
-
-    Radial extent: 0 → outermost shield surface + 10 cm margin.
-    Axial extent:  ± (active height / 2 + axial reflector thickness + 50 cm margin).
-    The geometry is axially unbounded so the mesh simply needs to be wide
-    enough to capture the meaningful dose gradient region.
-
+    Build a cylindrical mesh for 2-D (r, theta) plan-view dose rate mapping,
+    integrated over the full active height + axial reflector thickness.
+ 
+    Radial extent:    0 -> outermost shield surface + 10 cm margin.
+    Axial extent:     a SINGLE bin spanning +/- (active height/2 + axial
+                       reflector thickness) — dose is integrated over the
+                       full core + reflector height, not resolved axially.
+                       (Replaces the previous 60-bin axial-profile mesh —
+                       if you still want that (r, z) view, it needs a
+                       separate mesh/tally, since this one no longer
+                       resolves z.)
+    Azimuthal extent:  36 bins (10 degree resolution) across the full circle.
+ 
     @ In,  params, dict,                     Simulation parameters.
-    @ Out, mesh,   openmc.CylindricalMesh,   80 radial × 60 axial bins.
+    @ Out, mesh,   openmc.CylindricalMesh,   79 radial x 1 axial x 36 azimuthal bins.
     """
     if params.get('Mobile', False):
         r_max = params['Isocontainer Outer Radius'] + 10.0
     else:
         r_max = params['Out Of Vessel Shield Outer Radius'] + 10.0
-
-    axial_half = (
-        params['Active Height'] / 2
-        + params['Axial Reflector Thickness']
-        + 50.0  # 50 cm margin beyond active + reflector
-    )
-
-    r_grid    = np.linspace(0,           r_max,      80)
-    z_grid    = np.linspace(-axial_half, axial_half, 60)
-    phi_grid  = np.linspace(0, 2 * np.pi, 2)   # azimuthally integrated
-    mesh      = openmc.CylindricalMesh(r_grid, z_grid, phi_grid)
+ 
+    axial_half = params['Active Height'] / 2 + params['Axial Reflector Thickness']
+ 
+    r_grid   = np.linspace(0,           r_max,      80)
+    z_grid   = np.linspace(-axial_half, axial_half, 2)    # single bin: integrated over core + reflector height
+    phi_grid = np.linspace(0, 2 * np.pi, 37)              # 36 bins, 10 degree resolution — adjust if you want finer/coarser
+    mesh     = openmc.CylindricalMesh(r_grid, z_grid, phi_grid)
     return mesh
 
 
@@ -478,8 +565,8 @@ def build_openmc_shielding_model_LTMR(params):
 
     # Geometry is axially unbounded, matching the original openmc_template_LTMR.py
     # which uses only a ZCylinder as its outer boundary.
-    shielding_cells, outer_surface = create_shielding_annuli(params, shielding_mats)
-
+    shielding_cells = create_shielding_annuli(params, shielding_mats)
+ 
     # Core fill cell (inner boundary = core radius cylinder)
     core_inner_surface = openmc.ZCylinder(r=params['Core Radius'])
     core_fill_cell     = openmc.Cell(
@@ -487,11 +574,8 @@ def build_openmc_shielding_model_LTMR(params):
         fill=core_universe,
         region=-core_inner_surface
     )
-
-    # Outer void beyond the vacuum boundary
-    outer_void_cell = openmc.Cell(name='outer_void', fill=None, region=+outer_surface)
-
-    all_cells = [core_fill_cell] + shielding_cells + [outer_void_cell]
+ 
+    all_cells = [core_fill_cell] + shielding_cells
 
     geometry = openmc.Geometry(all_cells)
     geometry.export_to_xml()

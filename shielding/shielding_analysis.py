@@ -69,6 +69,7 @@ def run_shielding_analysis(params):
     from shielding.shielding_calcs import extract_dose_results
 
     # ---- Step 1: Reuse persistent BOL source if available, else run locally ----
+    params.setdefault('Save Dose Map', True)
     source_file = params.get('Fission Source File')
     if source_file and os.path.isfile(source_file):
         print(f"\n  [Shielding] Reusing persistent fission source: {source_file}")

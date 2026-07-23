@@ -70,7 +70,7 @@ def run_func():
     plot = openmc.Plot()
     plot.basis = 'xy'
     plot.origin = (0, 0, 0)
-    plot.width = (400, 400)      # cm — adjust to comfortably frame your geometry
+    plot.width = (800, 800)      # cm — adjust to comfortably frame your geometry
     plot.pixels = (2000, 2000)
     plot.color_by = 'material'
     openmc.Plots([plot]).export_to_xml()
@@ -84,116 +84,12 @@ def run_func():
  
     print(f"  [Testing] XML + plot files copied to: {PERSISTENT_DIR}")
 
-def build_layer2_model(params):
-    resolve_drum_radius(params)
-    materials_database = collect_materials_data(params)
- 
-    fuel = materials_database[params['Fuel']]
-    coolant = materials_database[params['Coolant']]
-    reflector = materials_database[params['Radial Reflector']]
-    control_drum_absorber = materials_database[params['Control Drum Absorber']]
-    control_drum_reflector = materials_database[params['Control Drum Reflector']]
- 
-    fuel_materials = [None if m is None else materials_database[m] for m in params['Fuel Pin Materials']]
-    fuel_materials.append(coolant)
-    moderator_materials = [None if m is None else materials_database[m] for m in params['Moderator Pin Materials']]
-    moderator_materials.append(coolant)
- 
-    # --- LAYER 2 CHANGE START: include shielding materials in materials.xml too ---
-    shielding_mats = create_shielding_materials(params, materials_database)
-    all_materials = (fuel_materials + moderator_materials
-                      + [coolant, reflector, control_drum_absorber, control_drum_reflector]
-                      + list(shielding_mats.values()))
-    # --- LAYER 2 CHANGE END ---
-    all_materials_cleaned = list(set(m for m in all_materials if m is not None))
-    materials = openmc.Materials(all_materials_cleaned)
-    openmc.Materials.cross_sections = params['cross_sections_xml_location']
-    materials.export_to_xml()
- 
-    fuel_pin_regions = create_pin_regions(params, 'fuel')
-    fuel_cells = create_cells(fuel_pin_regions, fuel_materials)
-    fuel_pin_universe = openmc.Universe(cells=fuel_cells.values())
- 
-    moderator_pin_regions = create_pin_regions(params, 'moderator')
-    moderator_cells = create_cells(moderator_pin_regions, moderator_materials)
-    moderator_pin_universe = openmc.Universe(cells=moderator_cells.values())
- 
-    coolant_cell = openmc.Cell(fill=coolant)
-    coolant_universe = openmc.Universe(cells=(coolant_cell,))
- 
-    control_drum_positions = update_ltmr_reflector_geometry_from_drums(params)
-    drums = create_drums_universe(params, control_drum_absorber, control_drum_reflector, control_drum_positions)
- 
-    pin_pitch = 2 * params['Fuel Pin Radii'][-1] + params['Pin Gap Distance']
-    assembly_universe = create_assembly_universe(params, fuel_pin_universe, moderator_pin_universe, pin_pitch, reflector, coolant_universe)
- 
-    core_geometry, core_universe = create_core_geometry(
-        params, drums, drums_positions=control_drum_positions, assembly_universe=assembly_universe
-    )
- 
-    for surface in core_geometry.get_all_surfaces().values():
-        if hasattr(surface, 'boundary_type') and surface.boundary_type == 'vacuum':
-            surface.boundary_type = 'transmission'
- 
-    core_inner_surface = openmc.ZCylinder(r=params['Core Radius'])
-    core_fill_cell = openmc.Cell(name='core_fill', fill=core_universe, region=-core_inner_surface)
- 
-    # --- LAYER 2 CHANGE START: real shielding annuli instead of placeholder void ---
-    shielding_cells, outer_surface = create_shielding_annuli(params, shielding_mats)
-    outer_void_cell = openmc.Cell(name='outer_void', fill=None, region=+outer_surface)
-    geometry = openmc.Geometry([core_fill_cell] + shielding_cells + [outer_void_cell])
-    # --- LAYER 2 CHANGE END ---
-    geometry.export_to_xml()
- 
-    settings = openmc.Settings()
-    settings.batches = 10
-    settings.inactive = 5
-    settings.particles = 100
-    settings.source = openmc.Source(space=openmc.stats.Point((0, 0, 0)))
-    settings.export_to_xml()
- 
-    openmc.Tallies([]).export_to_xml()
- 
-    params['_layer2_materials_database'] = materials_database
-    params['_layer2_geometry'] = geometry
- 
- 
-# def run_func():
-#     build_layer2_model(params)
-#     create_universe_plot(
-#         params['_layer2_materials_database'], params['_layer2_geometry'],
-#         plot_width=2.01 * params['Core Radius'],   # SAME zoom as Layer 1 — core only, deliberately
-#         num_pixels=2000,
-#         font_size=32,
-#         title="Layer 2: Core + real shielding annuli (core zoom)",
-#         fig_size=8,
-#         output_file_name="layer2_core_zoom.png"
-#     )
-#     # Also do a full-stack view for reference
-#     create_universe_plot(
-#         params['_layer2_materials_database'], params['_layer2_geometry'],
-#         plot_width=2.01 * params['Out Of Vessel Shield Outer Radius'],
-#         num_pixels=2000,
-#         font_size=32,
-#         title="Layer 2: Core + real shielding annuli (full stack)",
-#         fig_size=8,
-#         output_file_name="layer2_full_stack.png"
-#     )
-#     os.makedirs(PERSISTENT_DIR, exist_ok=True)
-#     for f in glob.glob('*.png') + glob.glob('*.xml'):
-#         shutil.copy2(f, os.path.join(PERSISTENT_DIR, f))
-#     print(f"  [Layer 2] Copied outputs to: {PERSISTENT_DIR}")
-
-
-
-
-
 # **************************************************************************************************************************
 #                                                Sec. 0: Settings
 # **************************************************************************************************************************
 
 update_params({
-    'plotting': "Y",  # Shielding runs are expensive; disable geometry plots by default
+    'plotting': "N",  # Shielding runs are expensive; disable geometry plots by default
     'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml',
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',
     'shielding_output_dir': '/home/garcsamu/OpenMC/MOUSE',
@@ -254,7 +150,7 @@ params['Moderator Mass']            = calculate_moderator_mass(params)
 
 update_params({
     'Number of Drums': 12,
-    'Drum Radius': 6.016,  # cm
+    'Drum Radius': 3.016,  # cm
     'Drum Absorber Thickness': 1,  # cm
     'Drum Absorber Arc Degrees': 120,
 })
@@ -287,8 +183,8 @@ print("STEP 1: Criticality run to generate converged fission source")
 print("="*70)
 print("Before plugin call:", id(params))
 
-openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR, show_stdout=True, show_stderr=True)
-openmc_result = openmc_plugin(params, function=run_func)
+# openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR, show_stdout=True, show_stderr=True)
+# openmc_result = openmc_plugin(params, function=run_func)
 
 print("After plugin call: ", id(params))
 params['SD Margin Calc']                  = False
@@ -441,8 +337,14 @@ update_params({
     # Fixed-source transport settings
     'Shielding Particles':  20_000,  # particles per batch for shielding run
     'Shielding Batches':    50,
-    'Shielding Inactive':   0,          # no inactive batches in fixed-source mode
-})
+    'Shielding Inactive':   0,        
+    'Isocontainer Interior Width':  235.0,   # cm — standard ISO container interior width
+    'Isocontainer Interior Height': 239.0,   # cm — standard ISO container interior height
+    'Isocontainer Interior Length': 589.0,   # cm — informational only; reactor's own axis stays unbounded
+    'Shielding Ground Clearance':   100.0,   # cm — bottom of outermost solid surface down to ground
+    'Air Margin':                   200.0,   # cm — air extent beyond outermost solid, before vacuum boundary
+    'Soil Depth':                   200.0,   # cm — soil extent below ground, before vacuum boundary
+})      # no inactive batches in fixed-source mode
 
 # ---- ISO container geometry (mobile case only) ----
 # Standard High-Cube 40' ISO container interior: 12192 mm × 2352 mm × 2698 mm

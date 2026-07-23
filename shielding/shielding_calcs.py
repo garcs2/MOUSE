@@ -30,6 +30,11 @@ Dose rate conversion chain
 """
 
 import os
+import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+from core_design.openmc_materials_database import collect_materials_data
+from core_design.utils import create_universe_plot
 import glob
 import csv
 import numpy as np
@@ -292,60 +297,203 @@ def extract_dose_results(params: dict) -> None:
                   f"(ISL extrapolated from iso_surface)")
 
     # ---- Also extract full mesh dose map for plotting ----
-    _extract_mesh_dose_map(sp_path, params, source_rate)
+    if params.get('Save Dose Map', True):
+        _extract_mesh_dose_map(sp_path, params, source_rate)
+    else:
+        print("  [Shielding] Save Dose Map = False — skipping dose map .npz extraction.")
 
 
 def _extract_mesh_dose_map(sp_path: str, params: dict, source_rate: float) -> None:
     """
-    Extract the 2D (r, z) dose rate map from the cylindrical mesh tally and
-    save it as a NumPy .npz file for downstream plotting.
+    Extract the (r, theta) dose rate map from the cylindrical mesh tally
+    (integrated over the full active height + axial reflector thickness),
+    and plot it as a heatmap overlaid on top of the core geometry itself.
     """
     output_dir  = params.get('shielding_output_dir', '.')
     mobile_tag  = "mobile" if params['Mobile'] else "stationary"
     mat_tag     = params['Out Of Vessel Shield Material'].replace(' ', '_')
     thick_tag   = f"{params['Out Of Vessel Shield Thickness']:.0f}cm"
-    npz_name    = f"dose_map_{mobile_tag}_{mat_tag}_{thick_tag}.npz"
-    npz_path    = os.path.join(output_dir, npz_name)
-
+    png_name    = f"dose_map_{mobile_tag}_{mat_tag}_{thick_tag}.png"
+    png_path    = os.path.join(output_dir, png_name)
+ 
     with openmc.StatePoint(sp_path) as sp:
         combined_dose = None
-
+        r_grid = None
+        phi_grid = None
+        z_grid_extent = None
+ 
         for particle in ['neutron', 'photon']:
             tally_name = f'{particle}_flux_mesh'
             try:
-                tally     = _get_tally_by_name(sp, tally_name)
+                tally = _get_tally_by_name(sp, tally_name)
             except KeyError:
                 continue
-
-            # Shape: (r_bins, z_bins, energy_groups)  after reshaping
-            flux_data = tally.get_values(scores=['flux']).squeeze()
+ 
+            # Recover r_grid/phi_grid/z_grid directly from the tally's own
+            # MeshFilter, embedded in the statepoint itself — not from
+            # params.get('_shielding_mesh'), which may not survive across a
+            # WATTS PluginOpenMC call boundary.
+            if r_grid is None:
+                for filt in tally.filters:
+                    if isinstance(filt, openmc.MeshFilter):
+                        r_grid   = filt.mesh.r_grid
+                        phi_grid = filt.mesh.phi_grid
+                        z_grid_extent = filt.mesh.z_grid[-1] - filt.mesh.z_grid[0]  # single bin: full integrated height
+                        break
+ 
+            # get_values() returns a SINGLE flattened axis combining ALL
+            # filter bins together (Mesh x Energy x Particle, in whatever
+            # order create_dose_tallies() added them). Reshape explicitly
+            # using each filter's real bin count, isolate the Mesh and
+            # Energy axes, and squeeze out anything else (e.g.
+            # ParticleFilter, num_bins=1 for a single-particle-type tally).
+            raw_values = tally.get_values(scores=['flux'])[:, 0, 0]
+            filter_shape = tuple(f.num_bins for f in tally.filters)
+            print(f"  [debug] {tally_name}: filters={[type(f).__name__ for f in tally.filters]}, "
+                  f"filter_shape={filter_shape}, raw_values.shape={raw_values.shape}")
+            flux_data = raw_values.reshape(filter_shape)
+ 
+            mesh_axis   = next(i for i, f in enumerate(tally.filters) if isinstance(f, openmc.MeshFilter))
+            energy_axis = next(i for i, f in enumerate(tally.filters) if isinstance(f, openmc.EnergyFilter))
+            other_axes  = [i for i in range(len(tally.filters)) if i not in (mesh_axis, energy_axis)]
+ 
+            for ax_i in other_axes:
+                if flux_data.shape[ax_i] != 1:
+                    raise ValueError(
+                        f"{tally_name}: filter axis {ax_i} "
+                        f"({type(tally.filters[ax_i]).__name__}) has {flux_data.shape[ax_i]} "
+                        f"bins, expected 1 — cannot safely squeeze it out."
+                    )
+            if other_axes:
+                flux_data = np.squeeze(flux_data, axis=tuple(other_axes))
+ 
+            remaining   = [i for i in range(len(tally.filters)) if i not in other_axes]
+            energy_pos  = remaining.index(energy_axis)
+            flux_data   = np.moveaxis(flux_data, energy_pos, -1)
+ 
+            # The mesh axis (now axis 0) is flattened (r * phi * z, with
+            # z=1 bin since we integrate over the full height) — split it
+            # into (r_bins, phi_bins) using the bin counts recovered above.
+            r_bins   = len(r_grid) - 1
+            phi_bins = len(phi_grid) - 1
+            if r_bins * phi_bins != flux_data.shape[0]:
+                raise ValueError(
+                    f"{tally_name}: r_bins*phi_bins ({r_bins}*{phi_bins}="
+                    f"{r_bins * phi_bins}) does not match the mesh filter's "
+                    f"flattened bin count ({flux_data.shape[0]})."
+                )
+            flux_data = flux_data.reshape(r_bins, phi_bins, flux_data.shape[-1])
+ 
+            # ---- Normalize by cell volume to get flux density ----
+            # OpenMC track-length tallies score flux integrated over each
+            # mesh cell's volume [cm per source particle]. Without dividing
+            # by the cell's actual volume, larger-radius cells (which have
+            # proportionally larger annular-sector area) would appear to
+            # score more just from being geometrically bigger — distorting
+            # the radial falloff shape, not just an overall scale factor.
+            # This mirrors the shell_vol normalization already applied to
+            # the point tallies (iso_surface) in extract_dose_results().
+            r_lo, r_hi = r_grid[:-1], r_grid[1:]
+            dphi       = np.diff(phi_grid)                    # per-bin angular width [rad]
+            h          = z_grid_extent                        # single z bin, full integrated height [cm]
+ 
+            cell_area   = 0.5 * (r_hi[:, None] ** 2 - r_lo[:, None] ** 2) * dphi[None, :]  # (r_bins, phi_bins)
+            cell_volume = cell_area * h                                                     # (r_bins, phi_bins)
+ 
+            flux_data = flux_data / cell_volume[:, :, None]   # broadcast over the energy axis
+ 
             _, coeffs = make_energy_filter_and_coeffs(particle)
-
-            # Align energy axis
-            n_groups = min(flux_data.shape[-1], len(coeffs))
+            n_groups  = min(flux_data.shape[-1], len(coeffs))
             flux_data = flux_data[..., :n_groups]
             coeffs    = coeffs[:n_groups]
-
-            # Dose rate map [mSv/hr], shape: (r_bins, z_bins)
+ 
+            # Dose rate map [mSv/hr], shape: (r_bins, phi_bins)
             dose_map = np.einsum('...g,g->...', flux_data, coeffs) * source_rate * PSV_S_TO_MSV_HR
-
+ 
             if combined_dose is None:
                 combined_dose = dose_map
             else:
                 combined_dose += dose_map
-
-    if combined_dose is not None:
-        mesh = params.get('_shielding_mesh')
-        np.savez(
-            npz_path,
-            dose_map_mSv_hr=combined_dose,
-            r_grid=mesh.r_grid if mesh else None,
-            z_grid=mesh.z_grid if mesh else None,
-            mobile=params['Mobile'],
-            shield_material=params['Out Of Vessel Shield Material'],
-            shield_thickness_cm=params['Out Of Vessel Shield Thickness'],
-        )
-        print(f"  Dose map saved: {npz_path}")
+ 
+    if combined_dose is None:
+        print(f"  WARNING: no neutron_flux_mesh/photon_flux_mesh tally found in "
+              f"statepoint '{sp_path}' — skipping dose map plot.")
+        return
+ 
+    if r_grid is None:
+        print("  WARNING: could not recover r_grid/phi_grid from any tally's "
+              "MeshFilter — skipping dose map plot (no valid axes).")
+        return
+ 
+    # ---- Save raw data alongside the plot ----
+    npz_name = f"dose_map_{mobile_tag}_{mat_tag}_{thick_tag}.npz"
+    npz_path = os.path.join(output_dir, npz_name)
+    np.savez(
+        npz_path,
+        dose_map_mSv_hr=combined_dose,
+        r_grid=r_grid,
+        phi_grid=phi_grid,
+        mobile=params['Mobile'],
+        shield_material=params['Out Of Vessel Shield Material'],
+        shield_thickness_cm=params['Out Of Vessel Shield Thickness'],
+    )
+    print(f"  Dose map data saved: {npz_path}")
+ 
+    plot_data = np.ma.masked_less_equal(combined_dose, 0.0)
+    if plot_data.count() == 0:
+        print("  WARNING: dose map is entirely zero/negative — skipping plot.")
+        return
+    vmin = plot_data.min()
+    vmax = plot_data.max()
+ 
+    # ---- Reconstruct the core geometry as the background plot ----
+    # geometry.xml was already exported earlier in this same build/run
+    # (before settings were switched to fixed-source mode), so it's still
+    # present in the current working directory.
+    geometry           = openmc.Geometry.from_xml()
+    materials_database  = collect_materials_data(params)
+    plot_width = 2.01 * (
+        params['Isocontainer Outer Radius'] if params.get('Mobile', False)
+        else params['Out Of Vessel Shield Outer Radius']
+    )
+    deployment = "Mobile" if params['Mobile'] else "Stationary"
+ 
+    fig, ax = create_universe_plot(
+        materials_database, geometry,
+        plot_width=plot_width,
+        num_pixels=2000,
+        font_size=32,
+        title=(
+            f"{deployment} — {params['Out Of Vessel Shield Material']}, "
+            f"{params['Out Of Vessel Shield Thickness']:.0f} cm shield\n"
+            f"Dose Rate Overlay (log scale, integrated over core height)"
+        ),
+        fig_size=8,
+        return_ax=True,
+    )
+ 
+    # ---- Overlay the (r, theta) dose map in Cartesian coordinates ----
+    # pcolormesh needs Cartesian X, Y to draw on the same axes as the
+    # (Cartesian) geometry plot — convert the polar grid explicitly rather
+    # than using a separate polar-projection axes, which can't share space
+    # with a Cartesian one directly.
+    Phi, R = np.meshgrid(phi_grid, r_grid)
+    X = R * np.cos(Phi)
+    Y = R * np.sin(Phi)
+ 
+    overlay = ax.pcolormesh(
+        X, Y, plot_data,
+        norm=LogNorm(vmin=vmin, vmax=vmax),
+        cmap='hot',
+        alpha=0.55,
+        shading='flat',
+    )
+    cbar = fig.colorbar(overlay, ax=ax, pad=0.15)
+    cbar.set_label('Dose Rate [mSv/hr]')
+ 
+    fig.savefig(png_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f"  Dose map overlay saved: {png_path}")
 
 
 def summarize_shielding_results(params: dict,

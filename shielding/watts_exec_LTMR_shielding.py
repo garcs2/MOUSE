@@ -68,6 +68,7 @@ def update_params(updates):
 
 update_params({
     'plotting': "N",  # Shielding runs are expensive; disable geometry plots by default
+    'Save Dose Map': True,
     'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml',
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',
     'shielding_output_dir': '/home/garcsamu/OpenMC/MOUSE',
@@ -112,18 +113,15 @@ update_params({
     "Pin Gap Distance": 0.1,  # cm
     'Pins Arrangement': LTMR_pins_arrangement,
     'Number of Rings per Assembly': 12,
-    'Radial Reflector Thickness': 14,  # cm
 })
 
 params['Lattice Apothem'] = calculate_hex_apothem(params)
 params['Lattice Radius']            = params['Lattice Apothem']
 params['Active Height']             = 78.4   # cm1
 params['Assembly FTF']              = 2 * params['Lattice Apothem']
-params['Axial Reflector Thickness'] = params['Radial Reflector Thickness']
 params['Fuel Pin Count']            = calculate_pins_in_assembly(params, "FUEL")
 params['Moderator Pin Count']       = calculate_pins_in_assembly(params, "MODERATOR")
 params['Moderator Mass']            = calculate_moderator_mass(params)
-params['Core Radius']               = calculate_core_radius_from_hex(params)
 
 # **************************************************************************************************************************
 #                                                Sec. 3: Control Drums (fixed)
@@ -131,12 +129,12 @@ params['Core Radius']               = calculate_core_radius_from_hex(params)
 
 update_params({
     'Number of Drums': 12,
-    # 'Drum Radius': 9.016,  # cm
+    'Drum Radius': 9.016,  # cm
     'Drum Absorber Thickness': 1,  # cm
     'Drum Absorber Arc Degrees': 120,
-    'Drum Height': params['Active Height'] + 2 * params['Axial Reflector Thickness'],
 })
 
+update_ltmr_reflector_geometry_from_drums(params)
 calculate_drums_volumes_and_masses(params)
 calculate_reflector_mass_LTMR(params)
 
@@ -164,7 +162,6 @@ print("="*70)
 
 params['SD Margin Calc']                  = False
 params['Isothermal Temperature Coefficients'] = False
-params['Shielding Run']                   = False  # tells template: normal k-eigen mode
 
 heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
@@ -351,9 +348,15 @@ update_params({
         '30m_exclusion':  3000,   # fixed: 30 m from core axis
     },
     # Fixed-source transport settings
-    'Shielding Particles':  20_000,  # particles per batch for shielding run
+    'Shielding Particles':  2_000,  # particles per batch for shielding run
     'Shielding Batches':    50,
     'Shielding Inactive':   0,          # no inactive batches in fixed-source mode
+    'Isocontainer Interior Width':  235.0,   # cm — standard ISO container interior width
+    'Isocontainer Interior Height': 239.0,   # cm — standard ISO container interior height
+    'Isocontainer Interior Length': 589.0,   # cm — informational only; reactor's own axis stays unbounded
+    'Shielding Ground Clearance':   100.0,   # cm — bottom of outermost solid surface down to ground
+    'Air Margin':                   200.0,   # cm — air extent beyond outermost solid, before vacuum boundary
+    'Soil Depth':                   200.0,   # cm — soil extent below ground, before vacuum boundary
 })
 
 # ---- ISO container geometry (mobile case only) ----
@@ -373,9 +376,9 @@ tracked_params_list = [
     'Fuel', 'Enrichment', 'Power MWt',
 ]
 
-for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx', '/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database_TEMA_updated.xlsx']:
-    for params['Mobile'] in [True, False]:
-        for params['Out Of Vessel Shield Material'] in ['WEP', 'B4C_natural']:
+for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database_TEMA_updated.xlsx']:
+    for params['Mobile'] in [True]:
+        for params['Out Of Vessel Shield Material'] in ['WEP']:
             for params['Out Of Vessel Shield Thickness'] in [50.0]:  # cm
                 params['Cost_Data'] = cost_database_filename
                 mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
