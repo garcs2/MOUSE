@@ -97,6 +97,7 @@ def find_children_accounts(df):
         tuple(df['Account'].to_numpy()),
         tuple(levels),
         tuple(is_nan_cost),
+        tuple(df.index),
     )
 
     cached = _children_accounts_cache.get(fingerprint)

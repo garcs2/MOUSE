@@ -834,6 +834,11 @@ PARAMS_REGISTRY = {
         'group': 'Shielding', 'units': 'cm',
         'description': 'Outer radius of the out-of-vessel shield (outermost boundary of the shielded assembly)',
         'source': 'Calculated', 'hidden': False, 'array_mode': None},
+ 
+    'Isocontainer Mass': {
+        'group': 'Shielding', 'units': 'kg',
+        'description': 'Total mass of the ISO container steel shell (mobile deployment only; 0 if stationary)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
 
     # =========================================================
     # Vessels

@@ -147,7 +147,7 @@ def calculate_heat_flux_TRISO(params):
     return heat_flux
 
 
-def create_universe_plot(materials_database, universe, plot_width, num_pixels, font_size, title, fig_size, output_file_name):
+def create_universe_plot(materials_database, universe, plot_width, num_pixels, font_size, title, fig_size, output_file_name=None, return_ax=False):
     import matplotlib.colors as mcolors
 
     potential_colors = { 
@@ -264,6 +264,10 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
         loc='center left',
         bbox_to_anchor=(1, 0.5)
     )
+    if return_ax:
+        # Caller wants to draw more on top (e.g. a dose-rate overlay) and
+        # save the figure themselves once that's done.
+        return fig, universe_plot
     fig.savefig(output_file_name, bbox_inches='tight')
 
 

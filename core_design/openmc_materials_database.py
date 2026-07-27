@@ -251,7 +251,7 @@ def _build_base_materials(params):
     mats['Zr'] = Zr
 
     # ------------------------------------------------------------------
-    # Sec. 1.6 : SS304
+    # Sec. 1.6 : Steels
     # ------------------------------------------------------------------
 
     SS304 = openmc.Material(name="SS304", temperature=params['Common Temperature'])
@@ -266,6 +266,11 @@ def _build_base_materials(params):
     SS304.add_element("nickel",     9.25,   "wo")
     mats['SS304'] = SS304
 
+    carbon_steel = openmc.Material(name = "carbon_steel", temperature = params['Common Temperature'])
+    carbon_steel.set_density("g/cm3", 7.82)
+    carbon_steel.add_element("carbon",  0.5, "wo")
+    carbon_steel.add_element("iron",   99.5, "wo")
+    mats['carbon_steel'] = carbon_steel
     # ------------------------------------------------------------------
     # Sec. 1.7 : Carbides
     # ------------------------------------------------------------------
@@ -353,7 +358,20 @@ def _build_base_materials(params):
     mats['WC'] = WC
 
     # ------------------------------------------------------------------
-    # Sec. 1.11 : Heat Pipe Microreactor
+    # Sec. 1.11 : Hydrogenous Plastics
+    # ------------------------------------------------------------------
+
+    WEP = openmc.Material(name = 'WEP')
+    WEP.set_density('g/cm3', 1.1)
+    WEP.add_element('H', 9.7, "wo")
+    WEP.add_element('C', 25.3, "wo")
+    WEP.add_element('O', 65.0, "wo")
+    mats['WEP'] = WEP
+
+
+
+    # ------------------------------------------------------------------
+    # Sec. 1.12 : Heat Pipe Microreactor
     # ------------------------------------------------------------------
 
     heatpipe = openmc.Material(name='heatpipe')
@@ -393,9 +411,32 @@ def _build_base_materials(params):
     monolith_graphite.add_nuclide('C13', 0.0107, 'ao')
     mats['monolith_graphite'] = monolith_graphite
 
+    # ------------------------------------------------------------------
+    # Sec. 1.13 : Ambient Materials
+    # ------------------------------------------------------------------
+    air = openmc.Material(name='air')
+    air.set_density('g/cm3', 0.001205)
+    air.add_element('C',  0.000124, percent_type='wo')
+    air.add_element('N',  0.784431, percent_type='wo')
+    air.add_element('O',  0.231781, percent_type='wo')
+    air.add_element('Ar', 0.012827, percent_type='wo')
+    mats['air'] = air
+
+    soil = openmc.Material(name='soil')
+    soil.set_density('g/cm3', 1.52)
+    soil.add_element('O',  0.513713, percent_type='wo')
+    soil.add_element('Na', 0.006140, percent_type='wo')
+    soil.add_element('Mg', 0.013303, percent_type='wo')
+    soil.add_element('Al', 0.068563, percent_type='wo')
+    soil.add_element('Si', 0.271183, percent_type='wo')
+    soil.add_element('K',  0.014327, percent_type='wo')
+    soil.add_element('Ca', 0.051167, percent_type='wo')
+    soil.add_element('Ti', 0.004605, percent_type='wo')
+    soil.add_element('Mn', 0.000716, percent_type='wo')
+    soil.add_element('Fe', 0.056283, percent_type='wo')
+    mats['soil'] = soil
+
     return mats
-
-
 # ==================================================================================
 #  ENDF/B-VIII.0 builder
 # ==================================================================================
@@ -469,12 +510,15 @@ def _collect_materials_endf80(params):
     materials.extend([mats['Be'], mats['BeO']])
 
     # --- Zr, SS304 (no TSL) ---
-    materials.extend([mats['Zr'], mats['SS304']])
+    materials.extend([mats['Zr'], mats['SS304'], mats['carbon_steel']])
 
     # --- Carbides ---
     mats['SiC'].add_s_alpha_beta("c_C_in_SiC")   # C side only in VIII.0
     # ZrC: no TSL in VIII.0
     materials.extend([mats['B4C_natural'], mats['B4C_enriched'], mats['SiC']])
+
+    # --- Hydrogenous Plastics ---
+    materials.append(mats["WEP"])
 
     # --- Graphite family ---
     for key in ('Graphite', 'buffer_graphite', 'PyC'):
@@ -489,6 +533,9 @@ def _collect_materials_endf80(params):
     mats['monolith_graphite'].add_s_alpha_beta('c_Graphite')
     materials.extend([mats['heatpipe'], mats['monolith_graphite']])
 
+    # --- Ambient Materials ---
+    materials.append(mats['air'])
+    materials.append(mats['soil'])
     return mats
 
 
@@ -578,7 +625,7 @@ def _collect_materials_endf81(params):
     materials.extend([mats['Be'], mats['BeO']])
 
     # --- Zr, SS304 (no TSL) ---
-    materials.extend([mats['Zr'], mats['SS304']])
+    materials.extend([mats['Zr'], mats['SS304'], mats['carbon_steel']])
 
     # --- Carbides ---
     mats['SiC'].add_s_alpha_beta("c_C_in_SiC")
@@ -586,6 +633,9 @@ def _collect_materials_endf81(params):
     mats['ZrC'].add_s_alpha_beta("c_Zr_in_ZrC")                  # new in VIII.1
     mats['ZrC'].add_s_alpha_beta("c_C_in_ZrC")                   # new in VIII.1
     materials.extend([mats['B4C_natural'], mats['B4C_enriched'], mats['SiC']])
+
+    # --- Hydrogenous Plastics ---
+    materials.append(mats["WEP"])
 
     # --- Graphite family ---
     for key in ('Graphite', 'buffer_graphite', 'PyC'):
@@ -600,5 +650,9 @@ def _collect_materials_endf81(params):
     # --- Heatpipe + monolith graphite ---
     mats['monolith_graphite'].add_s_alpha_beta('c_Graphite')
     materials.extend([mats['heatpipe'], mats['monolith_graphite']])
+
+    # --- Ambient Materials ---
+    materials.append(mats['air'])
+    materials.append(mats['soil'])
 
     return mats
