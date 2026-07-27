@@ -147,7 +147,7 @@ update_params({
     'Thermal Efficiency': 0.31,
     'Heat Flux Criteria': 0.9,  # MW/m^2
     'Burnup Steps': [0.1, 0.5, 160],  # MWd/kg (trimmed for speed)
-    'Particles': 1000
+    'Particles': 1000000
 })
 params['Power MWe']   = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux']   = calculate_heat_flux(params)
@@ -348,7 +348,7 @@ update_params({
         '30m_exclusion':  3000,   # fixed: 30 m from core axis
     },
     # Fixed-source transport settings
-    'Shielding Particles':  2_000,  # particles per batch for shielding run
+    'Shielding Particles':  2_000_000,  # particles per batch for shielding run
     'Shielding Batches':    50,
     'Shielding Inactive':   0,          # no inactive batches in fixed-source mode
     'Isocontainer Interior Width':  235.0,   # cm — standard ISO container interior width
@@ -379,7 +379,7 @@ tracked_params_list = [
 for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database_TEMA_updated.xlsx']:
     for params['Mobile'] in [True]:
         for params['Out Of Vessel Shield Material'] in ['WEP']:
-            for params['Out Of Vessel Shield Thickness'] in [50.0]:  # cm
+            for params['Out Of Vessel Shield Thickness'] in [30]:  # cm
                 params['Cost_Data'] = cost_database_filename
                 mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
                 print(f"\n--- {mobile_tag} | Shield: {params['Out Of Vessel Shield Material']} "

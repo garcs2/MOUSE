@@ -296,7 +296,7 @@ def create_shielding_mesh(params):
  
     r_grid   = np.linspace(0,           r_max,      80)
     z_grid   = np.linspace(-axial_half, axial_half, 2)    # single bin: integrated over core + reflector height
-    phi_grid = np.linspace(0, 2 * np.pi, 37)              # 36 bins, 10 degree resolution — adjust if you want finer/coarser
+    phi_grid = np.linspace(0, 2 * np.pi, 2)              # 36 bins, 10 degree resolution — adjust if you want finer/coarser
     mesh     = openmc.CylindricalMesh(r_grid, z_grid, phi_grid)
     return mesh
 
@@ -358,6 +358,50 @@ def create_dose_tallies(params, mesh):
             pt_tally.scores  = ['flux']
             tallies.append(pt_tally)
 
+    # ---- 3. Directional box tallies at the outer boundary (sky / ground / lateral) ----
+    # Small rectangular-prism probe volumes sitting right at the real outer
+    # boundary in each direction, matching the actual (rectangular for
+    # Mobile, circular for stationary) geometry from create_shielding_annuli
+    # — no polar wraparound math needed, unlike a phi-wedge approach.
+    if params['Dose Evaluation Radii cm'].get('iso_surface') is not None:
+        axial_half = (
+            params['Active Height'] / 2
+            + params['Axial Reflector Thickness']
+            + 50.0
+        )
+ 
+        if params.get('Mobile', False):
+            half_w_outer = params['Isocontainer Interior Width']  / 2.0 + params['Isocontainer Steel Thickness']
+            half_h_outer = params['Isocontainer Interior Height'] / 2.0 + params['Isocontainer Steel Thickness']
+        else:
+            half_w_outer = params['Out Of Vessel Shield Outer Radius']
+            half_h_outer = params['Out Of Vessel Shield Outer Radius']
+ 
+        probe_half_width = 25.0   # cm — half-width of the probe box in the non-thin directions; adjust to taste
+ 
+        # (x_lo, x_hi, y_lo, y_hi) for each direction's thin probe box —
+        # thin (1 cm) in the direction facing outward, probe_half_width wide
+        # in the other transverse direction, full axial_half in z.
+        boxes = {
+                'iso_surface_sky':     (-probe_half_width, probe_half_width, half_h_outer + 0.1, half_h_outer + 2.0),
+                'iso_surface_ground':  (-probe_half_width, probe_half_width, -half_h_outer - 2.0, -half_h_outer - 0.1),
+                'iso_surface_lateral': (half_w_outer + 0.1, half_w_outer + 2.0, -probe_half_width, probe_half_width),
+        }
+ 
+        for label, (x_lo, x_hi, y_lo, y_hi) in boxes.items():
+            box_mesh = openmc.RegularMesh()
+            box_mesh.lower_left  = [x_lo, y_lo, -axial_half]
+            box_mesh.upper_right = [x_hi, y_hi,  axial_half]
+            box_mesh.dimension   = [1, 1, 1]
+            box_filt = openmc.MeshFilter(box_mesh)
+ 
+            for particle in ['neutron', 'photon']:
+                particle_filt = openmc.ParticleFilter([particle])
+                box_tally = openmc.Tally(name=f'dose_point_{label}_{particle}')
+                box_tally.filters = [box_filt, energy_filts[particle], particle_filt]
+                box_tally.scores  = ['flux']
+                tallies.append(box_tally)
+ 
     return tallies
 
 

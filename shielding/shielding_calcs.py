@@ -278,7 +278,7 @@ def extract_dose_results(params: dict) -> None:
             if label == iso_label:
                 iso_total_dose = total_dose
                 iso_total_unc  = total_unc
-
+        _extract_directional_box_dose(sp, params, source_rate)
     # ---- Step B: Inverse-square law extrapolation to 1m and 30m ----
     if iso_radius is not None and iso_total_dose > 0.0:
         for label in ('1m_standoff', '30m_exclusion'):
@@ -295,13 +295,92 @@ def extract_dose_results(params: dict) -> None:
             print(f"  [{label:20s}] r = {r_target:7.1f} cm | "
                   f"Total: {dose_r:.3e} ± {unc_r:.3e} mSv/hr  "
                   f"(ISL extrapolated from iso_surface)")
-
+            
+        
     # ---- Also extract full mesh dose map for plotting ----
     if params.get('Save Dose Map', True):
         _extract_mesh_dose_map(sp_path, params, source_rate)
     else:
         print("  [Shielding] Save Dose Map = False — skipping dose map .npz extraction.")
 
+def _extract_directional_box_dose(sp: openmc.StatePoint, params: dict, source_rate: float) -> None:
+    """
+    Extract ground/sky/lateral dose rates from the three rectangular-prism
+    probe tallies built in create_dose_tallies(), and write them into params
+    using the same 'Dose Rate {label} ...' key convention as iso_surface.
+    """
+    if params['Dose Evaluation Radii cm'].get('iso_surface') is None:
+        return
+ 
+    axial_half = params['Active Height'] / 2 + params['Axial Reflector Thickness'] + 50.0
+ 
+    if params.get('Mobile', False):
+        half_w_outer = params['Isocontainer Interior Width']  / 2.0 + params['Isocontainer Steel Thickness']
+        half_h_outer = params['Isocontainer Interior Height'] / 2.0 + params['Isocontainer Steel Thickness']
+    else:
+        half_w_outer = params['Out Of Vessel Shield Outer Radius']
+        half_h_outer = params['Out Of Vessel Shield Outer Radius']
+ 
+    probe_half_width = 25.0  # cm — MUST match create_dose_tallies()'s value exactly
+ 
+    boxes = {
+        'iso_surface_sky':     (-probe_half_width, probe_half_width, half_h_outer + 0.1, half_h_outer + 2.0),
+        'iso_surface_ground':  (-probe_half_width, probe_half_width, -half_h_outer - 2.0, -half_h_outer - 0.1),
+        'iso_surface_lateral': (half_w_outer + 0.1, half_w_outer + 2.0, -probe_half_width, probe_half_width),
+    }
+    print("  [debug] tallies present in statepoint:", [t.name for t in sp.tallies.values()])
+    for label, (x_lo, x_hi, y_lo, y_hi) in boxes.items():
+        box_volume = (x_hi - x_lo) * (y_hi - y_lo) * (2.0 * axial_half)
+ 
+        dose_components = {}
+        unc_components  = {}
+ 
+        for particle in ['neutron', 'photon']:
+            tally_name = f'dose_point_{label}_{particle}'
+            try:
+                tally = _get_tally_by_name(sp, tally_name)
+            except KeyError as e:
+                print(f"  WARNING: {e} — skipping {label}/{particle}")
+                dose_components[particle] = float('nan')
+                unc_components[particle]  = float('nan')
+                continue
+ 
+            flux_mean   = tally.get_values(scores=['flux']).flatten()
+            flux_stddev = tally.get_values(scores=['flux'], value='std_dev').flatten()
+ 
+            flux_mean   = flux_mean   / box_volume
+            flux_stddev = flux_stddev / box_volume
+ 
+            _, coeffs = make_energy_filter_and_coeffs(particle)
+            n = min(len(flux_mean), len(coeffs))
+            flux_mean, flux_stddev, coeffs_n = flux_mean[:n], flux_stddev[:n], coeffs[:n]
+ 
+            dose_rate, dose_unc = _apply_dose_coefficients(
+                flux_mean, flux_stddev, coeffs_n, source_rate)
+            dose_components[particle] = dose_rate
+            unc_components[particle]  = dose_unc
+ 
+        neutron_dose = dose_components.get('neutron', 0.0)
+        photon_dose  = dose_components.get('photon',  0.0)
+        neutron_unc  = unc_components.get('neutron',  0.0)
+        photon_unc   = unc_components.get('photon',   0.0)
+ 
+        total_dose = (
+            (neutron_dose if not np.isnan(neutron_dose) else 0.0)
+            + (photon_dose  if not np.isnan(photon_dose)  else 0.0)
+        )
+        total_unc = np.sqrt(
+            (neutron_unc if not np.isnan(neutron_unc) else 0.0) ** 2
+            + (photon_unc  if not np.isnan(photon_unc)  else 0.0) ** 2
+        )
+ 
+        params[f'Dose Rate {label} mSv_hr']         = total_dose
+        params[f'Dose Rate {label} unc mSv_hr']     = total_unc
+        params[f'Dose Rate {label} neutron mSv_hr'] = neutron_dose
+        params[f'Dose Rate {label} photon mSv_hr']  = photon_dose
+ 
+        print(f"  [{label:20s}] Total: {total_dose:.3e} ± {total_unc:.3e} mSv/hr  "
+              f"(n: {neutron_dose:.3e}, γ: {photon_dose:.3e})")
 
 def _extract_mesh_dose_map(sp_path: str, params: dict, source_rate: float) -> None:
     """
@@ -465,24 +544,39 @@ def _extract_mesh_dose_map(sp_path: str, params: dict, source_rate: float) -> No
         font_size=32,
         title=(
             f"{deployment} — {params['Out Of Vessel Shield Material']}, "
-            f"{params['Out Of Vessel Shield Thickness']:.0f} cm shield\n"
-            f"Dose Rate Overlay (log scale, integrated over core height)"
+            f"{params['Out Of Vessel Shield Thickness']:.0f} cm shield — Dose Rate Overlay"
         ),
         fig_size=8,
         return_ax=True,
     )
  
     # ---- Overlay the (r, theta) dose map in Cartesian coordinates ----
-    # pcolormesh needs Cartesian X, Y to draw on the same axes as the
-    # (Cartesian) geometry plot — convert the polar grid explicitly rather
-    # than using a separate polar-projection axes, which can't share space
-    # with a Cartesian one directly.
-    Phi, R = np.meshgrid(phi_grid, r_grid)
+    # phi_grid may have as few as 1 bin (azimuthally integrated — better
+    # statistics, and what we actually want physically). pcolormesh draws
+    # STRAIGHT-EDGED quadrilaterals between grid points though, so a single
+    # bin spanning [0, 2*pi] collapses to zero width in Cartesian coords
+    # (cos(0)==cos(2*pi)). If the mesh is coarser than a smooth-looking
+    # render needs, expand it HERE, purely for rendering — repeating the
+    # same (already azimuthally-integrated) values around the circle —
+    # without changing the underlying tally resolution or the saved .npz
+    # data above. If the mesh already has enough phi resolution, use it as-is.
+    n_plot_phi_bins = 72   # purely cosmetic — minimum bins for a smooth-looking ring
+    orig_phi_bins = len(phi_grid) - 1
+ 
+    if orig_phi_bins < n_plot_phi_bins:
+        repeat_factor = -(-n_plot_phi_bins // orig_phi_bins)  # ceil division
+        plot_phi_grid = np.linspace(0, 2 * np.pi, orig_phi_bins * repeat_factor + 1)
+        plot_data_smooth = np.repeat(plot_data, repeat_factor, axis=1)
+    else:
+        plot_phi_grid = phi_grid
+        plot_data_smooth = plot_data
+ 
+    Phi, R = np.meshgrid(plot_phi_grid, r_grid)
     X = R * np.cos(Phi)
     Y = R * np.sin(Phi)
  
     overlay = ax.pcolormesh(
-        X, Y, plot_data,
+        X, Y, plot_data_smooth,
         norm=LogNorm(vmin=vmin, vmax=vmax),
         cmap='hot',
         alpha=0.55,
