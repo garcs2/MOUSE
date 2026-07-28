@@ -1,8 +1,8 @@
 # Copyright 2025, Battelle Energy Alliance, LLC, ALL RIGHTS RESERVED
 
 """
-This script performs a shielding parametric study for the MOUSE (Mobile Operated
-Utility System for Energy) Liquid Metal Thermal Microreactor (LTMR).
+This script performs a shielding parametric study for the MOUSE (Microreactor Optimization 
+Using Simulation and Economics) Liquid Metal Thermal Microreactor (LTMR).
 
 Two deployment scenarios are evaluated:
   - Mobile:     Core → In-vessel shield → Vessels → Out-of-vessel shield → ISO container steel
