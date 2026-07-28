@@ -328,7 +328,6 @@ def _extract_directional_box_dose(sp: openmc.StatePoint, params: dict, source_ra
         'iso_surface_ground':  (-probe_half_width, probe_half_width, -half_h_outer - 2.0, -half_h_outer - 0.1),
         'iso_surface_lateral': (half_w_outer + 0.1, half_w_outer + 2.0, -probe_half_width, probe_half_width),
     }
-    print("  [debug] tallies present in statepoint:", [t.name for t in sp.tallies.values()])
     for label, (x_lo, x_hi, y_lo, y_hi) in boxes.items():
         box_volume = (x_hi - x_lo) * (y_hi - y_lo) * (2.0 * axial_half)
  
