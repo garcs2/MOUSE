@@ -17,4 +17,5 @@ webapp/.last_reboot
 # === Local additions ===
 __init__.py
 pyproject.toml
-mouse.egg-info/dependency_links.txt
+mouse.egg-info/dependency_links.txtbol_fission_source.h5
+*.npz
