@@ -134,39 +134,6 @@ def GCMR_integrated_heat_transfer_vessel(params):
 
 
 def evaluate_transport_mass(params, verbose=True):
-    """
-    Sum the masses shipped inside the ISO container and compare against the
-    transport limit (default 22.2 t).
-
-    Components are ordered inner -> outer to mirror the mobile shielding stack:
-        Core -> In-vessel shield -> Vessels -> Out-of-vessel shield -> ISO container
-
-    Populates params with:
-        'Transport Mass Components (kg)' : dict {component_label: mass_kg}
-        'Transport Mass Total (kg)'      : float
-        'Transport Mass Limit (kg)'      : float
-        'Transport Mass Margin (kg)'     : limit - total (negative => over limit)
-        'Within Transport Limit'         : bool
-
-    Returns the bool 'Within Transport Limit'.
-
-    ASSUMPTIONS / CAVEATS  (edit the COMPONENTS list below to change the accounting):
-      * "Fuel (heavy metal)" uses 'Uranium Mass' = U235 + U238 only. It does NOT
-        include cladding, matrix, bond/gap, or structural fuel hardware, so the
-        true fuel-element mass is higher. This is usually the single largest
-        source of under-counting here -- swap in a fuller fuel-mass param if you
-        add one to fuel_calculations().
-      * "Vessels (all)" uses 'Total Vessels Mass' = inner + guard + cooling +
-        intake vessels, i.e. the whole stack that physically ships. If you only
-        mean the inner vessel, change the key to 'Vessel Mass'.
-      * The in-vessel shield IS included because it physically ships inside the
-        container; leaving it out would understate (i.e. flatter) the transport
-        mass. Comment that line out for a strictly core-only definition.
-      * Coolant inventory (NaK / He) is not tracked as a static mass anywhere in
-        the model and is therefore not counted here.
-      * Balance-of-plant / heat exchangers / integrated heat-transfer vessel are
-        assumed to travel separately (not inside this container) and are excluded.
-    """
     limit = float(params.get('Transport Mass Limit (kg)', DEFAULT_TRANSPORT_MASS_LIMIT_KG))
 
     # (display label, params key)
