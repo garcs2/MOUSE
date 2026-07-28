@@ -1,6 +1,8 @@
 # Copyright 2025, Battelle Energy Alliance, LLC, ALL RIGHTS RESERVED
 import numpy as np 
 
+DEFAULT_TRANSPORT_MASS_LIMIT_KG = 22200.0
+
 def ellipsoid_shell(a, b, c):
     return 4*np.pi*np.power(((a*b)**1.6 + (a*c)**1.6 + (b*c)**1.6)/3, 1/1.6)
 
@@ -128,3 +130,75 @@ def GCMR_integrated_heat_transfer_vessel(params):
     # Rough estimate of the mass supported by the support structure:
     # Primary HX + Integrated Heat Transfer Vessel + Compressor + Valves/Fittings/Bolts/etc.
     # params['Integrated Heat Transfer System Mass'] = params['Primary HX Mass'] + (vessel_volume * vessel_density) + compressor_volume*8000
+
+
+
+def evaluate_transport_mass(params, verbose=True):
+    limit = float(params.get('Transport Mass Limit (kg)', DEFAULT_TRANSPORT_MASS_LIMIT_KG))
+
+    # (display label, params key)
+    COMPONENTS = [
+        ('Fuel Element',   'Fuel Element Mass'),
+        ('Moderator',            'Moderator Mass'),
+        ('Moderator Booster',    'Moderator Booster Mass'),
+        ('Control Drums',        'Control Drums Mass'),
+        ('Radial Reflector',     'Radial Reflector Mass'),
+        ('Axial Reflector',      'Axial Reflector Mass'),
+        ('In-Vessel Shield',     'In Vessel Shield Mass'),
+        ('Vessels (all)',        'Total Vessels Mass'),
+        ('Out-of-Vessel Shield', 'Out Of Vessel Shield Mass'),
+        ('ISO Container',        'Isocontainer Mass'),
+    ]
+
+    components = {}
+    missing = []
+    for label, key in COMPONENTS:
+        value = params.get(key, None)
+        if value is None:
+            missing.append((label, key))          # e.g. Moderator Booster only exists for some reactor types
+        else:
+            components[label] = float(value)
+
+    total = sum(components.values())
+    margin = limit - total
+    within = total <= limit
+
+    params['Transport Mass Components (kg)'] = components
+    params['Transport Mass Total (kg)'] = total
+    params['Transport Mass Limit (kg)'] = limit
+    params['Transport Mass Margin (kg)'] = margin
+    params['Within Transport Limit'] = within
+
+    if verbose:
+        _print_transport_mass_report(components, missing, total, limit, margin, within)
+
+    return within
+
+
+def _print_transport_mass_report(components, missing, total, limit, margin, within):
+    green, red, yellow, reset = '\033[92m', '\033[91m', '\033[93m', '\033[0m'
+
+    print('\n' + '=' * 62)
+    print(' ISO-CONTAINER TRANSPORT MASS EVALUATION')
+    print('=' * 62)
+    for label, mass_kg in components.items():
+        print(f'  {label:<22s} {mass_kg:>12,.1f} kg   ({mass_kg/1000:>7.3f} t)')
+    print('-' * 62)
+    print(f'  {"TOTAL":<22s} {total:>12,.1f} kg   ({total/1000:>7.3f} t)')
+    print(f'  {"LIMIT":<22s} {limit:>12,.1f} kg   ({limit/1000:>7.3f} t)')
+    print('-' * 62)
+
+    pct = 100.0 * total / limit if limit else float('nan')
+    if within:
+        print(f'{green}  PASS  {margin:>10,.1f} kg ({margin/1000:.3f} t) under limit '
+              f'-- {pct:.1f}% of limit{reset}')
+    else:
+        over = -margin
+        print(f'{red}  FAIL  {over:>10,.1f} kg ({over/1000:.3f} t) OVER limit '
+              f'-- {pct:.1f}% of limit{reset}')
+
+    if missing:
+        print(f'{yellow}  Note: not found in params (counted as 0):{reset}')
+        for label, key in missing:
+            print(f'{yellow}        - {label}  ->  params[{key!r}]{reset}')
+    print('=' * 62 + '\n')

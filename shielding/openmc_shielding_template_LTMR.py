@@ -552,13 +552,6 @@ def build_openmc_shielding_model_LTMR(params):
         control_drum_reflector,
         control_drum_positions
     )
-    print(f"Drum Radius: {params['Drum Radius']}")
-    print(f"Drum Tube Radius: {params.get('Drum Tube Radius', 'not yet set')}")
-    print(f"Core Radius: {params['Core Radius']}")
-    print(f"Drum center distance from origin (drum 0): "
-        f"{(control_drum_positions[0][0]**2 + control_drum_positions[0][1]**2)**0.5:.4f}")
-    print(f"Distance from drum 0 center to Core Radius edge: "
-        f"{params['Core Radius'] - (control_drum_positions[0][0]**2 + control_drum_positions[0][1]**2)**0.5:.4f}")
 
     # **************************************************************************************************************************
     #                                                Sec. 1.4 : GEOMETRY — Fuel Assembly
