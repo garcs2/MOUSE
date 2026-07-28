@@ -1,6 +1,8 @@
 # Copyright 2025, Battelle Energy Alliance, LLC, ALL RIGHTS RESERVED
 import numpy as np 
 
+DEFAULT_TRANSPORT_MASS_LIMIT_KG = 22200.0
+
 def ellipsoid_shell(a, b, c):
     return 4*np.pi*np.power(((a*b)**1.6 + (a*c)**1.6 + (b*c)**1.6)/3, 1/1.6)
 
@@ -128,3 +130,108 @@ def GCMR_integrated_heat_transfer_vessel(params):
     # Rough estimate of the mass supported by the support structure:
     # Primary HX + Integrated Heat Transfer Vessel + Compressor + Valves/Fittings/Bolts/etc.
     # params['Integrated Heat Transfer System Mass'] = params['Primary HX Mass'] + (vessel_volume * vessel_density) + compressor_volume*8000
+
+
+
+def evaluate_transport_mass(params, verbose=True):
+    """
+    Sum the masses shipped inside the ISO container and compare against the
+    transport limit (default 22.2 t).
+
+    Components are ordered inner -> outer to mirror the mobile shielding stack:
+        Core -> In-vessel shield -> Vessels -> Out-of-vessel shield -> ISO container
+
+    Populates params with:
+        'Transport Mass Components (kg)' : dict {component_label: mass_kg}
+        'Transport Mass Total (kg)'      : float
+        'Transport Mass Limit (kg)'      : float
+        'Transport Mass Margin (kg)'     : limit - total (negative => over limit)
+        'Within Transport Limit'         : bool
+
+    Returns the bool 'Within Transport Limit'.
+
+    ASSUMPTIONS / CAVEATS  (edit the COMPONENTS list below to change the accounting):
+      * "Fuel (heavy metal)" uses 'Uranium Mass' = U235 + U238 only. It does NOT
+        include cladding, matrix, bond/gap, or structural fuel hardware, so the
+        true fuel-element mass is higher. This is usually the single largest
+        source of under-counting here -- swap in a fuller fuel-mass param if you
+        add one to fuel_calculations().
+      * "Vessels (all)" uses 'Total Vessels Mass' = inner + guard + cooling +
+        intake vessels, i.e. the whole stack that physically ships. If you only
+        mean the inner vessel, change the key to 'Vessel Mass'.
+      * The in-vessel shield IS included because it physically ships inside the
+        container; leaving it out would understate (i.e. flatter) the transport
+        mass. Comment that line out for a strictly core-only definition.
+      * Coolant inventory (NaK / He) is not tracked as a static mass anywhere in
+        the model and is therefore not counted here.
+      * Balance-of-plant / heat exchangers / integrated heat-transfer vessel are
+        assumed to travel separately (not inside this container) and are excluded.
+    """
+    limit = float(params.get('Transport Mass Limit (kg)', DEFAULT_TRANSPORT_MASS_LIMIT_KG))
+
+    # (display label, params key)
+    COMPONENTS = [
+        ('Fuel Element',   'Fuel Element Mass'),
+        ('Moderator',            'Moderator Mass'),
+        ('Moderator Booster',    'Moderator Booster Mass'),
+        ('Control Drums',        'Control Drums Mass'),
+        ('Radial Reflector',     'Radial Reflector Mass'),
+        ('Axial Reflector',      'Axial Reflector Mass'),
+        ('In-Vessel Shield',     'In Vessel Shield Mass'),
+        ('Vessels (all)',        'Total Vessels Mass'),
+        ('Out-of-Vessel Shield', 'Out Of Vessel Shield Mass'),
+        ('ISO Container',        'Isocontainer Mass'),
+    ]
+
+    components = {}
+    missing = []
+    for label, key in COMPONENTS:
+        value = params.get(key, None)
+        if value is None:
+            missing.append((label, key))          # e.g. Moderator Booster only exists for some reactor types
+        else:
+            components[label] = float(value)
+
+    total = sum(components.values())
+    margin = limit - total
+    within = total <= limit
+
+    params['Transport Mass Components (kg)'] = components
+    params['Transport Mass Total (kg)'] = total
+    params['Transport Mass Limit (kg)'] = limit
+    params['Transport Mass Margin (kg)'] = margin
+    params['Within Transport Limit'] = within
+
+    if verbose:
+        _print_transport_mass_report(components, missing, total, limit, margin, within)
+
+    return within
+
+
+def _print_transport_mass_report(components, missing, total, limit, margin, within):
+    green, red, yellow, reset = '\033[92m', '\033[91m', '\033[93m', '\033[0m'
+
+    print('\n' + '=' * 62)
+    print(' ISO-CONTAINER TRANSPORT MASS EVALUATION')
+    print('=' * 62)
+    for label, mass_kg in components.items():
+        print(f'  {label:<22s} {mass_kg:>12,.1f} kg   ({mass_kg/1000:>7.3f} t)')
+    print('-' * 62)
+    print(f'  {"TOTAL":<22s} {total:>12,.1f} kg   ({total/1000:>7.3f} t)')
+    print(f'  {"LIMIT":<22s} {limit:>12,.1f} kg   ({limit/1000:>7.3f} t)')
+    print('-' * 62)
+
+    pct = 100.0 * total / limit if limit else float('nan')
+    if within:
+        print(f'{green}  PASS  {margin:>10,.1f} kg ({margin/1000:.3f} t) under limit '
+              f'-- {pct:.1f}% of limit{reset}')
+    else:
+        over = -margin
+        print(f'{red}  FAIL  {over:>10,.1f} kg ({over/1000:.3f} t) OVER limit '
+              f'-- {pct:.1f}% of limit{reset}')
+
+    if missing:
+        print(f'{yellow}  Note: not found in params (counted as 0):{reset}')
+        for label, key in missing:
+            print(f'{yellow}        - {label}  ->  params[{key!r}]{reset}')
+    print('=' * 62 + '\n')

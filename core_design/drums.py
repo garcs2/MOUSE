@@ -520,3 +520,28 @@ def calculate_moderator_mass(params):
     moderator_volume = params['Moderator Pin Count'] * circle_area(params['Moderator Pin Radii'][0]) * params['Active Height']
     moderator_mass = (1 / 1000) * moderator_volume * materials_database[params['Moderator Pin Materials'][0]].density
     return moderator_mass
+
+def calculate_fuel_element_mass(params):
+    materials_database = collect_materials_data(params)
+
+    radii     = params['Fuel Pin Radii']
+    materials = params['Fuel Pin Materials']
+    if len(radii) != len(materials):
+        raise ValueError(
+            f"'Fuel Pin Radii' ({len(radii)}) and 'Fuel Pin Materials' "
+            f"({len(materials)}) must be the same length."
+        )
+
+    pin_mass = 0.0  # kg per single pin
+    for i, (r_outer, material) in enumerate(zip(radii, materials)):
+        if material is None:                                     # void/gap -> no mass
+            continue
+        if i == 0:
+            area = circle_area(r_outer)                          # solid disk
+        else:
+            area = circle_area(r_outer) - circle_area(radii[i - 1])  # annulus
+        volume = area * params['Active Height']                  # cm^3
+        pin_mass += (1 / 1000) * volume * materials_database[material].density  # kg
+
+    params['Fuel Element Mass'] = pin_mass * params['Fuel Pin Count']
+    return params['Fuel Element Mass']

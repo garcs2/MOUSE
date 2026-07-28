@@ -133,7 +133,7 @@ update_params({
     'Drum Absorber Thickness': 1,  # cm
     'Drum Absorber Arc Degrees': 120,
 })
-
+calculate_fuel_element_mass(params)
 update_ltmr_reflector_geometry_from_drums(params)
 calculate_drums_volumes_and_masses(params)
 calculate_reflector_mass_LTMR(params)
@@ -147,7 +147,7 @@ update_params({
     'Thermal Efficiency': 0.31,
     'Heat Flux Criteria': 0.9,  # MW/m^2
     'Burnup Steps': [0.1, 0.5, 160],  # MWd/kg (trimmed for speed)
-    'Particles': 1000000
+    'Particles': 1000
 })
 params['Power MWe']   = params['Power MWt'] * params['Thermal Efficiency']
 params['Heat Flux']   = calculate_heat_flux(params)
@@ -348,7 +348,7 @@ update_params({
         '30m_exclusion':  3000,   # fixed: 30 m from core axis
     },
     # Fixed-source transport settings
-    'Shielding Particles':  2_000_000,  # particles per batch for shielding run
+    'Shielding Particles':  2_000,  # particles per batch for shielding run
     'Shielding Batches':    50,
     'Shielding Inactive':   0,          # no inactive batches in fixed-source mode
     'Isocontainer Interior Width':  235.0,   # cm — standard ISO container interior width
@@ -417,6 +417,7 @@ for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database_T
                     params['Isocontainer Outer Radius']    = None
                     outer_boundary_r = params['Out Of Vessel Shield Outer Radius']
                 calculate_shielding_masses(params)
+                evaluate_transport_mass(params)
                 # Fill in the dynamic dose evaluation radii
                 params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
                 params['Dose Evaluation Radii cm']['1m_standoff'] = outer_boundary_r + 100.0

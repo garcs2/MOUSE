@@ -412,6 +412,11 @@ PARAMS_REGISTRY = {
         'group': 'Core Design', 'units': 'kg',
         'description': 'Total mass of the neutron moderator material in the core',
         'source': 'Calculated', 'hidden': False, 'array_mode': None},
+        
+    'Fuel Element Mass': {
+        'group': 'Core Design', 'units': 'kg',
+        'description': 'Total mass of the complete fuel elements (fuel meat + gap + cladding) across all fuel pins',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
 
     'Moderator Booster Mass': {
         'group': 'Core Design', 'units': 'kg',
