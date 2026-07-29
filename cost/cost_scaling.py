@@ -38,18 +38,40 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
             matured = params.get('NOAK Unit Number', 0) >= params.get('HALEU NOAK Threshold', 184.2)
             effective_unit_cost = leu_swu_price if matured else haleu_swu_price
         cost = effective_unit_cost * pow(scaling_variable_value, exponent)
-    elif account == 27:   # Reactor transport to site (fresh, one-time delivery)
-        D = scaling_variable_value                                # one-way miles ('Transport Distance')
-        variable = (unit_cost                                     # base line-haul $/mi (sampled)
-                    + params.get('Transport Nuclear Premium', 1.5)
-                    + params.get('Transport Team Driver Premium', 0.5)
-                    + params.get('Outbound Escort Count', 1) * params.get('Transport Escort Rate', 2.5))
-        fixed = (params.get('Outbound Packaging Cost', 10000)
-                 + params.get('Transport Permit Cost', 5000)
-                 + params.get('Transport Mobilization Cost', 20000)
-                 + params.get('Outbound Security Fixed Cost', 10000)
-                 + params.get('Transport State Fees', 2000))
-        cost = variable * pow(D, exponent) + fixed
+    elif account == 27:   # Reactor transport to site — scenario- & category-aware
+            D = scaling_variable_value
+            mode = params.get('Deployment Mode', 'Mobile')   # Mobile | Semi-Mobile | Stationary
+
+            # Fresh-fuel security category from enrichment AND U-235 mass (10 CFR 73.2)
+            u235_kg = params.get('Mass U235', 0) / 1000.0
+            if params['Enrichment'] >= 0.10:
+                category = 'II' if u235_kg >= 10 else 'III'
+            else:
+                category = 'III' if u235_kg >= 10 else 'Exempt'
+            params['Transport Security Category'] = category
+            sec_cost = {'II':  params.get('Cat II Security Cost', 40000),
+                        'III': params.get('Cat III Security Cost', 10000),
+                        'Exempt': 0}[category]
+
+            def ship(radioactive, n_esc):
+                r_nuc = params.get('Transport Nuclear Premium', 1.5) if radioactive else 0.0
+                return (unit_cost + r_nuc
+                        + params.get('Transport Team Driver Premium', 0.5)
+                        + n_esc * params.get('Transport Escort Rate', 2.5)) * pow(D, exponent)
+
+            common_fixed = (params.get('Transport Permit Cost', 5000)
+                            + params.get('Transport Mobilization Cost', 20000)
+                            + params.get('Transport State Fees', 2000))
+
+            fuel_ship = (ship(True, params.get('Outbound Escort Count', 1))
+                        + params.get('Fuel Packaging Cost', 10000) + sec_cost + common_fixed)
+
+            nonfuel_ship = (ship(False, 0)
+                            + params.get('Reactor Packaging Cost', 5000) + common_fixed)
+
+            n_nonfuel = {'Mobile': 0, 'Semi-Mobile': 1, 'Stationary': 2}[mode]
+            cost = fuel_ship + n_nonfuel * nonfuel_ship
+            
     elif account == 711:
         cost_multiplier = params['FTEs Per Onsite Operator Per Year'] 
         cost = cost_multiplier * unit_cost * pow(scaling_variable_value,exponent)
