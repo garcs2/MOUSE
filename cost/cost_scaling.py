@@ -25,14 +25,31 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
             cost = cost_multiplier * unit_cost * pow(scaling_variable_value,exponent)
     
     elif account == 253:
-        if params['Enrichment'] < 0.1:
-            cost_premium = 1
-        elif  0.1 <= params['Enrichment'] < 0.2:
-            cost_premium = 1.15
-        elif 0.2 <= params['Enrichment']:
+        # Fuel enrichment / SWU pricing
+        params['Enrichment Category'] = 'HALEU' if params['Enrichment'] >= 0.1 else 'LEU'
+        if params['Enrichment'] >= 0.2:
             print("\033[91m ERROR: Enrichment is too high \033[0m")
             raise ValueError("Enrichment is too high")
-        cost = cost_premium * unit_cost *pow(scaling_variable_value,exponent) 
+        leu_swu_price   = unit_cost                               # DB 253 unit cost = $184.2/SWU (LEU base)
+        haleu_swu_price = params.get('HALEU SWU Price', 1000.0)   # premium until market matures
+        if params['Enrichment Category'] == 'LEU':
+            effective_unit_cost = leu_swu_price
+        else:
+            matured = params.get('NOAK Unit Number', 0) >= params.get('HALEU NOAK Threshold', 184.2)
+            effective_unit_cost = leu_swu_price if matured else haleu_swu_price
+        cost = effective_unit_cost * pow(scaling_variable_value, exponent)
+    elif account == 27:   # Reactor transport to site (fresh, one-time delivery)
+        D = scaling_variable_value                                # one-way miles ('Transport Distance')
+        variable = (unit_cost                                     # base line-haul $/mi (sampled)
+                    + params.get('Transport Nuclear Premium', 1.5)
+                    + params.get('Transport Team Driver Premium', 0.5)
+                    + params.get('Outbound Escort Count', 1) * params.get('Transport Escort Rate', 2.5))
+        fixed = (params.get('Outbound Packaging Cost', 10000)
+                 + params.get('Transport Permit Cost', 5000)
+                 + params.get('Transport Mobilization Cost', 20000)
+                 + params.get('Outbound Security Fixed Cost', 10000)
+                 + params.get('Transport State Fees', 2000))
+        cost = variable * pow(D, exponent) + fixed
     elif account == 711:
         cost_multiplier = params['FTEs Per Onsite Operator Per Year'] 
         cost = cost_multiplier * unit_cost * pow(scaling_variable_value,exponent)
@@ -45,7 +62,19 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
     elif account == 721:
         cost_multiplier = params['Annual Coolant Supply Frequency']
         cost = cost_multiplier * unit_cost * scaling_variable_value
- 
+    elif account == 722:  # Activated-unit return transport (recurring, annual)
+        D = scaling_variable_value
+        variable = (unit_cost
+                    + params.get('Transport Nuclear Premium', 2.0)
+                    + params.get('Transport Team Driver Premium', 0.5)
+                    + params.get('Return Escort Count', 2) * params.get('Transport Escort Rate', 2.5))
+        fixed = (params.get('Return Cask Amortized Cost', 75000)
+                 + params.get('Return Permit Routing Cost', 35000)
+                 + params.get('Return Mobilization Cost', 50000)
+                 + params.get('Return Security Fixed Cost', 60000)
+                 + params.get('Return State Fees', 5000))
+        per_trip = variable * pow(D, exponent) + fixed
+        cost = params.get('Annual Reactor Return Frequency', 0) * per_trip
     elif account == 81:
         cost_multiplier =  params['FTEs Per Operator Per Year Per Refueling'] 
         cost = cost_multiplier * unit_cost * pow(scaling_variable_value, exponent)
