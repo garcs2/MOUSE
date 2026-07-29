@@ -55,8 +55,8 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
 
         # Mode-dependent fuel packaging: Mobile ships the whole fueled+shielded unit
         # (heavier packaging); Semi-Mobile / Stationary ship bare fuel.
-        fuel_pkg = (params.get('Mobile Fuel Packaging Cost', 25000) if mode == 'Mobile'
-                    else params.get('Bare Fuel Packaging Cost', 10000))
+        fuel_pkg = (params.get('Mobile Fuel Packaging Cost', 100000) if mode == 'Mobile' # fuel packing costs are order of magnitude estimates since vendor descriptions are not provided
+                    else params.get('Bare Fuel Packaging Cost', 250000))
 
         def ship(radioactive, n_esc):
             r_nuc = params.get('Transport Nuclear Premium', 1.5) if radioactive else 0.0
@@ -71,7 +71,7 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
         fuel_ship = (ship(True, params.get('Outbound Escort Count', 1))
                      + fuel_pkg + sec_cost + common_fixed)
         nonfuel_ship = (ship(False, 0)
-                        + params.get('Reactor Packaging Cost', 5000) + common_fixed)
+                        + params.get('Reactor Packaging Cost', 50000) + common_fixed)
 
         n_nonfuel = {'Mobile': 0, 'Semi-Mobile': 1, 'Stationary': 2}[mode]
         cost = fuel_ship + n_nonfuel * nonfuel_ship
