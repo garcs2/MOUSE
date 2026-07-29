@@ -1231,10 +1231,39 @@ PARAMS_REGISTRY = {
         'group': 'Economic Parameters', 'units': 'vehicles',
         'description': 'Number of escort vehicles for the fresh-unit outbound shipment',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Outbound Packaging Cost': {
-        'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment fissile/ISO packaging cost for the fresh outbound unit',
+    'Deployment Mode': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Transport configuration: Mobile (fueled unit in one load), Semi-Mobile '
+                       '(unfueled reactor + fuel separately), or Stationary (core, shielding, fuel all separate)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Cat II Security Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment 10 CFR 73.67 in-transit security cost for Category II SNM (HALEU, >=10 kg U-235)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Cat III Security Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment 10 CFR 73.67 in-transit security cost for Category III SNM (LEU, or HALEU <10 kg U-235)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Mobile Fuel Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment packaging cost for the fully fueled+shielded unit in Mobile mode',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Bare Fuel Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment fissile packaging cost for bare fuel shipped separately (Semi-Mobile / Stationary)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment ISO/tie-down packaging cost for the unfueled (non-radioactive) reactor load',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Reactor Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment handling/packaging cost for an activated non-fuel reactor load on return',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Security Category': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'II, III, or Exempt, derived from enrichment and U-235 mass during account 27 costing',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
     'Transport Permit Cost': {
         'group': 'Economic Parameters', 'units': '$',
         'description': 'Per-shipment permitting and route-planning cost (outbound)',
@@ -1242,10 +1271,6 @@ PARAMS_REGISTRY = {
     'Transport Mobilization Cost': {
         'group': 'Economic Parameters', 'units': '$',
         'description': 'Per-shipment crane mobilization and load/unload cost at both ends (outbound)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Outbound Security Fixed Cost': {
-        'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment fixed security program cost for the outbound (Category II SNM) move',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Transport State Fees': {
         'group': 'Economic Parameters', 'units': '$',
