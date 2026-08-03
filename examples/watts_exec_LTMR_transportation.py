@@ -36,7 +36,7 @@ from reactor_engineering_evaluation.fuel_calcs import fuel_calculations
 from reactor_engineering_evaluation.BOP import *
 from reactor_engineering_evaluation.vessels_calcs import *
 from reactor_engineering_evaluation.tools import *
-from cost.cost_estimation import parametric_studies
+from cost.cost_estimation import detailed_bottom_up_cost_estimate, parametric_studies
 
 # New shielding-specific imports
 from shielding.openmc_shielding_template_LTMR import build_openmc_shielding_model_LTMR
@@ -67,7 +67,7 @@ def update_params(updates):
 # **************************************************************************************************************************
 
 update_params({
-    'plotting': "N",  # Shielding runs are expensive; disable geometry plots by default
+    'plotting': "Y",  # Shielding runs are expensive; disable geometry plots by default
     'Save Dose Map': False,
     'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml',
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',
@@ -146,7 +146,7 @@ update_params({
     'Power MWt': 20,
     'Thermal Efficiency': 0.31,
     'Heat Flux Criteria': 0.9,  # MW/m^2
-    'Burnup Steps': [0.1, 0.5, 160],  # MWd/kg (trimmed for speed)
+    'Burnup Steps': [0.1, 0.5, 160, 200],  # MWd/kg (trimmed for speed)
     'Particles': 1000
 })
 params['Power MWe']   = params['Power MWt'] * params['Thermal Efficiency']
@@ -166,7 +166,9 @@ params['Isothermal Temperature Coefficients'] = False
 heat_flux_monitor = monitor_heat_flux(params)
 run_openmc(build_openmc_model_LTMR, heat_flux_monitor, params)
 fuel_calculations(params)
-
+nan_keys = [k for k, v in params.items()
+               if isinstance(v, float) and v != v]   # v != v is True only for NaN
+print("NaN params:", nan_keys)
 print("STEP 1b: Generating persistent BOL fission source for shielding reuse")
 os.makedirs(params['shielding_output_dir'], exist_ok=True)  # ensure it exists before the plugin runs
 openmc_plugin = watts.PluginOpenMC(build_openmc_model_LTMR, show_stdout=True, show_stderr=True)
@@ -260,7 +262,7 @@ params['A78: CAPEX to Decommissioning Cost Ratio'] = 0.15
 
 update_params({
     'Land Area': 18,               # acres
-    'Escalation Year': 2024,
+    'Escalation Year': 2025,
     'Discount Rate': 0.07,
     'Excavation Volume': 412.605,  # m^3
 
@@ -318,7 +320,7 @@ params['Number of Samples'] = 1000  # Monte Carlo samples for cost uncertainty (
 
 # cost_database_filename = '/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx'
 cost_tracked_params_list = [
-    'Mobile', 'Out Of Vessel Shield Material', 'Out Of Vessel Shield Thickness',
+    'Transport Distance', 'Deployment Mode', 'Out Of Vessel Shield Material', 'Out Of Vessel Shield Thickness',
     'Isocontainer Steel Thickness',
     'In Vessel Shield Mass', 'Out Of Vessel Shield Mass',
     'Dose Rate iso_surface mSv_hr', 'Dose Rate 1m_standoff mSv_hr', 'Dose Rate 30m_exclusion mSv_hr',
@@ -380,70 +382,69 @@ params['Mobile'] = True
 params['Out Of Vessel Shield Material'] = 'WEP'
 params['Out Of Vessel Shield Thickness'] = 30
 params['Annual Reactor Return Frequency'] = 1/8 
+params['Transport Distance'] = 500
+params['Deployment Mode'] = 'Mobile'
+params['Cost_Data'] = cost_database_filename
+mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
+print(f"\n--- {mobile_tag} | Shield: {params['Out Of Vessel Shield Material']} "
+    f"| Thickness: {params['Out Of Vessel Shield Thickness']} cm ---")
 
-for params['Transport Distance'] in [0, 500]:
-    for params['Deployment Mode'] in ['Mobile', 'Semi-Mobile', 'Stationary']:
-        params['Cost_Data'] = cost_database_filename
-        mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
-        print(f"\n--- {mobile_tag} | Shield: {params['Out Of Vessel Shield Material']} "
-            f"| Thickness: {params['Out Of Vessel Shield Thickness']} cm ---")
+# ---- Geometry: derive outer radii for this iteration ----
+params['Out Of Vessel Shield Thickness'] = params['Out Of Vessel Shield Thickness']
+params['Out Of Vessel Shield Inner Radius'] = params['In Vessel Shield Outer Radius'] \
+    + sum([
+        params['Vessel Thickness'],
+        params['Gap Between Vessel And Guard Vessel'],
+        params['Guard Vessel Thickness'],
+        params['Gap Between Guard Vessel And Cooling Vessel'],
+        params['Cooling Vessel Thickness'],
+        params['Gap Between Cooling Vessel And Intake Vessel'],
+        params['Intake Vessel Thickness'],
+    ])
+params['Out Of Vessel Shield Outer Radius'] = (
+    params['Out Of Vessel Shield Inner Radius']
+    + params['Out Of Vessel Shield Thickness']
+)
 
-        # ---- Geometry: derive outer radii for this iteration ----
-        params['Out Of Vessel Shield Thickness'] = params['Out Of Vessel Shield Thickness']
-        params['Out Of Vessel Shield Inner Radius'] = params['In Vessel Shield Outer Radius'] \
-            + sum([
-                params['Vessel Thickness'],
-                params['Gap Between Vessel And Guard Vessel'],
-                params['Guard Vessel Thickness'],
-                params['Gap Between Guard Vessel And Cooling Vessel'],
-                params['Cooling Vessel Thickness'],
-                params['Gap Between Cooling Vessel And Intake Vessel'],
-                params['Intake Vessel Thickness'],
-            ])
-        params['Out Of Vessel Shield Outer Radius'] = (
-            params['Out Of Vessel Shield Inner Radius']
-            + params['Out Of Vessel Shield Thickness']
-        )
-        
-        if params['Mobile']:
-            params['Isocontainer Steel Thickness'] = ISO_CONTAINER_STEEL_THICKNESS_CM
-            params['Isocontainer Steel Material']  = ISO_CONTAINER_MATERIAL
-            params['Isocontainer Inner Radius']    = params['Out Of Vessel Shield Outer Radius']
-            params['Isocontainer Outer Radius']    = (
-                params['Isocontainer Inner Radius'] + params['Isocontainer Steel Thickness']
-            )
-            outer_boundary_r = params['Isocontainer Outer Radius']
-        else:
-            params['Isocontainer Steel Thickness'] = 0.0
-            params['Isocontainer Steel Material']  = None
-            params['Isocontainer Inner Radius']    = None
-            params['Isocontainer Outer Radius']    = None
-            outer_boundary_r = params['Out Of Vessel Shield Outer Radius']
-        calculate_shielding_masses(params)
-        evaluate_transport_mass(params)
-        # Fill in the dynamic dose evaluation radii
-        params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
-        params['Dose Evaluation Radii cm']['1m_standoff'] = outer_boundary_r + 100.0
+if params['Mobile']:
+    params['Isocontainer Steel Thickness'] = ISO_CONTAINER_STEEL_THICKNESS_CM
+    params['Isocontainer Steel Material']  = ISO_CONTAINER_MATERIAL
+    params['Isocontainer Inner Radius']    = params['Out Of Vessel Shield Outer Radius']
+    params['Isocontainer Outer Radius']    = (
+        params['Isocontainer Inner Radius'] + params['Isocontainer Steel Thickness']
+    )
+    outer_boundary_r = params['Isocontainer Outer Radius']
+else:
+    params['Isocontainer Steel Thickness'] = 0.0
+    params['Isocontainer Steel Material']  = None
+    params['Isocontainer Inner Radius']    = None
+    params['Isocontainer Outer Radius']    = None
+    outer_boundary_r = params['Out Of Vessel Shield Outer Radius']
+calculate_shielding_masses(params)
+evaluate_transport_mass(params)
+# Fill in the dynamic dose evaluation radii
+params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
+params['Dose Evaluation Radii cm']['1m_standoff'] = outer_boundary_r + 100.0
 
-        # ---- Flag shielding run for the template builder ----
-        params['Shielding Run'] = True
+# ---- Flag shielding run for the template builder ----
+params['Shielding Run'] = True
 
-        # ---- Run Step-2 fixed-source shielding transport ----
-        run_openmc_shielding(build_openmc_shielding_model_LTMR, params)
+# ---- Run Step-2 fixed-source shielding transport ----
+run_openmc_shielding(build_openmc_shielding_model_LTMR, params)
+print(f"This is escalation year after shielding run: {params['Escalation Year']}")
+# ---- Report compliance ----
+dose_surface = params.get('Dose Rate iso_surface mSv_hr', float('nan'))
+dose_1m      = params.get('Dose Rate 1m_standoff mSv_hr', float('nan'))
+dose_30m     = params.get('Dose Rate 30m_exclusion mSv_hr', float('nan'))
 
-        # ---- Report compliance ----
-        dose_surface = params.get('Dose Rate iso_surface mSv_hr', float('nan'))
-        dose_1m      = params.get('Dose Rate 1m_standoff mSv_hr', float('nan'))
-        dose_30m     = params.get('Dose Rate 30m_exclusion mSv_hr', float('nan'))
+params['Meets Public Limit']  = dose_surface <= params['Dose Rate Limit mSv_hr']
+params['Meets Worker Limit']  = dose_surface <= params['Dose Rate Limit Workers mSv_hr']
 
-        params['Meets Public Limit']  = dose_surface <= params['Dose Rate Limit mSv_hr']
-        params['Meets Worker Limit']  = dose_surface <= params['Dose Rate Limit Workers mSv_hr']
-
-        print(f"  Dose @ ISO surface : {dose_surface:.4e} mSv/hr  "
-            f"({'PASS' if params['Meets Public Limit'] else 'FAIL'} public limit)")
-        print(f"  Dose @ 1m standoff : {dose_1m:.4e} mSv/hr")
-        print(f"  Dose @ 30m exclusion: {dose_30m:.4e} mSv/hr")
-        parametric_studies(cost_database_filename, cost_tracked_params_list)
+print(f"  Dose @ ISO surface : {dose_surface:.4e} mSv/hr  "
+    f"({'PASS' if params['Meets Public Limit'] else 'FAIL'} public limit)")
+print(f"  Dose @ 1m standoff : {dose_1m:.4e} mSv/hr")
+print(f"  Dose @ 30m exclusion: {dose_30m:.4e} mSv/hr")
+detailed_bottom_up_cost_estimate(cost_database_filename)
 
 elapsed_time = (time.time() - time_start) / 60
 print(f'\nTotal execution time: {np.round(elapsed_time, 2)} minutes')

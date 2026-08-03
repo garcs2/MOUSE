@@ -104,7 +104,8 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
 
             # Irradiated-fuel-bearing shipment: Type B cask + 10 CFR 73.37 armed escorts.
             fuel_ship = (ship(params.get('Return Escort Count', 2))
-                        + params.get('Return Cask Amortized Cost', 75000)
+                     + params.get('Return Cask Capital Cost', 1_500_000)
+                       / params.get('Return Cask Uses', 1)
                         + params.get('Return Security Fixed Cost', 60000) + common_fixed)
             nonfuel_ship = (ship(1)
                             + params.get('Return Reactor Packaging Cost', 15000) + common_fixed)

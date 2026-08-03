@@ -1284,9 +1284,13 @@ PARAMS_REGISTRY = {
         'group': 'Economic Parameters', 'units': 'vehicles',
         'description': 'Number of armed escort vehicles for the activated-unit return shipment',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return Cask Amortized Cost': {
+    'Return Cask Capital Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-trip amortized Type B cask cost (cask capital / uses per cask) for the return move',
+        'description': 'Full capital cost of the Type B return cask (before amortization)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Cask Uses': {
+        'group': 'Economic Parameters', 'units': 'trips',
+        'description': 'Number of return trips a single cask serves; 1 = full cask charged per trip',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Return Permit Routing Cost': {
         'group': 'Economic Parameters', 'units': '$',

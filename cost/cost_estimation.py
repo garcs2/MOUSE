@@ -440,7 +440,7 @@ def parametric_studies(cost_database_filename, tracked_params_list):
         )
     caller_file = caller_frame.f_globals.get('__file__', 'output')
     output_csv_filename = os.path.splitext(os.path.abspath(caller_file))[0] + '_output.csv'
-
+    
     detailed_cost_table = bottom_up_cost_estimate(cost_database_filename, params)
     tracked_costs = create_cost_dictionary(detailed_cost_table, params, tracked_params_list)
 
