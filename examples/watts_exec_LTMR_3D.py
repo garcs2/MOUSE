@@ -50,6 +50,7 @@ rank = _get_mpi_rank()
 
 update_params({
     'plotting': "N",  # "Y" or "N": Yes or No
+    'XS_type': 'endf8.1',
     'cross_sections_xml_location': '/hpc-common/data/openmc/endfb-viii.0-hdf5/cross_sections.xml', # on INL HPC
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml'       # on INL HPC
 })

@@ -52,6 +52,10 @@ def materials_densities(material):
     "B4C_enriched": 2.52,    # Approximate density of boron carbide
     "B4C_natural": 2.52,     # Approximate density of boron carbide
     "WEP": 1.1,              # WEP density (water extended polymer)
+    "WB": 15.43,
+    "W2B": 16.75,
+    "WB4": 8.23,
+    "WC": 15.32,
     }
     return material_densities[material] # in gram/cm^3
 
