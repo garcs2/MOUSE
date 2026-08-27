@@ -2,6 +2,37 @@
 import numpy as np 
 
 DEFAULT_TRANSPORT_MASS_LIMIT_KG = 22200.0
+# Mass groups (label, params key). Edit these lists to change what rides where.
+#   CORE     : reactor structure that always travels as the "reactor" load
+#   SHIELD   : in/out-of-vessel shielding + ISO container
+#   FUEL     : the fuel elements (ship separately in Semi-Mobile / Stationary)
+
+_CORE_KEYS = [
+    ('Moderator',           'Moderator Mass'),
+    ('Moderator Booster',   'Moderator Booster Mass'),
+    ('Control Drums',       'Control Drums Mass'),
+    ('Radial Reflector',    'Radial Reflector Mass'),
+    ('Axial Reflector',     'Axial Reflector Mass'),
+    ('Vessels (all)',       'Total Vessels Mass'),
+]
+_SHIELD_KEYS = [
+    ('In-Vessel Shield',      'In Vessel Shield Mass'),
+    ('Out-of-Vessel Shield',  'Out Of Vessel Shield Mass'),
+    ('ISO Container',         'Isocontainer Mass'),
+]
+_FUEL_KEYS = [
+    ('Fuel Element',          'Fuel Element Mass'),
+]
+
+def _group_mass(params, keys, missing):
+    total = 0.0
+    for label, key in keys:
+        value = params.get(key)
+        if value is None:
+            missing.append((label, key))
+        else:
+            total += float(value)
+    return total
 
 def ellipsoid_shell(a, b, c):
     return 4*np.pi*np.power(((a*b)**1.6 + (a*c)**1.6 + (b*c)**1.6)/3, 1/1.6)
@@ -21,6 +52,10 @@ def materials_densities(material):
     "B4C_enriched": 2.52,    # Approximate density of boron carbide
     "B4C_natural": 2.52,     # Approximate density of boron carbide
     "WEP": 1.1,              # WEP density (water extended polymer)
+    "WB": 15.43,
+    "W2B": 16.75,
+    "WB4": 8.23,
+    "WC": 15.32,
     }
     return material_densities[material] # in gram/cm^3
 
@@ -134,71 +169,95 @@ def GCMR_integrated_heat_transfer_vessel(params):
 
 
 def evaluate_transport_mass(params, verbose=True):
+    """
+    Deployment-mode-aware, per-load transport-mass check.
+ 
+    Partitions the reactor into three mass groups - core (structure + vessels +
+    reflectors + moderator + drums), shielding (in/out-of-vessel + ISO container),
+    and fuel (Fuel Element Mass) - assembles the truck loads for the selected
+    Deployment Mode, and checks EACH load against the transport limit (default
+    22.2 t payload):
+ 
+        Mobile      : 1 load  = core + shielding + fuel        (fully assembled)
+        Semi-Mobile : 2 loads = [core + shielding], [fuel]
+        Stationary  : 3 loads = [core], [shielding], [fuel]
+ 
+    The governing constraint is the HEAVIEST single load.
+ 
+    Populates params:
+        'Transport Loads (kg)'         : dict {load_name: mass_kg}
+        'Transport Heaviest Load (kg)' : float
+        'Transport Mass Limit (kg)'    : float
+        'Within Transport Limit'       : bool  (True only if every load fits)
+    Returns the bool 'Within Transport Limit'.
+ 
+    Caveats:
+      * Fuel uses 'Fuel Element Mass' (full pin: fuel + gap + clad). If that key
+        is absent it is counted as 0 - compute it with calculate_fuel_element_mass
+        first, or the fuel load will read low.
+      * Coolant inventory (NaK / He) is not tracked as a static mass and is not
+        included.
+      * 'Isocontainer Mass' is only non-zero when params['Mobile'] is True.
+    """
     limit = float(params.get('Transport Mass Limit (kg)', DEFAULT_TRANSPORT_MASS_LIMIT_KG))
-
-    # (display label, params key)
-    COMPONENTS = [
-        ('Fuel Element',   'Fuel Element Mass'),
-        ('Moderator',            'Moderator Mass'),
-        ('Moderator Booster',    'Moderator Booster Mass'),
-        ('Control Drums',        'Control Drums Mass'),
-        ('Radial Reflector',     'Radial Reflector Mass'),
-        ('Axial Reflector',      'Axial Reflector Mass'),
-        ('In-Vessel Shield',     'In Vessel Shield Mass'),
-        ('Vessels (all)',        'Total Vessels Mass'),
-        ('Out-of-Vessel Shield', 'Out Of Vessel Shield Mass'),
-        ('ISO Container',        'Isocontainer Mass'),
-    ]
-
-    components = {}
+    mode = params.get('Deployment Mode', 'Mobile')
+ 
     missing = []
-    for label, key in COMPONENTS:
-        value = params.get(key, None)
-        if value is None:
-            missing.append((label, key))          # e.g. Moderator Booster only exists for some reactor types
-        else:
-            components[label] = float(value)
-
-    total = sum(components.values())
-    margin = limit - total
-    within = total <= limit
-
-    params['Transport Mass Components (kg)'] = components
-    params['Transport Mass Total (kg)'] = total
-    params['Transport Mass Limit (kg)'] = limit
-    params['Transport Mass Margin (kg)'] = margin
-    params['Within Transport Limit'] = within
-
-    if verbose:
-        _print_transport_mass_report(components, missing, total, limit, margin, within)
-
-    return within
-
-
-def _print_transport_mass_report(components, missing, total, limit, margin, within):
-    green, red, yellow, reset = '\033[92m', '\033[91m', '\033[93m', '\033[0m'
-
-    print('\n' + '=' * 62)
-    print(' ISO-CONTAINER TRANSPORT MASS EVALUATION')
-    print('=' * 62)
-    for label, mass_kg in components.items():
-        print(f'  {label:<22s} {mass_kg:>12,.1f} kg   ({mass_kg/1000:>7.3f} t)')
-    print('-' * 62)
-    print(f'  {"TOTAL":<22s} {total:>12,.1f} kg   ({total/1000:>7.3f} t)')
-    print(f'  {"LIMIT":<22s} {limit:>12,.1f} kg   ({limit/1000:>7.3f} t)')
-    print('-' * 62)
-
-    pct = 100.0 * total / limit if limit else float('nan')
-    if within:
-        print(f'{green}  PASS  {margin:>10,.1f} kg ({margin/1000:.3f} t) under limit '
-              f'-- {pct:.1f}% of limit{reset}')
+    core   = _group_mass(params, _CORE_KEYS, missing)
+    shield = _group_mass(params, _SHIELD_KEYS, missing)
+    fuel   = _group_mass(params, _FUEL_KEYS, missing)
+ 
+    if mode == 'Mobile':
+        loads = {'Full unit (core + shield + fuel)': core + shield + fuel}
+    elif mode == 'Semi-Mobile':
+        loads = {'Reactor (core + shield, unfueled)': core + shield,
+                 'Fuel': fuel}
+    elif mode == 'Stationary':
+        loads = {'Core': core, 'Shielding': shield, 'Fuel': fuel}
     else:
-        over = -margin
-        print(f'{red}  FAIL  {over:>10,.1f} kg ({over/1000:.3f} t) OVER limit '
-              f'-- {pct:.1f}% of limit{reset}')
-
+        raise ValueError(f"Unknown Deployment Mode: {mode!r} "
+                         f"(expected 'Mobile', 'Semi-Mobile', or 'Stationary').")
+ 
+    heaviest = max(loads.values()) if loads else 0.0
+    within = heaviest <= limit
+ 
+    params['Transport Loads (kg)'] = loads
+    params['Transport Heaviest Load (kg)'] = heaviest
+    params['Transport Mass Limit (kg)'] = limit
+    params['Within Transport Limit'] = within
+ 
+    if verbose:
+        _print_transport_mass_report(mode, loads, missing, heaviest, limit, within)
+ 
+    return within
+ 
+ 
+def _print_transport_mass_report(mode, loads, missing, heaviest, limit, within):
+    green, red, yellow, reset = '\033[92m', '\033[91m', '\033[93m', '\033[0m'
+ 
+    print('\n' + '=' * 66)
+    print(f' TRANSPORT MASS EVALUATION  -  Deployment Mode: {mode}')
+    print('=' * 66)
+    for name, m in loads.items():
+        ok = m <= limit
+        tag = f'{green}OK  {reset}' if ok else f'{red}OVER{reset}'
+        print(f'  [{tag}] {name:<35s} {m:>11,.1f} kg ({m/1000:>6.3f} t)')
+    print('-' * 66)
+    print(f'  Heaviest load: {heaviest:>11,.1f} kg ({heaviest/1000:.3f} t)     '
+          f'limit {limit:,.0f} kg ({limit/1000:.1f} t)')
+ 
+    pct = 100.0 * heaviest / limit if limit else float('nan')
+    if within:
+        print(f'{green}  PASS - heaviest load is {limit - heaviest:,.0f} kg '
+              f'({(limit-heaviest)/1000:.3f} t) under the limit ({pct:.1f}% of limit){reset}')
+    else:
+        print(f'{red}  FAIL - heaviest load is {heaviest - limit:,.0f} kg '
+              f'({(heaviest-limit)/1000:.3f} t) OVER the limit ({pct:.1f}% of limit).{reset}')
+        print(f'{red}         A less-consolidated Deployment Mode (Semi-Mobile / Stationary) '
+              f'splits the load and may bring it within limit.{reset}')
+ 
     if missing:
         print(f'{yellow}  Note: not found in params (counted as 0):{reset}')
         for label, key in missing:
-            print(f'{yellow}        - {label}  ->  params[{key!r}]{reset}')
-    print('=' * 62 + '\n')
+            print(f'{yellow}        - {label} -> params[{key!r}]{reset}')
+    print('=' * 66 + '\n')

@@ -1210,6 +1210,118 @@ PARAMS_REGISTRY = {
         'description': 'Volume of earth to be excavated for plant construction',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
+# --- Reactor transport (mobile deployment) ---
+    'Transport Distance': {
+        'group': 'Economic Parameters', 'units': 'miles',
+        'description': 'One-way road distance for reactor transport; set to 0 to disable transport accounts 27 and 722',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Nuclear Premium': {
+        'group': 'Economic Parameters', 'units': '$/mile',
+        'description': 'Incremental per-mile premium for a Class 7 (radioactive) certified carrier',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Team Driver Premium': {
+        'group': 'Economic Parameters', 'units': '$/mile',
+        'description': 'Incremental per-mile cost for team (two-driver) continuous transit',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Escort Rate': {
+        'group': 'Economic Parameters', 'units': '$/mile',
+        'description': 'Cost per escort/pilot vehicle per mile',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Outbound Escort Count': {
+        'group': 'Economic Parameters', 'units': 'vehicles',
+        'description': 'Number of escort vehicles for the fresh-unit outbound shipment',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Deployment Mode': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Transport configuration: Mobile (fueled unit in one load), Semi-Mobile '
+                       '(unfueled reactor + fuel separately), or Stationary (core, shielding, fuel all separate)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Cat II Security Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment 10 CFR 73.67 in-transit security cost for Category II SNM (HALEU, >=10 kg U-235)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Cat III Security Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment 10 CFR 73.67 in-transit security cost for Category III SNM (LEU, or HALEU <10 kg U-235)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Mobile Fuel Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment packaging cost for the fully fueled+shielded unit in Mobile mode',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Bare Fuel Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment fissile packaging cost for bare fuel shipped separately (Semi-Mobile / Stationary)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Reactor Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment ISO/tie-down packaging cost for the unfueled (non-radioactive) reactor load',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Reactor Packaging Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment handling/packaging cost for an activated non-fuel reactor load on return',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Security Category': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'II, III, or Exempt, derived from enrichment and U-235 mass during account 27 costing',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+    'Transport Permit Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment permitting and route-planning cost (outbound)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Mobilization Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment crane mobilization and load/unload cost at both ends (outbound)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport State Fees': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Sum of state per-shipment/per-cask fees along the route (outbound)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Annual Reactor Return Frequency': {
+        'group': 'Economic Parameters', 'units': '1/year',
+        'description': 'Expected number of activated-unit return trips per year; set to 0 to disable account 722',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Escort Count': {
+        'group': 'Economic Parameters', 'units': 'vehicles',
+        'description': 'Number of armed escort vehicles for the activated-unit return shipment',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Cask Capital Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Full capital cost of the Type B return cask (before amortization)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Cask Uses': {
+        'group': 'Economic Parameters', 'units': 'trips',
+        'description': 'Number of return trips a single cask serves; 1 = full cask charged per trip',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Permit Routing Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment HRCQ preferred-routing, NRC route approval, and advance-notification cost',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Mobilization Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment heavy cask handling and load/unload cost (return)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Security Fixed Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Per-shipment 10 CFR 73.37 security and movement-control-center cost (return)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return State Fees': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Sum of state per-cask fees along the route (return)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    # --- HALEU enrichment pricing (account 253) ---
+    'HALEU SWU Price': {
+        'group': 'Economic Parameters', 'units': '$/SWU',
+        'description': 'Premium SWU price applied to HALEU (>=10% enrichment) until the market matures',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'HALEU NOAK Threshold': {
+        'group': 'Economic Parameters', 'units': 'units',
+        'description': 'NOAK unit count at which HALEU SWU price drops to the mature LEU price',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Enrichment Category': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'LEU or HALEU, set from Enrichment during account 253 costing',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+
     # Building volumes — Reactor Building
     'Reactor Building Slab Roof Volume': {
         'group': 'Economic Parameters', 'units': 'm³',

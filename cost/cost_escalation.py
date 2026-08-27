@@ -30,7 +30,6 @@ def calculate_inflation_multiplier(file_path, base_dollar_year, cost_type, escal
     escalation_year = int(escalation_year)
  
     df = _load_inflation_table(file_path)
- 
     if base_dollar_year not in df['Year'].values:
         print(f"\033[91mBase Year : {base_dollar_year} not found in the Excel file.\033[0m")
  
