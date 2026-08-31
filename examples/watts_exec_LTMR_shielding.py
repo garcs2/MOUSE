@@ -36,7 +36,7 @@ from reactor_engineering_evaluation.fuel_calcs import fuel_calculations
 from reactor_engineering_evaluation.BOP import *
 from reactor_engineering_evaluation.vessels_calcs import *
 from reactor_engineering_evaluation.tools import *
-from cost.cost_estimation import parametric_studies
+from cost.cost_estimation import detailed_bottom_up_cost_estimate, parametric_studies
 
 # New shielding-specific imports
 from shielding.openmc_shielding_template_LTMR import build_openmc_shielding_model_LTMR
@@ -365,7 +365,9 @@ update_params({
 # Conservatively modeled as a uniform cylindrical shell of equivalent steel.
 ISO_CONTAINER_STEEL_THICKNESS_CM = 1.5   # cm effective steel (structural average)
 ISO_CONTAINER_MATERIAL           = 'carbon_steel'
-
+params['Annual Reactor Return Frequency'] = 1/8 
+params['Transport Distance'] = 500
+params['Deployment Mode'] = 'Mobile'
 # ---- Parametric sweep ----
 tracked_params_list = [
     'Mobile', 'Out Of Vessel Shield Material', 'Out Of Vessel Shield Thickness',
@@ -376,9 +378,9 @@ tracked_params_list = [
     'Fuel', 'Enrichment', 'Power MWt',
 ]
 
-for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database_TEMA_updated.xlsx']:
+for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx']:
     for params['Mobile'] in [True]:
-        for params['Out Of Vessel Shield Material'] in ['WEP']:
+        for params['Out Of Vessel Shield Material'] in ['B4C_natural']:
             for params['Out Of Vessel Shield Thickness'] in [30]:  # cm
                 params['Cost_Data'] = cost_database_filename
                 mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
@@ -447,7 +449,8 @@ for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database_T
                     tracked_params_list,
                     os.path.join(params['shielding_output_dir'], 'output_shielding_study.csv')
                 )
-                parametric_studies(cost_database_filename, cost_tracked_params_list)
+                # parametric_studies(cost_database_filename, cost_tracked_params_list)
+                detailed_bottom_up_cost_estimate(cost_database_filename)
 
 elapsed_time = (time.time() - time_start) / 60
 print(f'\nTotal execution time: {np.round(elapsed_time, 2)} minutes')
