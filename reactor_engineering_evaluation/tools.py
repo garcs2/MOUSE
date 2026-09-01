@@ -170,65 +170,61 @@ def GCMR_integrated_heat_transfer_vessel(params):
 
 def evaluate_transport_mass(params, verbose=True):
     """
-    Deployment-mode-aware, per-load transport-mass check.
- 
-    Partitions the reactor into three mass groups - core (structure + vessels +
-    reflectors + moderator + drums), shielding (in/out-of-vessel + ISO container),
-    and fuel (Fuel Element Mass) - assembles the truck loads for the selected
-    Deployment Mode, and checks EACH load against the transport limit (default
-    22.2 t payload):
- 
-        Mobile      : 1 load  = core + shielding + fuel        (fully assembled)
-        Semi-Mobile : 2 loads = [core + shielding], [fuel]
-        Stationary  : 3 loads = [core], [shielding], [fuel]
- 
-    The governing constraint is the HEAVIEST single load.
- 
-    Populates params:
-        'Transport Loads (kg)'         : dict {load_name: mass_kg}
-        'Transport Heaviest Load (kg)' : float
-        'Transport Mass Limit (kg)'    : float
-        'Within Transport Limit'       : bool  (True only if every load fits)
-    Returns the bool 'Within Transport Limit'.
- 
-    Caveats:
-      * Fuel uses 'Fuel Element Mass' (full pin: fuel + gap + clad). If that key
-        is absent it is counted as 0 - compute it with calculate_fuel_element_mass
-        first, or the fuel load will read low.
-      * Coolant inventory (NaK / He) is not tracked as a static mass and is not
-        included.
-      * 'Isocontainer Mass' is only non-zero when params['Mobile'] is True.
+    Auto-determines the required Deployment Mode based on component mass limits,
+    or falls back to the least-assembled mode if limits are exceeded.
     """
     limit = float(params.get('Transport Mass Limit (kg)', DEFAULT_TRANSPORT_MASS_LIMIT_KG))
-    mode = params.get('Deployment Mode', 'Mobile')
- 
+
     missing = []
     core   = _group_mass(params, _CORE_KEYS, missing)
     shield = _group_mass(params, _SHIELD_KEYS, missing)
     fuel   = _group_mass(params, _FUEL_KEYS, missing)
- 
-    if mode == 'Mobile':
-        loads = {'Full unit (core + shield + fuel)': core + shield + fuel}
-    elif mode == 'Semi-Mobile':
-        loads = {'Reactor (core + shield, unfueled)': core + shield,
-                 'Fuel': fuel}
-    elif mode == 'Stationary':
-        loads = {'Core': core, 'Shielding': shield, 'Fuel': fuel}
-    else:
-        raise ValueError(f"Unknown Deployment Mode: {mode!r} "
-                         f"(expected 'Mobile', 'Semi-Mobile', or 'Stationary').")
- 
+
+    # 1. Define load configurations in order of preference (most to least integrated)
+    candidate_modes = {
+        'Mobile': {
+            'Full unit (core + shield + fuel)': core + shield + fuel
+        },
+        'Semi-Mobile': {
+            'Reactor (core + shield, unfueled)': core + shield,
+            'Fuel': fuel
+        },
+        'Stationary': {
+            'Core': core,
+            'Shielding': shield,
+            'Fuel': fuel
+        }
+    }
+
+    # 2. Automatically select the most integrated mode that satisfies the limit
+    selected_mode = None
+    loads = {}
+
+    for mode, candidate_loads in candidate_modes.items():
+        heaviest_in_candidate = max(candidate_loads.values()) if candidate_loads else 0.0
+        if heaviest_in_candidate <= limit:
+            selected_mode = mode
+            loads = candidate_loads
+            break
+
+    # 3. Fallback: If no single mode stays under the limit, default to Stationary
+    if selected_mode is None:
+        selected_mode = 'Stationary'
+        loads = candidate_modes['Stationary']
+
     heaviest = max(loads.values()) if loads else 0.0
     within = heaviest <= limit
- 
+
+    # Update parameters dict with determined mode and results
+    params['Deployment Mode'] = selected_mode
     params['Transport Loads (kg)'] = loads
     params['Transport Heaviest Load (kg)'] = heaviest
     params['Transport Mass Limit (kg)'] = limit
     params['Within Transport Limit'] = within
- 
+
     if verbose:
-        _print_transport_mass_report(mode, loads, missing, heaviest, limit, within)
- 
+        _print_transport_mass_report(selected_mode, loads, missing, heaviest, limit, within)
+
     return within
  
  
