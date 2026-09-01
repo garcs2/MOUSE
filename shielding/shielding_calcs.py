@@ -180,104 +180,8 @@ def extract_dose_results(params: dict) -> None:
     print(f"  Reading statepoint: {sp_path}")
     print(f"  Source rate: {source_rate:.4e} n/s")
 
-    # ---- Step A: Extract direct tally results at iso_surface ----
-    # Only the iso_surface tally is inside the transport geometry; 1m and 30m
-    # are derived via inverse-square law after the statepoint read.
-    iso_label  = 'iso_surface'
-    iso_radius = params['Dose Evaluation Radii cm'].get(iso_label)
-
-    iso_total_dose = 0.0
-    iso_total_unc  = 0.0   # combined in quadrature over neutron + photon
-
     with openmc.StatePoint(sp_path) as sp:
 
-        # for label, radius_cm in params['Dose Evaluation Radii cm'].items():
-        #     if radius_cm is None:
-        #         continue
-
-        #     # 1m_standoff and 30m_exclusion are handled analytically below
-        #     if label in ('1m_standoff', '30m_exclusion'):
-        #         continue
-
-        #     dose_components = {}
-        #     unc_components  = {}
-
-        #     for particle in ['neutron', 'photon']:
-        #         tally_name = f'dose_point_{label}_{particle}'
-
-        #         try:
-        #             tally = _get_tally_by_name(sp, tally_name)
-        #         except KeyError as e:
-        #             print(f"  WARNING: {e} — skipping {label}/{particle}")
-        #             dose_components[particle] = float('nan')
-        #             unc_components[particle]  = float('nan')
-        #             continue
-
-        #         flux_mean   = tally.get_values(scores=['flux']).flatten()
-        #         flux_stddev = tally.get_values(
-        #             scores=['flux'], value='std_dev').flatten()
-
-        #         # ---- Normalise by shell volume to get flux density ----
-        #         # OpenMC track-length tallies score flux integrated over the
-        #         # mesh volume [cm per source particle].  Dividing by the shell
-        #         # volume [cm³] converts to average flux density [cm⁻² per
-        #         # source particle], which is what the dose coefficients expect.
-        #         axial_half = (
-        #             params['Active Height'] / 2.0
-        #             + params['Axial Reflector Thickness']
-        #             + 50.0
-        #         )
-        #         r_inner    = max(0.0, radius_cm - 0.5)
-        #         r_outer    = radius_cm + 0.5
-        #         shell_vol  = np.pi * (r_outer**2 - r_inner**2) * (2.0 * axial_half)
-        #         flux_mean   = flux_mean   / shell_vol
-        #         flux_stddev = flux_stddev / shell_vol
-
-        #         _, coeffs = make_energy_filter_and_coeffs(particle)
-
-        #         # Guard against energy group mismatch
-        #         if len(flux_mean) != len(coeffs):
-        #             print(f"  WARNING: Energy group mismatch for {tally_name}: "
-        #                   f"flux has {len(flux_mean)} groups, coeffs have {len(coeffs)}. "
-        #                   "Truncating to minimum length.")
-        #             n           = min(len(flux_mean), len(coeffs))
-        #             flux_mean   = flux_mean[:n]
-        #             flux_stddev = flux_stddev[:n]
-        #             coeffs      = coeffs[:n]
-
-        #         dose_rate, dose_unc = _apply_dose_coefficients(
-        #             flux_mean, flux_stddev, coeffs, source_rate)
-        #         dose_components[particle] = dose_rate
-        #         unc_components[particle]  = dose_unc
-
-        #     # ---- Combine neutron + photon (sum doses, quadrature for unc) ----
-        #     neutron_dose = dose_components.get('neutron', 0.0)
-        #     photon_dose  = dose_components.get('photon',  0.0)
-        #     neutron_unc  = unc_components.get('neutron',  0.0)
-        #     photon_unc   = unc_components.get('photon',   0.0)
-
-        #     total_dose = (
-        #         (neutron_dose if not np.isnan(neutron_dose) else 0.0)
-        #         + (photon_dose  if not np.isnan(photon_dose)  else 0.0)
-        #     )
-        #     total_unc = np.sqrt(
-        #         (neutron_unc if not np.isnan(neutron_unc) else 0.0) ** 2
-        #         + (photon_unc  if not np.isnan(photon_unc)  else 0.0) ** 2
-        #     )
-
-        #     params[f'Dose Rate {label} mSv_hr']         = total_dose
-        #     params[f'Dose Rate {label} unc mSv_hr']     = total_unc
-        #     params[f'Dose Rate {label} neutron mSv_hr'] = neutron_dose
-        #     params[f'Dose Rate {label} photon mSv_hr']  = photon_dose
-
-        #     print(f"  [{label:20s}] r = {radius_cm:7.1f} cm | "
-        #           f"Total: {total_dose:.3e} ± {total_unc:.3e} mSv/hr  "
-        #           f"(n: {neutron_dose:.3e}, γ: {photon_dose:.3e})")
-
-        #     # Cache iso_surface values for ISL extrapolation
-        #     if label == iso_label:
-        #         iso_total_dose = total_dose
-        #         iso_total_unc  = total_unc
         _extract_directional_box_dose(sp, params, source_rate)
         # --- 2m surface evaluation using inverse-square law extrapolation --- #
         dose_r, unc_r = _extrapolate_isq(params['Dose Rate iso_surface_lateral mSv_hr'], 
@@ -287,19 +191,6 @@ def extract_dose_results(params: dict) -> None:
         params[f'Dose Rate 2m_standoff mSv_hr']     = dose_r
         params[f'Dose Rate 2m_standoff unc mSv_hr'] = unc_r
 
-    # # ---- Step B: Inverse-square law extrapolation to 1m and 30m ----
-    # if iso_radius is not None and iso_total_dose > 0.0:
-    #     for label in ('2m_standoff'):
-    #         r_target = params['Dose Evaluation Radii cm'].get(label)
-    #         if r_target is None:
-    #             continue
-
-    #         dose_r, unc_r = _extrapolate_isq(
-    #             iso_total_dose, iso_total_unc, iso_radius, r_target)
-
-
-            
-        
     # ---- Also extract full mesh dose map for plotting ----
     if params.get('Save Dose Map', False):
         _extract_mesh_dose_map(sp_path, params, source_rate)
