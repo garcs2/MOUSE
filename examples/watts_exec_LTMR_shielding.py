@@ -68,7 +68,7 @@ def update_params(updates):
 
 update_params({
     'plotting': "N",  # Shielding runs are expensive; disable geometry plots by default
-    'Save Dose Map': True,
+    'Save Dose Map': False,
     'cross_sections_xml_location': '/home/garcsamu/OpenMC/cross_sections/endfb-viii.1-hdf5/cross_sections.xml',
     'simplified_chain_thermal_xml': '/home/garcsamu/OpenMC/TEMA/data/chain_casl_pwr.xml',
     'shielding_output_dir': '/home/garcsamu/OpenMC/MOUSE',
@@ -321,7 +321,7 @@ cost_tracked_params_list = [
     'Mobile', 'Out Of Vessel Shield Material', 'Out Of Vessel Shield Thickness',
     'Isocontainer Steel Thickness',
     'In Vessel Shield Mass', 'Out Of Vessel Shield Mass',
-    'Dose Rate iso_surface mSv_hr', 'Dose Rate 1m_standoff mSv_hr', 'Dose Rate 30m_exclusion mSv_hr',
+    'Dose Rate iso_surface_lateral mSv_hr', 'Dose Rate 2m_standoff mSv_hr',
     'Meets Public Limit', 'Meets Worker Limit',
     'Fuel', 'Enrichment', 'Power MWt',
     'Cost_Data'
@@ -339,13 +339,13 @@ print("="*70)
 # Using 2.5 mSv/hr as controlled area limit for workers during operation
 update_params({
     'Photon Transport': True,
-    'Dose Rate Limit mSv_hr': 0.02,      # mSv/hr — public boundary regulatory limit
+    'Dose Rate Limit mSv_hr': 0.02,      # mSv/hr — public boundary regulatory limit at surface
+    'Dose Rate Transport Limit mSv_hr': 0.01, # mSv/hr 2 meters from lateral surface  10 CFR.71.47
     'Dose Rate Limit Workers mSv_hr': 2.5,  # mSv/hr — controlled area limit
     # Radii at which dose rate is evaluated (cm from core axis)
     'Dose Evaluation Radii cm': {
         'iso_surface':    None,   # filled dynamically from ISO outer radius
-        '1m_standoff':    None,   # iso_surface + 100 cm
-        '30m_exclusion':  3000,   # fixed: 30 m from core axis
+        '2m_standoff':    None,   # iso_surface + 200 cm
     },
     # Fixed-source transport settings
     'Shielding Particles':  2_000,  # particles per batch for shielding run
@@ -367,7 +367,6 @@ ISO_CONTAINER_STEEL_THICKNESS_CM = 1.5   # cm effective steel (structural averag
 ISO_CONTAINER_MATERIAL           = 'carbon_steel'
 params['Annual Reactor Return Frequency'] = 1/8 
 params['Transport Distance'] = 500
-params['Deployment Mode'] = 'Mobile'
 # ---- Parametric sweep ----
 tracked_params_list = [
     'Mobile', 'Out Of Vessel Shield Material', 'Out Of Vessel Shield Thickness',
@@ -379,78 +378,62 @@ tracked_params_list = [
 ]
 
 for cost_database_filename in ['/home/garcsamu/OpenMC/MOUSE/cost/Cost_Database.xlsx']:
-    for params['Mobile'] in [True]:
-        for params['Out Of Vessel Shield Material'] in ['B4C_natural']:
-            for params['Out Of Vessel Shield Thickness'] in [30]:  # cm
-                params['Cost_Data'] = cost_database_filename
-                mobile_tag = "MOBILE" if params['Mobile'] else "STATIONARY"
-                print(f"\n--- {mobile_tag} | Shield: {params['Out Of Vessel Shield Material']} "
-                    f"| Thickness: {params['Out Of Vessel Shield Thickness']} cm ---")
+    for params['Out Of Vessel Shield Material'] in ['WC', 'W2B', 'WB', 'WB4', 'B4C_natural']:
+        for params['Out Of Vessel Shield Thickness'] in [10]:  # cm
+            params['Cost_Data'] = cost_database_filename
 
-                # ---- Geometry: derive outer radii for this iteration ----
-                params['Out Of Vessel Shield Thickness'] = params['Out Of Vessel Shield Thickness']
-                params['Out Of Vessel Shield Inner Radius'] = params['In Vessel Shield Outer Radius'] \
-                    + sum([
-                        params['Vessel Thickness'],
-                        params['Gap Between Vessel And Guard Vessel'],
-                        params['Guard Vessel Thickness'],
-                        params['Gap Between Guard Vessel And Cooling Vessel'],
-                        params['Cooling Vessel Thickness'],
-                        params['Gap Between Cooling Vessel And Intake Vessel'],
-                        params['Intake Vessel Thickness'],
-                    ])
-                params['Out Of Vessel Shield Outer Radius'] = (
-                    params['Out Of Vessel Shield Inner Radius']
-                    + params['Out Of Vessel Shield Thickness']
-                )
-                
-                if params['Mobile']:
-                    params['Isocontainer Steel Thickness'] = ISO_CONTAINER_STEEL_THICKNESS_CM
-                    params['Isocontainer Steel Material']  = ISO_CONTAINER_MATERIAL
-                    params['Isocontainer Inner Radius']    = params['Out Of Vessel Shield Outer Radius']
-                    params['Isocontainer Outer Radius']    = (
-                        params['Isocontainer Inner Radius'] + params['Isocontainer Steel Thickness']
-                    )
-                    outer_boundary_r = params['Isocontainer Outer Radius']
-                else:
-                    params['Isocontainer Steel Thickness'] = 0.0
-                    params['Isocontainer Steel Material']  = None
-                    params['Isocontainer Inner Radius']    = None
-                    params['Isocontainer Outer Radius']    = None
-                    outer_boundary_r = params['Out Of Vessel Shield Outer Radius']
-                calculate_shielding_masses(params)
-                evaluate_transport_mass(params)
-                # Fill in the dynamic dose evaluation radii
-                params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
-                params['Dose Evaluation Radii cm']['1m_standoff'] = outer_boundary_r + 100.0
+            # ---- Geometry: derive outer radii for this iteration ----
+            params['Out Of Vessel Shield Thickness'] = params['Out Of Vessel Shield Thickness']
+            params['Out Of Vessel Shield Inner Radius'] = params['In Vessel Shield Outer Radius'] \
+                + sum([
+                    params['Vessel Thickness'],
+                    params['Gap Between Vessel And Guard Vessel'],
+                    params['Guard Vessel Thickness'],
+                    params['Gap Between Guard Vessel And Cooling Vessel'],
+                    params['Cooling Vessel Thickness'],
+                    params['Gap Between Cooling Vessel And Intake Vessel'],
+                    params['Intake Vessel Thickness'],
+                ])
+            params['Out Of Vessel Shield Outer Radius'] = (
+                params['Out Of Vessel Shield Inner Radius']
+                + params['Out Of Vessel Shield Thickness']
+            )
+            
+            params['Isocontainer Steel Thickness'] = ISO_CONTAINER_STEEL_THICKNESS_CM
+            params['Isocontainer Steel Material']  = ISO_CONTAINER_MATERIAL
+            params['Isocontainer Inner Radius']    = params['Out Of Vessel Shield Outer Radius']
+            params['Isocontainer Outer Radius']    = (
+                params['Isocontainer Inner Radius'] + params['Isocontainer Steel Thickness']
+            )
+            outer_boundary_r = params['Isocontainer Outer Radius']
+            calculate_shielding_masses(params)
+            evaluate_transport_mass(params)
+            # Fill in the dynamic dose evaluation radii
+            params['Dose Evaluation Radii cm']['iso_surface'] = outer_boundary_r
+            params['Dose Evaluation Radii cm']['2m_standoff'] = outer_boundary_r + 200.0
 
-                # ---- Flag shielding run for the template builder ----
-                params['Shielding Run'] = True
+            # ---- Run Step-2 fixed-source shielding transport ----
+            run_openmc_shielding(build_openmc_shielding_model_LTMR, params)
 
-                # ---- Run Step-2 fixed-source shielding transport ----
-                run_openmc_shielding(build_openmc_shielding_model_LTMR, params)
+            # ---- Report compliance ----
+            dose_surface = params.get('Dose Rate iso_surface_lateral mSv_hr', float('nan'))
+            dose_2m      = params.get('Dose Rate 2m_standoff mSv_hr', float('nan'))
 
-                # ---- Report compliance ----
-                dose_surface = params.get('Dose Rate iso_surface mSv_hr', float('nan'))
-                dose_1m      = params.get('Dose Rate 1m_standoff mSv_hr', float('nan'))
-                dose_30m     = params.get('Dose Rate 30m_exclusion mSv_hr', float('nan'))
+            params['Meets Public Limit']  = dose_surface <= params['Dose Rate Limit mSv_hr']
+            params['Meets Worker Limit']  = dose_surface <= params['Dose Rate Limit Workers mSv_hr']
 
-                params['Meets Public Limit']  = dose_surface <= params['Dose Rate Limit mSv_hr']
-                params['Meets Worker Limit']  = dose_surface <= params['Dose Rate Limit Workers mSv_hr']
+            print(f"  Dose @ ISO surface : {dose_surface:.4e} mSv/hr  "
+                f"({'PASS' if params['Meets Public Limit'] else 'FAIL'} public limit)")
+            print(f"  Dose @ 2m standoff : {dose_2m:.4e} mSv/hr")
 
-                print(f"  Dose @ ISO surface : {dose_surface:.4e} mSv/hr  "
-                    f"({'PASS' if params['Meets Public Limit'] else 'FAIL'} public limit)")
-                print(f"  Dose @ 1m standoff : {dose_1m:.4e} mSv/hr")
-                print(f"  Dose @ 30m exclusion: {dose_30m:.4e} mSv/hr")
-
-                # ---- Save results ----
-                summarize_shielding_results(
-                    params,
-                    tracked_params_list,
-                    os.path.join(params['shielding_output_dir'], 'output_shielding_study.csv')
-                )
-                # parametric_studies(cost_database_filename, cost_tracked_params_list)
-                detailed_bottom_up_cost_estimate(cost_database_filename)
+            # ---- Save results ----
+            summarize_shielding_results(
+                params,
+                tracked_params_list,
+                os.path.join(params['shielding_output_dir'], 'output_shielding_study.csv')
+            )
+            parametric_studies(cost_database_filename, cost_tracked_params_list)
+            # detailed_bottom_up_cost_estimate(cost_database_filename)
 
 elapsed_time = (time.time() - time_start) / 60
 print(f'\nTotal execution time: {np.round(elapsed_time, 2)} minutes')
