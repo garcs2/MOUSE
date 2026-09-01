@@ -141,13 +141,14 @@ def _evaluate_abc_criteria(params):
     criteria is the perturbation 'Temperature Perturbation'; if you intend a
     distinct coolant temperature rise, substitute that quantity.
     """
-    dT = params['Temperature Perturbation']
+    dT = params['Fuel-Coolant dT']
+    dT_c = params['Primary Loop Outlet Temperature'] - params['Primary Loop Inlet Temperature']
     a_T = params['Temp Coeff 2D']
     a_C = params['Coolant Coeff 2D']
     a_R = params['Reflector Coeff 2D']
 
     A = a_T * dT                          # pcm
-    B = dT * (a_T / 2 + a_C / 2 + a_R)    # pcm
+    B = dT_c * (a_T / 2 + a_C / 2 + a_R)    # pcm
     C = a_T + a_C + a_R                    # pcm/K
     params['ABC A (pcm)'] = A
     params['ABC B (pcm)'] = B
@@ -160,12 +161,9 @@ def _evaluate_abc_criteria(params):
               f"  A = {A:.3f} pcm\n  B = {B:.3f} pcm\n  C = {C:.3f} pcm/K")
 
     # --- Criterion 2: loss-of-flow asymptotic temperature below coolant boiling ---
-    # NOTE: condition and message both use the Primary Loop INLET temperature and
-    # include dT (your snippet's message used the OUTLET temperature and dropped
-    # dT; I aligned both to the condition — confirm which you intend).
     T_boil = params.get('Coolant Boiling Temperature', 1058.15)  # K (NaK ~785 C)
     if 'Primary Loop Inlet Temperature' in params and B != 0:
-        lof_temp = 2.0 * A / B * dT + params['Primary Loop Inlet Temperature']
+        lof_temp = A / B * dT_c + params['Primary Loop Outlet Temperature']
         criterion_2 = lof_temp < T_boil
         if not criterion_2:
             print("Warning Criterion 2: loss-of-flow temperature reaches/exceeds "
@@ -178,11 +176,11 @@ def _evaluate_abc_criteria(params):
 
     # --- Criterion 3: loss-of-heat-sink / inlet-temperature balance ---
     if B != 0:
-        ratio = C / B * dT
+        ratio = C / B * dT_c
         criterion_3 = 1.0 < ratio < 2.0
         if not criterion_3:
             print("Warning Criterion 3: loss-of-heat-sink balance out of range "
-                  f"(want 1 < C/B*dT < 2):\n  C/B*dT = {ratio:.3f}")
+                  f"(want 1 < C/B*dT_c < 2):\n  C/B*dT_c = {ratio:.3f}")
     else:
         criterion_3 = False
         print("Warning Criterion 3: cannot evaluate (B == 0).")

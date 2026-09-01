@@ -387,6 +387,23 @@ def _solve_radial(
         + T_co
     )
 
+    # Volume (area) averaged fuel temperature over the annulus r_i..r_f.
+    # Annular fuel with a zero-flux inner BC (Zr rod generates no power, so all
+    # heat flows outward). The radial profile relative to the fuel outer surface
+    # is
+    #     T(r) - T_fo = q'''/(2 k_f) * [ r_i^2 ln(r/r_f) - (r^2 - r_f^2)/2 ]
+    # (the inner-surface value of this reproduces the T_fi fuel term above).
+    # Area-averaging with weight 2*pi*r dr over [r_i, r_f] gives the closed form
+    #     T_f_avg - T_fo = q'''/k_f * [ (r_f^2 - r_i^2)/8 - r_i^2/4
+    #                                   + r_i^4/(2 (r_f^2 - r_i^2)) * ln(r_f/r_i) ]
+    # Verified against numerical quadrature; reduces to q'/(8 pi k_f) as r_i->0.
+    dA = r_f**2 - r_i**2
+    T_f_avg = T_fo + q_tpp / k_f * (
+        dA / 8.0
+        - r_i**2 / 4.0
+        + r_i**4 / (2.0 * dA) * np.log(r_f / r_i)
+    )
+
     return {
         "q_prime":   q_prime,
         "q_tpp":     q_tpp,
@@ -397,6 +414,7 @@ def _solve_radial(
         "T_ci":      T_ci,
         "T_fo":      T_fo,
         "T_fi":      T_fi,           # = T_fuel_max at this axial node
+        "T_f_avg":   T_f_avg,        # = volume-averaged fuel temp at this node
         "T_Zr":      T_fi,           # = T_fi (zero-flux BC at r_i)
     }
 
@@ -747,6 +765,26 @@ def run_thermal_analysis(params) -> None:
     params['Ref PF1 T Fuel Peak [K]']     = float(abc_summary['Ref_PF1_T_fuel_peak [K]'].iloc[0])
     params['Ref PF1 T Coolant Top [K]']   = float(abc_summary['Ref_PF1_T_coolant_top [K]'].iloc[0])
 
+    # --- Average fuel temperature and fuel-to-coolant dT for the ABC screen ---
+    # The A integral parameter wants <T_fuel> - <T_coolant> for the core-average
+    # (PF = 1) pin, not the hot-pin peak. Under this file's uniform axial-power
+    # model, q'(z) is constant along z, so every radial temperature drop
+    # (film, clad, gap, fuel-radial-average) is the same at every axial node.
+    # The fuel-to-coolant offset is therefore constant in z, and
+    #     <T_fuel> - <T_coolant> = T_f_avg(node) - T_bulk(node)
+    # exactly, independent of the axial coolant rise. A single radial solve at
+    # q'_nom evaluated at the mean coolant temperature gives it directly.
+    h_NaK      = compute_h_NaK(geom, props, cond)
+    T_cool_avg = cond.T_inlet + 0.5 * cond.DeltaT_coolant
+    sol_avg    = _solve_radial(q_nom, T_cool_avg, h_NaK, geom, props)
+
+    params['Coolant Average Temperature']  = T_cool_avg
+    params['Fuel Average Temperature']     = float(sol_avg['T_f_avg'])
+    params['Fuel Outer Temperature']       = float(sol_avg['T_fo'])
+    params['Fuel Peak Temp at Mean Coolant [K]'] = float(sol_avg['T_fi'])
+    # Key consumed by _evaluate_abc_criteria for the A integral parameter:
+    params['Fuel-Coolant dT']              = float(sol_avg['T_f_avg'] - T_cool_avg)
+
     print(f"\n[Thermal] ── Nominal reference (PF=1) ──")
     print(f"[Thermal]   T_fuel_peak      : {params['Ref PF1 T Fuel Peak [K]']:.1f} K  "
           f"({params['Ref PF1 T Fuel Peak [K]']-273.15:.1f} °C)")
@@ -757,6 +795,13 @@ def run_thermal_analysis(params) -> None:
           f"({params['Max T Fuel Peak [K]']-273.15:.1f} °C)")
     print(f"[Thermal]   Max DeltaT_fuel  : {params['Max DeltaT Fuel [K]']:.1f} K")
     print(f"[Thermal]   Max DeltaT_cool  : {params['Max DeltaT Coolant [K]']:.1f} K\n")
+
+    print(f"[Thermal] ── ABC screen inputs (core-average, PF = 1) ──")
+    print(f"[Thermal]   T_fuel_avg       : {params['Fuel Average Temperature']:.1f} K  "
+          f"({params['Fuel Average Temperature']-273.15:.1f} °C)")
+    print(f"[Thermal]   T_coolant_avg    : {params['Coolant Average Temperature']:.1f} K  "
+          f"({params['Coolant Average Temperature']-273.15:.1f} °C)")
+    print(f"[Thermal]   Fuel-Coolant dT  : {params['Fuel-Coolant dT']:.1f} K\n")
 
 
 def plot_peaking_factor_map(per_step_data: dict, statepoint_path: str, params) -> None:
