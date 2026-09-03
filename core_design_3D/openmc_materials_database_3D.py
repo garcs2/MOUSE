@@ -168,9 +168,22 @@ def _density_NaK(T, T_ref):
     return 1/(N_k/rho_k + N_na/rho_na), 'g/cm3'
 
 
+def _density_Na(T, T_ref):
+    """Liquid sodium density, Fink & Leibowitz (ANL/RE-95/2) correlation,
+    valid 371-2503 K. Returns g/cm3.
+
+        rho[kg/m3] = 219.0 + 275.32*(1 - T/2503.7)
+                          + 511.58*(1 - T/2503.7)**0.5
+    """
+    tau = 1.0 - T / 2503.7
+    rho_kgm3 = 219.0 + 275.32 * tau + 511.58 * tau ** 0.5
+    return rho_kgm3 / 1000.0, 'g/cm3'
+
+
 COOLANT_DENSITY = {
     'Helium': _density_He,
     'NaK':    _density_NaK,
+    'Sodium': _density_Na,
 }
 
 
@@ -407,6 +420,16 @@ def _build_base_materials(params):
     Helium.temperature = params['Common Temperature']
     Helium.add_element('He', 1.0)
     mats['Helium'] = Helium
+
+    # Liquid sodium bond/coolant. Na-23 is the only stable isotope. The density
+    # set here is a nominal cold value; because 'Sodium' is registered in
+    # COOLANT_DENSITY, _apply_thermal_expansion_all() overrides it with the
+    # temperature-dependent liquid-Na EOS (_density_Na) at the region T, exactly
+    # as NaK and Helium are handled. No S(alpha,beta) table (monatomic liquid).
+    Sodium = openmc.Material(name="Sodium", temperature=params['Common Temperature'])
+    Sodium.set_density("g/cm3", 0.85)
+    Sodium.add_nuclide("Na23", 1.0)
+    mats['Sodium'] = Sodium
 
     # ------------------------------------------------------------------
     # Sec. 1.4 : Beryllium and Beryllium Oxide
@@ -650,7 +673,7 @@ def _collect_materials_endf80(params):
     materials.append(mats['YHx'])
 
     # --- Coolants (no TSL) ---
-    materials.extend([mats['NaK'], mats['Helium']])
+    materials.extend([mats['NaK'], mats['Helium'], mats['Sodium']])
 
     # --- Beryllium ---
     mats['Be'].add_s_alpha_beta("c_Be")
@@ -759,7 +782,7 @@ def _collect_materials_endf81(params):
     materials.append(mats['YHx'])
 
     # --- Coolants (no TSL) ---
-    materials.extend([mats['NaK'], mats['Helium']])
+    materials.extend([mats['NaK'], mats['Helium'], mats['Sodium']])
 
     # --- Beryllium ---
     mats['Be'].add_s_alpha_beta("c_Be")

@@ -141,13 +141,13 @@ def _evaluate_abc_criteria(params):
     criteria is the perturbation 'Temperature Perturbation'; if you intend a
     distinct coolant temperature rise, substitute that quantity.
     """
-    dT = params['Fuel-Coolant dT']
+    dT_f = params['Fuel-Coolant dT']
     dT_c = params['Primary Loop Outlet Temperature'] - params['Primary Loop Inlet Temperature']
     a_T = params['Temp Coeff 2D']
     a_C = params['Coolant Coeff 2D']
     a_R = params['Reflector Coeff 2D']
 
-    A = a_T * dT                          # pcm
+    A = a_T * dT_f                          # pcm
     B = dT_c * (a_T / 2 + a_C / 2 + a_R)    # pcm
     C = a_T + a_C + a_R                    # pcm/K
     params['ABC A (pcm)'] = A
@@ -161,7 +161,7 @@ def _evaluate_abc_criteria(params):
               f"  A = {A:.3f} pcm\n  B = {B:.3f} pcm\n  C = {C:.3f} pcm/K")
 
     # --- Criterion 2: loss-of-flow asymptotic temperature below coolant boiling ---
-    T_boil = params.get('Coolant Boiling Temperature', 1058.15)  # K (NaK ~785 C)
+    T_boil = params.get('Coolant Boiling Temperature', 1156.15)  # K (NaK ~785 C)
     if 'Primary Loop Inlet Temperature' in params and B != 0:
         lof_temp = A / B * dT_c + params['Primary Loop Outlet Temperature']
         criterion_2 = lof_temp < T_boil

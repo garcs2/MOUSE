@@ -100,6 +100,11 @@ class LTMRPinGeometry:
         'Fuel Pin Materials': ['Zr', None, Fuel, None, 'SS304']
         'Pin Gap Distance': 0.1  # cm
 
+    These field defaults are only a convenience for direct instantiation
+    (quick tests, notebooks). On the production path the geometry is built
+    from the watts params dict via LTMRPinGeometry.from_params(params), which
+    is the single source of truth for the params -> geometry mapping.
+
     The pin pitch and P/D ratio are derived from the cladding outer radius
     and the gap exactly as in the OpenMC template:
         pin_pitch = 2 * r_co + pin_gap
@@ -113,6 +118,27 @@ class LTMRPinGeometry:
     pin_gap:  float = 0.1e-2       # centre-to-surface gap between adjacent pins [m]
                                    # = params['Pin Gap Distance'] * 1e-2
     L_active: float = 0.784        # active (heated) height [m]
+    annular_fuel: Optional[bool] = None
+                                   # Fuel geometry selector:
+                                   #   None  -> auto-detect from r_fi (annular if
+                                   #            r_fi > 0, i.e. a central Zr rod /
+                                   #            inner void with a zero-flux inner
+                                   #            boundary; solid if r_fi == 0)
+                                   #   True  -> force annular treatment
+                                   #   False -> force solid-pellet treatment
+
+    @property
+    def has_central_rod(self) -> bool:
+        """True for annular fuel (central Zr rod or inner void — peak fuel
+        temperature sits at the inner surface r_fi, zero-flux BC there).
+        False for solid fuel (fuel fills to the centerline r=0, peak at r=0).
+
+        Auto-detected from r_fi unless `annular_fuel` is set explicitly. To
+        model solid fuel, pass r_Zr_o = r_fi = 0 (e.g. 'Fuel Pin Radii' =
+        [0.0, 0.0, r_fo, r_ci, r_co])."""
+        if self.annular_fuel is not None:
+            return self.annular_fuel
+        return self.r_fi > 1e-9   # metres; any real inner radius is >> 1 nm
 
     @property
     def D_co(self) -> float:
@@ -130,6 +156,46 @@ class LTMRPinGeometry:
         """Pin pitch-to-diameter ratio (dimensionless)."""
         return self.pin_pitch / self.D_co
 
+    @classmethod
+    def from_params(cls, params) -> "LTMRPinGeometry":
+        """Build the pin geometry directly from the watts params dict.
+
+        This is the authoritative params -> geometry mapping; the dataclass
+        field defaults are only used when constructing without params.
+
+        Reads (all lengths in cm, converted to metres):
+            'Fuel Pin Radii'   : [r_Zr, r_fi, r_fo, r_ci, r_co]
+            'Pin Gap Distance' : centre-to-surface gap between adjacent pins
+            'Active Height'    : active (heated) height
+            'Fuel Pin Materials' (optional) : decides annular vs solid fuel
+                (see _fuel_is_annular). For solid fuel the inner fuel radius is
+                forced to 0 so that q''' = q'/(pi*r_fo^2) uses the correct area;
+                the radii[1] entry (an internal split of a solid fuel region)
+                is then ignored.
+        """
+        radii = params['Fuel Pin Radii']
+        if len(radii) < 5:
+            raise ValueError(
+                "'Fuel Pin Radii' must have 5 entries "
+                f"[r_Zr, r_fi, r_fo, r_ci, r_co]; got {radii!r}"
+            )
+        for key in ('Pin Gap Distance', 'Active Height'):
+            if key not in params:
+                raise KeyError(f"run_thermal_analysis: missing required param '{key}'")
+
+        is_annular = _fuel_is_annular(params)
+        r_fi_cm    = radii[1] if is_annular else 0.0
+        return cls(
+            r_Zr_o   = radii[0] * 1e-2,
+            r_fi     = r_fi_cm  * 1e-2,
+            r_fo     = radii[2] * 1e-2,
+            r_ci     = radii[3] * 1e-2,
+            r_co     = radii[4] * 1e-2,
+            pin_gap  = params['Pin Gap Distance'] * 1e-2,
+            L_active = params['Active Height']    * 1e-2,
+            annular_fuel = is_annular,
+        )
+
 
 @dataclass
 class LTMRThermalProperties:
@@ -139,17 +205,20 @@ class LTMRThermalProperties:
     Defaults:
       k_fuel      : UO2 at ~800 K ≈ 3.5 W/m·K  (conservative; UN ~ 20, UC ~ 20)
       k_clad      : SS304 at 700 K ≈ 19 W/m·K
-      k_NaK_gap   : NaK thermal conductivity in the outer gap annulus ≈ 24 W/m·K.
-                    Used in the hollow-cylinder gap conduction formula:
-                      ΔT_gap = q'/(2π k_NaK_gap) · ln(r_g/r_f)
+      k_gap       : conductivity of the fuel–clad (outer) gap fill, used in the
+                    hollow-cylinder gap conduction term
+                      ΔT_gap = q'/(2π k_gap) · ln(r_ci/r_fo)
+                    Set from the gap fill material via set_gap_k_from_name:
+                    sodium-bonded pins ≈ 70 W/m·K, helium-bonded pins ≈ 0.15-0.3
+                    W/m·K. This is the gap BOND, distinct from the NaK coolant.
       k_NaK_coolant : bulk NaK thermal conductivity for the Kazimi-Carelli HTC
-                      correlation. Typically the same value as k_NaK_gap.
+                      correlation (the coolant, not the gap).
     """
     k_fuel:         float = 3.5    # W/(m·K)  — UO2 default; override for UN/UC
     k_clad:         float = 19.0   # W/(m·K)  — SS304
-    k_NaK_gap:      float = 24.0   # W/(m·K)  — NaK in the outer gap annulus
+    k_gap:          float = 70.0   # W/(m·K)  — Na bond default; He gap ~0.15-0.3
     # NOTE: no h_gap_inner — zero-flux BC at r_i means T_Zr = T_fi exactly.
-    k_NaK_coolant:  float = 24.0   # W/(m·K)  — bulk NaK (for Nu correlation)
+    k_NaK_coolant:  float = 24.0   # W/(m·K)  — bulk NaK coolant (for Nu correlation)
 
     FUEL_K_DEFAULTS: dict = field(default_factory=lambda: {
         "UO2":        3.5,
@@ -161,6 +230,19 @@ class LTMRThermalProperties:
                                # Conservative mid-range; override via
                                # props.k_fuel if composition-specific data available.
     })
+    GAP_K_DEFAULTS: dict = field(default_factory=lambda: {
+        # Liquid-metal bonds (~ high conductivity)
+        "Na":     70.0,     # sodium bond
+        "Sodium": 70.0,
+        "NaK":    24.0,     # sodium-potassium, if used as a bond
+        # Gas bonds (~ low conductivity). He value is a cold/conservative
+        # figure (~0.15); helium at 700-900 K is nearer 0.3 W/m·K. A lower k
+        # overestimates the gap ΔT, i.e. it is conservative (hotter fuel) for a
+        # safety screen. Override props.k_gap directly for a temperature-
+        # specific value.
+        "He":     0.151,    # helium bond
+        "Helium": 0.151,
+    })
 
     def set_fuel_k_from_name(self, fuel_name: str) -> None:
         """Automatically set k_fuel from fuel material name if known."""
@@ -171,9 +253,28 @@ class LTMRThermalProperties:
             print(f"[ThermalProps] Unknown fuel '{fuel_name}'; "
                   f"keeping k_fuel = {self.k_fuel} W/(m·K)")
 
+    def set_gap_k_from_name(self, gap_name) -> None:
+        """Set k_gap from the fuel–clad gap fill material (case-insensitive).
 
+        Accepts e.g. 'Na'/'Sodium' or 'He'/'Helium'. If gap_name is None or
+        unrecognised, k_gap is left at its current value and a note is printed
+        so a silent fallback is visible in the run log.
+        """
+        if gap_name is None:
+            print(f"[ThermalProps] Gap fill material unspecified; "
+                  f"keeping k_gap = {self.k_gap} W/(m·K). Set params['Gap "
+                  f"Material'] (e.g. 'He' or 'Na') to select it explicitly.")
+            return
+        # case-insensitive lookup against the defaults table
+        lookup = {name.lower(): k for name, k in self.GAP_K_DEFAULTS.items()}
+        k = lookup.get(str(gap_name).strip().lower())
+        if k is not None:
+            self.k_gap = k
+        else:
+            print(f"[ThermalProps] Unknown gap fill '{gap_name}'; "
+                  f"keeping k_gap = {self.k_gap} W/(m·K)")
 @dataclass
-class LTMRCoolantConditions:
+class LTMRCoolantConditions: 
     """
     System-level coolant operating conditions.
 
@@ -365,8 +466,12 @@ def _solve_radial(
     """
     r_i = geom.r_fi;  r_f = geom.r_fo
     r_g = geom.r_ci;  r_c = geom.r_co
-    k_f = props.k_fuel;  k_c = props.k_clad;  k_g = props.k_NaK_gap
+    k_f = props.k_fuel;  k_c = props.k_clad;  k_g = props.k_gap
 
+    # q''' uses the actual fuel cross-section: pi*(r_f^2 - r_i^2) for annular
+    # fuel, pi*r_f^2 for solid fuel (r_i = 0). The clad/gap/film drops below
+    # depend only on the total linear power q', so they are identical for both
+    # geometries; only the fuel-region terms (peak and volume average) branch.
     q_tpp = q_prime / (np.pi * (r_f**2 - r_i**2))   # q''' [W/m³]
     q_pp  = q_prime / (2.0 * np.pi * r_c)            # q'' at clad OD [W/m²]
 
@@ -379,30 +484,41 @@ def _solve_radial(
     # Outer gap (hollow-cylinder conduction, no heat source)
     T_fo = T_ci + q_prime / (2.0 * np.pi * k_g) * np.log(r_g / r_f)
 
-    # Fuel inner surface (peak fuel temperature)
-    T_fi = (
-        q_tpp / (4.0 * k_f) * (r_f**2 - r_i**2 + 2.0 * r_i**2 * np.log(r_i / r_f))
-        - q_tpp * (r_f**2 - r_i**2) / (2.0 * k_g) * np.log(r_f / r_g)
-        - q_tpp * (r_f**2 - r_i**2) / (2.0 * k_c) * np.log(r_g / r_c)
-        + T_co
-    )
+    if geom.has_central_rod:
+        # ---- Annular fuel: zero-flux inner BC at r_i, peak at r_i ----
+        # Fuel inner surface (peak fuel temperature)
+        T_peak = (
+            q_tpp / (4.0 * k_f) * (r_f**2 - r_i**2 + 2.0 * r_i**2 * np.log(r_i / r_f))
+            - q_tpp * (r_f**2 - r_i**2) / (2.0 * k_g) * np.log(r_f / r_g)
+            - q_tpp * (r_f**2 - r_i**2) / (2.0 * k_c) * np.log(r_g / r_c)
+            + T_co
+        )
 
-    # Volume (area) averaged fuel temperature over the annulus r_i..r_f.
-    # Annular fuel with a zero-flux inner BC (Zr rod generates no power, so all
-    # heat flows outward). The radial profile relative to the fuel outer surface
-    # is
-    #     T(r) - T_fo = q'''/(2 k_f) * [ r_i^2 ln(r/r_f) - (r^2 - r_f^2)/2 ]
-    # (the inner-surface value of this reproduces the T_fi fuel term above).
-    # Area-averaging with weight 2*pi*r dr over [r_i, r_f] gives the closed form
-    #     T_f_avg - T_fo = q'''/k_f * [ (r_f^2 - r_i^2)/8 - r_i^2/4
-    #                                   + r_i^4/(2 (r_f^2 - r_i^2)) * ln(r_f/r_i) ]
-    # Verified against numerical quadrature; reduces to q'/(8 pi k_f) as r_i->0.
-    dA = r_f**2 - r_i**2
-    T_f_avg = T_fo + q_tpp / k_f * (
-        dA / 8.0
-        - r_i**2 / 4.0
-        + r_i**4 / (2.0 * dA) * np.log(r_f / r_i)
-    )
+        # Volume (area) averaged fuel temperature over the annulus r_i..r_f.
+        # Profile relative to the fuel outer surface (all heat flows outward):
+        #     T(r) - T_fo = q'''/(2 k_f) * [ r_i^2 ln(r/r_f) - (r^2 - r_f^2)/2 ]
+        # Area-averaging with weight 2*pi*r dr over [r_i, r_f] gives:
+        #     T_f_avg - T_fo = q'''/k_f * [ (r_f^2 - r_i^2)/8 - r_i^2/4
+        #                                 + r_i^4/(2(r_f^2 - r_i^2)) * ln(r_f/r_i) ]
+        # Verified vs quadrature; reduces to q'/(8 pi k_f) as r_i -> 0.
+        dA = r_f**2 - r_i**2
+        T_f_avg = T_fo + q_tpp / k_f * (
+            dA / 8.0
+            - r_i**2 / 4.0
+            + r_i**4 / (2.0 * dA) * np.log(r_f / r_i)
+        )
+        T_center = T_peak   # peak is at the inner surface for annular fuel
+    else:
+        # ---- Solid fuel: symmetry (zero-flux) at r = 0, peak at centerline ----
+        # Profile relative to the fuel outer surface:
+        #     T(r) - T_fo = q'''/(4 k_f) * (r_f^2 - r^2)
+        # Centerline (r=0):     T_center - T_fo = q''' r_f^2 /(4 k_f) = q'/(4 pi k_f)
+        # Area-average [0,r_f]: T_f_avg  - T_fo = q''' r_f^2 /(8 k_f) = q'/(8 pi k_f)
+        # (the annular closed form has ln(r_i) terms that go NaN at r_i=0, so the
+        #  solid case is handled with its own finite closed form.)
+        T_center = T_fo + q_tpp * r_f**2 / (4.0 * k_f)
+        T_f_avg  = T_fo + q_tpp * r_f**2 / (8.0 * k_f)
+        T_peak   = T_center
 
     return {
         "q_prime":   q_prime,
@@ -413,9 +529,12 @@ def _solve_radial(
         "T_co":      T_co,
         "T_ci":      T_ci,
         "T_fo":      T_fo,
-        "T_fi":      T_fi,           # = T_fuel_max at this axial node
+        "T_fi":      T_peak,         # = T_fuel_max at this node (inner surface
+                                     #   for annular, centerline for solid)
         "T_f_avg":   T_f_avg,        # = volume-averaged fuel temp at this node
-        "T_Zr":      T_fi,           # = T_fi (zero-flux BC at r_i)
+        "T_center":  T_center,       # = centerline temp (solid) / inner-surf (annular)
+        "T_Zr":      T_peak if geom.has_central_rod else float("nan"),
+                                     #   Zr-rod surface temp (annular only; nan for solid)
     }
 
 
@@ -673,6 +792,66 @@ def compute_pin_temperatures_abc(
     return summary, per_step_data_out
 
 
+def _fuel_is_annular(params) -> bool:
+    """Decide annular vs solid fuel from the already-built params.
+
+    Reads 'Fuel Pin Materials' (layer materials ordered centre -> clad) and the
+    fuel name in params['Fuel']. Fuel is treated as annular when the innermost
+    layer is a distinct non-fuel solid — e.g. a 'Zr' central rod that generates
+    no power, giving a zero-flux boundary at the fuel inner radius. It is solid
+    when the fuel material fills the centre:
+
+        annular : ['Zr',   None,   <fuel>, None, 'SS304']
+        solid   : [<fuel>, <fuel>, <fuel>, None, 'SS304']
+
+    An explicit params['Annular Fuel'] (True/False) overrides the material
+    inspection. If neither the flag nor the materials list is available, falls
+    back to a radius test (inner fuel radius radii[1] > 0).
+    """
+    override = params.get('Annular Fuel')
+    if override is not None:
+        return bool(override)
+
+    mats = params.get('Fuel Pin Materials')
+    if mats:
+        fuel_name = params.get('Fuel')
+        # Annular iff the central layer is a real material other than the fuel.
+        return mats[0] not in (None, fuel_name)
+
+    # Fallback: infer from the inner fuel radius.
+    radii = params.get('Fuel Pin Radii')
+    return bool(radii) and radii[1] > 0.0
+
+
+def _resolve_gap_material(params):
+    """Determine the fuel–clad (outer) gap fill material from params.
+
+    The gap bond is distinct from the NaK coolant and is typically helium
+    (gas-bonded oxide pins) or sodium (metal/liquid-metal-bonded pins).
+
+    Preference order:
+      1. An explicit param naming the fill:
+         'Gap Material' / 'Bond Material' / 'Fuel-Clad Gap Material' / 'Gap Fill'
+      2. The outer-gap entry in 'Fuel Pin Materials' (index -2), if it names a
+         material rather than None. NOTE: in the LTMR arrays the gap slots are
+         written as None, so this usually yields nothing and an explicit param
+         is required.
+
+    Returns the material name (str) or None if it cannot be resolved.
+    """
+    for key in ('Gap Material', 'Bond Material',
+                'Fuel-Clad Gap Material', 'Gap Fill'):
+        val = params.get(key)
+        if val:
+            return val
+
+    mats = params.get('Fuel Pin Materials')
+    if mats and len(mats) >= 2 and mats[-2] not in (None, ''):
+        return mats[-2]
+
+    return None
+
+
 def run_thermal_analysis(params) -> None:
     """
     Run pin temperature ABC analysis after the OpenMC depletion run.
@@ -715,22 +894,28 @@ def run_thermal_analysis(params) -> None:
             'Step':           step,
         }])
 
-    # --- Build geometry from params (all cm → m) ---
-    radii = params['Fuel Pin Radii']
-    geom  = LTMRPinGeometry(
-        r_Zr_o   = radii[0] * 1e-2,
-        r_fi     = radii[1] * 1e-2,
-        r_fo     = radii[2] * 1e-2,
-        r_ci     = radii[3] * 1e-2,
-        r_co     = radii[4] * 1e-2,
-        pin_gap  = params['Pin Gap Distance'] * 1e-2,
-        L_active = params['Active Height']    * 1e-2,
-    )
+    # --- Build geometry from params (single source of truth) ---
+    geom = LTMRPinGeometry.from_params(params)
+    params['Fuel Geometry'] = 'annular' if geom.has_central_rod else 'solid'
+    _mats = params.get('Fuel Pin Materials')
+    print(f"[Thermal] Fuel geometry: {params['Fuel Geometry']}"
+          + (f"  (materials: {_mats})" if _mats else "")
+          + f"\n[Thermal]   r_fi = {geom.r_fi*1e2:.4f} cm, "
+            f"r_fo = {geom.r_fo*1e2:.4f} cm, "
+            f"r_ci = {geom.r_ci*1e2:.4f} cm, r_co = {geom.r_co*1e2:.4f} cm"
+          + f"\n[Thermal]   L_active = {geom.L_active*1e2:.2f} cm, "
+            f"pin_gap = {geom.pin_gap*1e2:.4f} cm")
 
     # --- Thermal properties ---
     props = LTMRThermalProperties()
     props.set_fuel_k_from_name(params['Fuel'])
 
+    gap_mat = _resolve_gap_material(params)
+    props.set_gap_k_from_name(gap_mat)
+    params['Gap Material'] = gap_mat
+    params['Gap Conductivity [W/m-K]'] = props.k_gap
+    print(f"[Thermal]   Gap fill: {gap_mat if gap_mat else 'unspecified'} "
+          f"-> k_gap = {props.k_gap:.3f} W/(m·K)")
     # --- Coolant conditions ---
     cond = LTMRCoolantConditions(
         T_inlet        = params['Primary Loop Inlet Temperature'],
