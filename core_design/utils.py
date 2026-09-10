@@ -274,31 +274,49 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
 def openmc_depletion(params, lattice_geometry, settings):
 
     openmc.config['cross_sections'] = params['cross_sections_xml_location']
+    model = openmc.Model(geometry=lattice_geometry, settings=settings)
+    chain = params['simplified_chain_thermal_xml']
 
-    operator = openmc.deplete.CoupledOperator(
-        openmc.Model(geometry=lattice_geometry, settings=settings),
-        chain_file=params['simplified_chain_thermal_xml']
-    )
-
+    # per-step increments (same conversion as before)
     if 'Burnup Steps' in params:
-        burnup_steps_list_MWd_per_Kg = params['Burnup Steps']
-        burnup_step = np.array(burnup_steps_list_MWd_per_Kg)
-        burnup = np.diff(burnup_step, prepend=0.0)  # step-wise burnup increments
-
-        integrator = openmc.deplete.PredictorIntegrator(
-            operator,
-            burnup,
-            1000000 * params['Power MWt'],
-            timestep_units='MWd/kg'
-        )
+        step_sizes = np.diff(np.array(params['Burnup Steps']), prepend=0.0)
+        step_units = 'MWd/kg'
     elif 'Time Steps' in params:
-        time_steps_list = params['Time Steps']
-        power_list = [params['Power MWt'] * 1e6] * len(time_steps_list)
-        integrator = openmc.deplete.CECMIntegrator(operator, time_steps_list, power_list)
+        step_sizes = np.array(params['Time Steps'], dtype=float)
+        step_units = 's'
+    power = 1_000_000 * params['Power MWt']
 
-    print("Starting depletion")
-    integrator.integrate()
-    print("Depletion complete")
+    # --- gate: default (absent/False) reproduces the original single integrate() ---
+    stop_at_eol = params.get('Stop At EOL', False)
+    keff_floor  = params.get('EOL keff Floor', 1.0)   # stop once keff drops below this
+
+    if not stop_at_eol:
+        operator   = openmc.deplete.CoupledOperator(model, chain_file=chain)
+        integrator = openmc.deplete.PredictorIntegrator(
+            operator, step_sizes, power, timestep_units=step_units)
+        print("Starting depletion")
+        integrator.integrate()
+        print("Depletion complete")
+    else:
+        print(f"Starting depletion (Stop At EOL enabled; floor keff = {keff_floor})")
+        prev_results = None
+        for i, dt in enumerate(step_sizes):
+            operator   = openmc.deplete.CoupledOperator(
+                model, chain_file=chain, prev_results=prev_results)
+            integrator = openmc.deplete.PredictorIntegrator(
+                operator, [float(dt)], power, timestep_units=step_units)
+            integrator.integrate()
+
+            prev_results = openmc.deplete.Results("./depletion_results.h5")
+            _, keff = prev_results.get_keff()            # keff shape (n_steps, 2): [mean, std]
+            k_last  = float(np.asarray(keff)[-1, 0])
+            print(f"  step {i+1}/{len(step_sizes)}: keff = {k_last:.5f}")
+
+            if k_last < keff_floor:
+                print(f"  keff {k_last:.5f} < {keff_floor} — end of life; "
+                      f"stopped after {i+1}/{len(step_sizes)} steps.")
+                break
+
 
     depletion_2d_results_file = openmc.deplete.Results("./depletion_results.h5")
 
