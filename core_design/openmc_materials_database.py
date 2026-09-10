@@ -225,6 +225,10 @@ def _build_base_materials(params):
     Helium.add_element('He', 1.0)
     mats['Helium'] = Helium
 
+    Sodium = openmc.Material(name="Sodium", temperature=params['Common Temperature'])
+    Sodium.set_density("g/cm3", 0.85)      # liquid Na at ~700-750 K (~0.85 g/cm3)
+    Sodium.add_nuclide("Na23", 1.0)        # Na-23 is the only stable isotope
+    mats['Sodium'] = Sodium
     # ------------------------------------------------------------------
     # Sec. 1.4 : Beryllium and Beryllium Oxide
     # ------------------------------------------------------------------
@@ -501,7 +505,7 @@ def _collect_materials_endf80(params):
     materials.append(mats['YHx'])
 
     # --- Coolants (no TSL) ---
-    materials.extend([mats['NaK'], mats['Helium']])
+    materials.extend([mats['NaK'], mats['Helium'], mats['Sodium']])
 
     # --- Beryllium ---
     mats['Be'].add_s_alpha_beta("c_Be")
@@ -616,7 +620,7 @@ def _collect_materials_endf81(params):
     materials.append(mats['YHx'])
 
     # --- Coolants (no TSL) ---
-    materials.extend([mats['NaK'], mats['Helium']])
+    materials.extend([mats['NaK'], mats['Helium'], mats['Sodium']])
 
     # --- Beryllium ---
     mats['Be'].add_s_alpha_beta("c_Be")
