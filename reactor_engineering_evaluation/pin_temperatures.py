@@ -224,6 +224,7 @@ class LTMRThermalProperties:
         "UO2":        3.5,
         "UC":         20.0,
         "UN":         20.0,
+        "UZr":        24.0, 
         "TRIGA_fuel": 14.0,   # ZrH-U fuel (General Atomics TRIGA data)
         "UZrH_alloy": 14.0,   # U-ZrHx alloy — same family as TRIGA_fuel.
                                # k ~ 14-18 W/(m·K) at operating temperatures.
