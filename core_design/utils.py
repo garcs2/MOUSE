@@ -277,6 +277,10 @@ def openmc_depletion(params, lattice_geometry, settings):
     model = openmc.Model(geometry=lattice_geometry, settings=settings)
     chain = params['simplified_chain_thermal_xml']
 
+    # build the operator once to read the BOL heavy-metal mass
+    op0   = openmc.deplete.CoupledOperator(model, chain_file=chain)
+    hm_kg = op0.heavy_metal / 1000.0            # OpenMC reports grams
+    print(f"  BOL heavy metal = {hm_kg:.2f} kg")   # sanity: should be positive, ~hundreds of kg
     # per-step increments (same conversion as before)
     if 'Burnup Steps' in params:
         step_sizes = np.diff(np.array(params['Burnup Steps']), prepend=0.0)
@@ -289,7 +293,7 @@ def openmc_depletion(params, lattice_geometry, settings):
     # --- gate: default (absent/False) reproduces the original single integrate() ---
     stop_at_eol = params.get('Stop At EOL', False)
     keff_floor  = params.get('EOL keff Floor', 1.0)   # stop once keff drops below this
-
+    print(f"step sizes {step_sizes}")
     if not stop_at_eol:
         operator   = openmc.deplete.CoupledOperator(model, chain_file=chain)
         integrator = openmc.deplete.PredictorIntegrator(
@@ -385,7 +389,7 @@ def openmc_depletion(params, lattice_geometry, settings):
 
 
 def run_depletion_analysis(params):
-    openmc.run()
+    # openmc.run()
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
     fuel_lifetime_days, mass_U235, mass_U238, pf_summary = \

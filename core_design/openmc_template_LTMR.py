@@ -561,20 +561,30 @@ def build_openmc_model_LTMR(params):
     #                                                Sec. 1.4 : Material Volumes and Materials XML
     # **************************************************************************************************************************
     # Find the fuel region index within the fuel pin
-    fuel_index = params['Fuel Pin Materials'].index(params['Fuel'])
+    if params['Fuel'] in ['UZrH_alloy']:
+        fuel_index = params['Fuel Pin Materials'].index(params['Fuel'])  # → 2
+        fissile_area = (
+            circle_area(params['Fuel Pin Radii'][fuel_index])
+            - circle_area(params['Fuel Pin Radii'][fuel_index - 1])
+        )
+    else:
+        # fuel spans layers 0..2, outer radius is radii[2]
+        fuel_index = 2
+        fissile_area = circle_area(params['Fuel Pin Radii'][fuel_index])
 
-    fissile_area = (
-        circle_area(params['Fuel Pin Radii'][fuel_index])
-        - circle_area(params['Fuel Pin Radii'][fuel_index - 1])
-    )
-    fuel.volume = fissile_area * params['Active Height'] * params['Fuel Pin Count']
+    fuel.volume = fissile_area * params['Active Height'] * params['Fuel Pin Count']   
+
 
     all_materials = (
         fuel_materials
         + moderator_materials
         + [coolant, reflector, control_drum_absorber, control_drum_reflector]
     )
-
+    print(f"{params['Fuel']}")
+    print(f"Pin Count {params['Fuel Pin Count']}")
+    print(f"Fuel Height {params['Active Height']}")
+    print(f"Fissile area {fissile_area}")
+    print(f"Fuel volume {fuel.volume}")
     # Remove None materials while preserving their deterministic order
     all_materials_cleaned_list = [item for item in all_materials if item is not None]
     materials = openmc.Materials(list(dict.fromkeys(all_materials_cleaned_list)))
