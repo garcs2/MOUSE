@@ -273,11 +273,20 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
 
 def openmc_depletion(params, lattice_geometry, settings):
 
+    from openmc.deplete import StepResult   # used by the in-memory gated loop below
+
     openmc.config['cross_sections'] = params['cross_sections_xml_location']
+    # fork-free CRAM/Bateman solve: this is a SEPARATE python-multiprocessing pool
+    # (not your OpenMP threads / MPI ranks). Disabling it avoids the fork-under-MPI
+    # hazard under WATTS' 1-rank + many-thread setup and costs ~nothing.
+    openmc.deplete.pool.USE_MULTIPROCESSING = False
+
+    # ensure model.materials is populated so differentiation mutates it in place
     model = openmc.Model(geometry=lattice_geometry, settings=settings)
+    model.differentiate_depletable_mats(diff_volume_method='divide equally')  # ONCE; use the method you validated
     chain = params['simplified_chain_thermal_xml']
 
-    # build the operator once to read the BOL heavy-metal mass
+    # build the operator once to read the BOL heavy-metal mass (reused by the gated loop)
     op0   = openmc.deplete.CoupledOperator(model, chain_file=chain)
     hm_kg = op0.heavy_metal / 1000.0            # OpenMC reports grams
     print(f"  BOL heavy metal = {hm_kg:.2f} kg")   # sanity: should be positive, ~hundreds of kg
@@ -292,7 +301,8 @@ def openmc_depletion(params, lattice_geometry, settings):
 
     # --- gate: default (absent/False) reproduces the original single integrate() ---
     stop_at_eol = params.get('Stop At EOL', False)
-    keff_floor  = params.get('EOL keff Floor', 1.0)   # stop once keff drops below this
+    keff_floor  = params.get('EOL keff Floor', 0.95)   # stop once keff drops below this
+    keff_sigma  = params.get('EOL keff Sigma', 0)     # 0 -> plain keff < floor; >0 adds an N-sigma margin
     print(f"step sizes {step_sizes}")
     if not stop_at_eol:
         operator   = openmc.deplete.CoupledOperator(model, chain_file=chain)
@@ -302,24 +312,53 @@ def openmc_depletion(params, lattice_geometry, settings):
         integrator.integrate()
         print("Depletion complete")
     else:
+        # In-memory gated loop: ONE long-lived operator, concentrations carried in
+        # `n` across steps. Nothing is serialized/restored between steps, so there is
+        # no material-ID remap to break -> this does NOT float like the restart loop.
         print(f"Starting depletion (Stop At EOL enabled; floor keff = {keff_floor})")
-        prev_results = None
-        for i, dt in enumerate(step_sizes):
-            operator   = openmc.deplete.CoupledOperator(
-                model, chain_file=chain, prev_results=prev_results)
-            integrator = openmc.deplete.PredictorIntegrator(
-                operator, [float(dt)], power, timestep_units=step_units)
-            integrator.integrate()
+        integrator = openmc.deplete.PredictorIntegrator(
+            op0, step_sizes, power, timestep_units=step_units)
 
-            prev_results = openmc.deplete.Results("./depletion_results.h5")
-            _, keff = prev_results.get_keff()            # keff shape (n_steps, 2): [mean, std]
-            k_last  = float(np.asarray(keff)[-1, 0])
-            print(f"  step {i+1}/{len(step_sizes)}: keff = {k_last:.5f}")
+        n = op0.initial_condition()     # BOL concentrations, held in memory
+        t = 0.0
+        completed = 0
+        last_proc = None
+        res = None
+        stopped = False
+        for i, (dt, src) in enumerate(integrator):
+            # beginning-of-step transport: one OpenMC run -> k-eff + reaction rates
+            res = op0(n, src)
+            k = res.k                   # uncertainties.ufloat
+            print(f"  step {i+1}/{len(step_sizes)}: keff = {k.n:.5f} +/- {k.s:.5f}")
 
-            if k_last < keff_floor:
-                print(f"  keff {k_last:.5f} < {keff_floor} — end of life; "
-                      f"stopped after {i+1}/{len(step_sizes)} steps.")
+            # stop BEFORE stepping the composition into near-collapse territory
+            if k.n + keff_sigma * k.s < keff_floor:
+                print(f"  keff {k.n:.5f} < {keff_floor} — stopping at {i+1}/{len(step_sizes)} steps.")
+                stopped = True
                 break
+
+            # pure CRAM Bateman solve over this interval (dt already in seconds)
+            last_proc, n_end = integrator._timed_deplete(n, res.rates, dt, i)
+
+            # persist beginning-of-step state, mirroring Integrator.integrate()
+            StepResult.save(op0, n, res, [t, t + dt], src, i, last_proc,
+                            path="depletion_results.h5")
+            n = n_end
+            t += dt
+            completed = i + 1
+
+        # final end-of-life record at the last composition reached
+        if stopped:
+            # `res` was evaluated at the current `n`, so this pair is consistent
+            StepResult.save(op0, n, res, [t, t], power, completed, last_proc,
+                            path="depletion_results.h5")
+        elif res is not None:
+            # ran the full schedule: one clean transport at the final composition
+            res = op0(n, power)
+            StepResult.save(op0, n, res, [t, t], power, completed, last_proc,
+                            path="depletion_results.h5")
+        op0.finalize()
+        print("Depletion complete")
 
 
     depletion_2d_results_file = openmc.deplete.Results("./depletion_results.h5")
@@ -361,16 +400,22 @@ def openmc_depletion(params, lattice_geometry, settings):
         print("[PF] WARNING: compute_pin_peaking_factors failed:", e)
         pf_summary = None
         pf_per_step = None
-        
+
 #    if params.get('plotting') == 'Y':
 #        sp_files = sorted(glob.glob('./openmc_simulation_n*.h5'),
 #                          key=natural_sort_key)
 #        if sp_files:
 #            plot_peaking_factor_map(pf_per_step, sp_files[0], params)
-                
+
     orig_material = depletion_2d_results_file.export_to_materials(0)
-    mass_U235 = orig_material[0].get_mass('U235')
-    mass_U238 = orig_material[0].get_mass('U238')
+
+    volume_per_pin = params['Fissile Area Per Pin'] * params['Active Height']
+    for mat in orig_material:
+        if params['Fuel'] in mat.name:
+            mat.volume = volume_per_pin
+
+    mass_U235 = sum(mat.get_mass('U235') for mat in orig_material if params['Fuel'] in mat.name)
+    mass_U238 = sum(mat.get_mass('U238') for mat in orig_material if params['Fuel'] in mat.name)
 
     params['keff 2D'] = [float(k) for k in keff_2d_values]
     params['keff 3D (2D corrected)'] = [float(k) for k in keff_2d_values_corrected]
