@@ -273,6 +273,7 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
 
 def openmc_depletion(params, lattice_geometry, settings):
 
+    import glob, os
     from openmc.deplete import StepResult   # used by the in-memory gated loop below
 
     openmc.config['cross_sections'] = params['cross_sections_xml_location']
@@ -289,7 +290,6 @@ def openmc_depletion(params, lattice_geometry, settings):
     # build the operator once to read the BOL heavy-metal mass (reused by the gated loop)
     op0   = openmc.deplete.CoupledOperator(model, chain_file=chain)
     hm_kg = op0.heavy_metal / 1000.0            # OpenMC reports grams
-    print(f"  BOL heavy metal = {hm_kg:.2f} kg")   # sanity: should be positive, ~hundreds of kg
     # per-step increments (same conversion as before)
     if 'Burnup Steps' in params:
         step_sizes = np.diff(np.array(params['Burnup Steps']), prepend=0.0)
@@ -299,11 +299,15 @@ def openmc_depletion(params, lattice_geometry, settings):
         step_units = 's'
     power = 1_000_000 * params['Power MWt']
 
+    # clear any stale per-step statepoints from a previous run in this dir, so the
+    # glob in corrected_keff_2d only sees THIS run's files (avoids count mismatch).
+    for f in glob.glob("openmc_simulation_n*.h5"):
+        os.remove(f)
+
     # --- gate: default (absent/False) reproduces the original single integrate() ---
     stop_at_eol = params.get('Stop At EOL', False)
-    keff_floor  = params.get('EOL keff Floor', 0.95)   # stop once keff drops below this
+    keff_floor  = params.get('EOL keff Floor', 0.98)   # stop once keff drops below this
     keff_sigma  = params.get('EOL keff Sigma', 0)     # 0 -> plain keff < floor; >0 adds an N-sigma margin
-    print(f"step sizes {step_sizes}")
     if not stop_at_eol:
         operator   = openmc.deplete.CoupledOperator(model, chain_file=chain)
         integrator = openmc.deplete.PredictorIntegrator(
@@ -313,50 +317,42 @@ def openmc_depletion(params, lattice_geometry, settings):
         print("Depletion complete")
     else:
         # In-memory gated loop: ONE long-lived operator, concentrations carried in
-        # `n` across steps. Nothing is serialized/restored between steps, so there is
-        # no material-ID remap to break -> this does NOT float like the restart loop.
+        # `n` across steps (no operator rebuild -> no ID remap -> no floating).
+        # CRITICAL: each transport must also call write_bos_data(i) to emit its
+        # openmc_simulation_n{i}.h5 statepoint -- integrate() does this internally,
+        # and corrected_keff_2d globs those files for keff + MGXS tallies. The
+        # statepoint saves and the StepResult saves are kept in lockstep so their
+        # counts match (corrected_keff_2d indexes get_keff() time against the files).
         print(f"Starting depletion (Stop At EOL enabled; floor keff = {keff_floor})")
         integrator = openmc.deplete.PredictorIntegrator(
             op0, step_sizes, power, timestep_units=step_units)
 
         n = op0.initial_condition()     # BOL concentrations, held in memory
         t = 0.0
-        completed = 0
-        last_proc = None
-        res = None
         stopped = False
         for i, (dt, src) in enumerate(integrator):
             # beginning-of-step transport: one OpenMC run -> k-eff + reaction rates
             res = op0(n, src)
+            op0.write_bos_data(i)       # -> openmc_simulation_n{i}.h5 (keff + MGXS tallies)
             k = res.k                   # uncertainties.ufloat
             print(f"  step {i+1}/{len(step_sizes)}: keff = {k.n:.5f} +/- {k.s:.5f}")
 
-            # stop BEFORE stepping the composition into near-collapse territory
-            if k.n + keff_sigma * k.s < keff_floor:
+            subcritical = (k.n + keff_sigma * k.s) < keff_floor
+            interval = [t, t] if subcritical else [t, t + dt]
+            # record this step in depletion_results.h5 (drives get_keff() time axis),
+            # in lockstep with the statepoint written above
+            StepResult.save(op0, n, res, interval, src, i, None,
+                            path="depletion_results.h5")
+
+            if subcritical:
                 print(f"  keff {k.n:.5f} < {keff_floor} — stopping at {i+1}/{len(step_sizes)} steps.")
                 stopped = True
                 break
 
             # pure CRAM Bateman solve over this interval (dt already in seconds)
-            last_proc, n_end = integrator._timed_deplete(n, res.rates, dt, i)
-
-            # persist beginning-of-step state, mirroring Integrator.integrate()
-            StepResult.save(op0, n, res, [t, t + dt], src, i, last_proc,
-                            path="depletion_results.h5")
-            n = n_end
+            _, n = integrator._timed_deplete(n, res.rates, dt, i)
             t += dt
-            completed = i + 1
 
-        # final end-of-life record at the last composition reached
-        if stopped:
-            # `res` was evaluated at the current `n`, so this pair is consistent
-            StepResult.save(op0, n, res, [t, t], power, completed, last_proc,
-                            path="depletion_results.h5")
-        elif res is not None:
-            # ran the full schedule: one clean transport at the final composition
-            res = op0(n, power)
-            StepResult.save(op0, n, res, [t, t], power, completed, last_proc,
-                            path="depletion_results.h5")
         op0.finalize()
         print("Depletion complete")
 
@@ -408,6 +404,18 @@ def openmc_depletion(params, lattice_geometry, settings):
 #            plot_peaking_factor_map(pf_per_step, sp_files[0], params)
 
     orig_material = depletion_2d_results_file.export_to_materials(0)
+    if params['Fuel'] in ['UZrH_alloy']:
+        fuel_index = params['Fuel Pin Materials'].index(params['Fuel'])  # → 2
+        fissile_area = (
+            circle_area(params['Fuel Pin Radii'][fuel_index])
+            - circle_area(params['Fuel Pin Radii'][fuel_index - 1])
+        )
+    else:
+        # fuel spans layers 0..2, outer radius is radii[2]
+        fuel_index = 2
+        fissile_area = circle_area(params['Fuel Pin Radii'][fuel_index])
+
+    params['Fissile Area Per Pin'] = fissile_area 
 
     volume_per_pin = params['Fissile Area Per Pin'] * params['Active Height']
     for mat in orig_material:
