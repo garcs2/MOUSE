@@ -111,6 +111,7 @@ def _build_base_materials(params):
         UO2.set_density('g/cm3', 10.41)
         UO2.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
         UO2.add_nuclide('O16', 2.0)
+        UO2.temperature = params['Common Temperature']
         mats['UO2'] = UO2
     except KeyError as e:
         print(f"Skipping UO2 due to missing parameter: {e}")
@@ -121,6 +122,7 @@ def _build_base_materials(params):
         UC.set_density('g/cm3', 13.0)
         UC.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
         UC.add_element('C', 1.0)
+        UC.temperature = params['Common Temperature']
         mats['UC'] = UC
     except KeyError as e:
         print(f"Skipping UC due to missing parameter: {e}")
@@ -154,6 +156,7 @@ def _build_base_materials(params):
         UN.set_density('g/cm3', 14.0)
         UN.add_element('U', 1.0, enrichment=100 * params['Enrichment'])
         UN.add_element('N', 1.0)
+        UN.temperature = params['Common Temperature']
         mats['UN'] = UN
     except KeyError as e:
         print(f"Skipping UN due to missing parameter: {e}")
@@ -164,6 +167,7 @@ def _build_base_materials(params):
         UZr.set_density('g/cm3', 16.0)
         UZr.add_element('U', 10, 'wo', enrichment=100 * params['Enrichment'])
         UZr.add_element('Zr', 90, 'wo')
+        UZr.temperature = params['Common Temperature']
         mats['UZr'] = UZr
     except KeyError as e:
         print(f"Skipping U-10Zr due to missing parameter: {e}")
@@ -187,6 +191,7 @@ def _build_base_materials(params):
         homog_TRISO.add_nuclide('Si30', 9.28556098E-05, 'ao')
         homog_TRISO.add_nuclide('C12',  7.31619752E-02, 'ao')
         homog_TRISO.add_nuclide('C13',  7.58819416E-04, 'ao')
+        homog_TRISO.temperature = params['Common Temperature']
         mats['homog_TRISO'] = homog_TRISO
     except KeyError as e:
         print(f"Skipping homog_TRISO due to missing parameter: {e}")
@@ -199,6 +204,7 @@ def _build_base_materials(params):
     ZrH.set_density("g/cm3", 5.6)
     ZrH.add_nuclide("H1", 1.85)
     ZrH.add_element("zirconium", 1.0)
+    ZrH.temperature = params['Common Temperature']
     mats['ZrH'] = ZrH
 
     YHx = openmc.Material(name="YHx")
@@ -296,12 +302,14 @@ def _build_base_materials(params):
     SiC.set_density('g/cm3', 3.18)
     SiC.add_element('Si', 0.5)
     SiC.add_element('C',  0.5)
+    SiC.temperature = params['Common Temperature']
     mats['SiC'] = SiC
 
     ZrC = openmc.Material(name='ZrC')
     ZrC.set_density('g/cm3', 6.73)
     ZrC.add_element('Zr', 1.0)
     ZrC.add_element('C',  1.0)
+    ZrC.temperature = params['Common Temperature']
     mats['ZrC'] = ZrC
 
     # ------------------------------------------------------------------
@@ -311,6 +319,7 @@ def _build_base_materials(params):
     Graphite = openmc.Material(name='Graphite')
     Graphite.set_density('g/cm3', 1.60)
     Graphite.add_element('C', 1.0)
+    Graphite.temperature = params['Common Temperature']
     mats['Graphite'] = Graphite
 
     buffer_graphite = openmc.Material(name='Buffer')
@@ -331,6 +340,7 @@ def _build_base_materials(params):
     MgO.set_density('g/cm3', 3.58)
     MgO.add_element('Mg', 1.0)
     MgO.add_element('O',  1.0)
+    MgO.temperature = params['Common Temperature']
     mats['MgO'] = MgO
 
     # ------------------------------------------------------------------
