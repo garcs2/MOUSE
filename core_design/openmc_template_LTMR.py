@@ -573,7 +573,8 @@ def build_openmc_model_LTMR(params):
         fissile_area = circle_area(params['Fuel Pin Radii'][fuel_index])
 
     params['Fissile Area Per Pin'] = fissile_area   # <-- stash so the mass calc reuses identical geometry
-    fuel.volume = fissile_area * params['Active Height'] * params['Fuel Pin Count']
+    # fuel.volume = fissile_area * params['Active Height'] * params['Fuel Pin Count']
+    fuel.volume = fissile_area * params['Fuel Pin Count']
     # fuel.depletable = True
     print(params['Fissile Area Per Pin'])
     all_materials = (

@@ -284,7 +284,7 @@ def openmc_depletion(params, lattice_geometry, settings):
 
     # ensure model.materials is populated so differentiation mutates it in place
     model = openmc.Model(geometry=lattice_geometry, settings=settings)
-    model.differentiate_depletable_mats(diff_volume_method='divide equally')  # ONCE; use the method you validated
+    # model.differentiate_depletable_mats(diff_volume_method='divide equally')  # ONCE; use the method you validated
     chain = params['simplified_chain_thermal_xml']
 
     # build the operator once to read the BOL heavy-metal mass (reused by the gated loop)
@@ -297,7 +297,7 @@ def openmc_depletion(params, lattice_geometry, settings):
     elif 'Time Steps' in params:
         step_sizes = np.array(params['Time Steps'], dtype=float)
         step_units = 's'
-    power = 1_000_000 * params['Power MWt']
+    power = 1_000_000 * params['Power MWt'] / params['Active Height']
 
     # clear any stale per-step statepoints from a previous run in this dir, so the
     # glob in corrected_keff_2d only sees THIS run's files (avoids count mismatch).
