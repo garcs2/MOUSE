@@ -42,6 +42,26 @@ def cylinder_radial_shell(r, h):
     # Calculates the lateral surface area of a cylinder
     return circle_perimeter(r) * h
 
+def fuel_fissile_area(params):
+    """
+    Cross-sectional area of the fuel meat in ONE pin [cm^2] -- unified for
+    annular and solid fuel, and the single source of truth for every fissile
+    area / fuel-volume / U-mass calculation.
+ 
+    The fuel occupies the one layer whose material == params['Fuel'] in the
+    centre->clad 'Fuel Pin Materials' list, so its area is the annulus between
+    that layer's outer radius and the previous layer's outer radius. For solid
+    fuel the previous radius is 0 (set in the run script), so circle_area(0) = 0
+    and this reduces to a full disk automatically -- no branching.
+ 
+      annular (UZrH): mats = ['Zr', None, fuel, gap, clad], radii[1] > 0
+      solid          : mats = [None, None, fuel, gap, clad], radii[1] = 0
+    """
+ 
+    idx = params['Fuel Pin Materials'].index(params['Fuel'])
+    r_outer = params['Fuel Pin Radii'][idx]
+    r_inner = params['Fuel Pin Radii'][idx - 1] if idx > 0 else 0.0
+    return circle_area(r_outer) - circle_area(r_inner)
 
 def calculate_lattice_radius(params):
     """
@@ -273,32 +293,90 @@ def create_universe_plot(materials_database, universe, plot_width, num_pixels, f
 
 def openmc_depletion(params, lattice_geometry, settings):
 
+    import glob, os
+    from openmc.deplete import StepResult   # used by the in-memory gated loop below
+
     openmc.config['cross_sections'] = params['cross_sections_xml_location']
+    # fork-free CRAM/Bateman solve: this is a SEPARATE python-multiprocessing pool
+    # (not your OpenMP threads / MPI ranks). Disabling it avoids the fork-under-MPI
+    # hazard under WATTS' 1-rank + many-thread setup and costs ~nothing.
+    openmc.deplete.pool.USE_MULTIPROCESSING = False
 
-    operator = openmc.deplete.CoupledOperator(
-        openmc.Model(geometry=lattice_geometry, settings=settings),
-        chain_file=params['simplified_chain_thermal_xml']
-    )
+    # ensure model.materials is populated so differentiation mutates it in place
+    model = openmc.Model(geometry=lattice_geometry, settings=settings)
+    model.differentiate_depletable_mats(diff_volume_method='divide equally')  # ONCE; use the method you validated
+    chain = params['simplified_chain_thermal_xml']
 
+    # build the operator once to read the BOL heavy-metal mass (reused by the gated loop)
+    op0   = openmc.deplete.CoupledOperator(model, chain_file=chain)
+    hm_kg = op0.heavy_metal / 1000.0            # OpenMC reports grams
+    print(f"BOL Heavy Metal {hm_kg}")
+    # per-step increments (same conversion as before)
     if 'Burnup Steps' in params:
-        burnup_steps_list_MWd_per_Kg = params['Burnup Steps']
-        burnup_step = np.array(burnup_steps_list_MWd_per_Kg)
-        burnup = np.diff(burnup_step, prepend=0.0)  # step-wise burnup increments
-
-        integrator = openmc.deplete.PredictorIntegrator(
-            operator,
-            burnup,
-            1000000 * params['Power MWt'],
-            timestep_units='MWd/kg'
-        )
+        step_sizes = np.diff(np.array(params['Burnup Steps']), prepend=0.0)
+        step_units = 'MWd/kg'
     elif 'Time Steps' in params:
-        time_steps_list = params['Time Steps']
-        power_list = [params['Power MWt'] * 1e6] * len(time_steps_list)
-        integrator = openmc.deplete.CECMIntegrator(operator, time_steps_list, power_list)
+        step_sizes = np.array(params['Time Steps'], dtype=float)
+        step_units = 's'
+    power = 1_000_000 * params['Power MWt'] / params['Active Height']
 
-    print("Starting depletion")
-    integrator.integrate()
-    print("Depletion complete")
+    # clear any stale per-step statepoints from a previous run in this dir, so the
+    # glob in corrected_keff_2d only sees THIS run's files (avoids count mismatch).
+    for f in glob.glob("openmc_simulation_n*.h5"):
+        os.remove(f)
+
+    # --- gate: default (absent/False) reproduces the original single integrate() ---
+    stop_at_eol = params.get('Stop At EOL', False)
+    keff_floor  = params.get('EOL keff Floor', 0.98)   # stop once keff drops below this
+    keff_sigma  = params.get('EOL keff Sigma', 0)     # 0 -> plain keff < floor; >0 adds an N-sigma margin
+    if not stop_at_eol:
+        operator   = openmc.deplete.CoupledOperator(model, chain_file=chain)
+        integrator = openmc.deplete.PredictorIntegrator(
+            operator, step_sizes, power, timestep_units=step_units)
+        print("Starting depletion")
+        integrator.integrate()
+        print("Depletion complete")
+    else:
+        # In-memory gated loop: ONE long-lived operator, concentrations carried in
+        # `n` across steps (no operator rebuild -> no ID remap -> no floating).
+        # CRITICAL: each transport must also call write_bos_data(i) to emit its
+        # openmc_simulation_n{i}.h5 statepoint -- integrate() does this internally,
+        # and corrected_keff_2d globs those files for keff + MGXS tallies. The
+        # statepoint saves and the StepResult saves are kept in lockstep so their
+        # counts match (corrected_keff_2d indexes get_keff() time against the files).
+        print(f"Starting depletion (Stop At EOL enabled; floor keff = {keff_floor})")
+        integrator = openmc.deplete.PredictorIntegrator(
+            op0, step_sizes, power, timestep_units=step_units)
+
+        n = op0.initial_condition()     # BOL concentrations, held in memory
+        t = 0.0
+        stopped = False
+        for i, (dt, src) in enumerate(integrator):
+            # beginning-of-step transport: one OpenMC run -> k-eff + reaction rates
+            res = op0(n, src)
+            op0.write_bos_data(i)       # -> openmc_simulation_n{i}.h5 (keff + MGXS tallies)
+            k = res.k                   # uncertainties.ufloat
+            print(f"  step {i+1}/{len(step_sizes)}: keff = {k.n:.5f} +/- {k.s:.5f}")
+
+            subcritical = (k.n + keff_sigma * k.s) < keff_floor
+            interval = [t, t] if subcritical else [t, t + dt]
+            # record this step in depletion_results.h5 (drives get_keff() time axis),
+            # in lockstep with the statepoint written above
+            StepResult.save(op0, n, res, interval, src, i, None,
+                            path="depletion_results.h5")
+
+            if subcritical:
+                print(f"  keff {k.n:.5f} < {keff_floor} — stopping at {i+1}/{len(step_sizes)} steps.")
+                stopped = True
+                break
+
+            # pure CRAM Bateman solve over this interval (dt already in seconds)
+            _, n = integrator._timed_deplete(n, res.rates, dt, i)
+            t += dt
+
+        op0.finalize()
+        print("Depletion complete")
+
 
     depletion_2d_results_file = openmc.deplete.Results("./depletion_results.h5")
 
@@ -339,16 +417,18 @@ def openmc_depletion(params, lattice_geometry, settings):
         print("[PF] WARNING: compute_pin_peaking_factors failed:", e)
         pf_summary = None
         pf_per_step = None
-        
-#    if params.get('plotting') == 'Y':
-#        sp_files = sorted(glob.glob('./openmc_simulation_n*.h5'),
-#                          key=natural_sort_key)
-#        if sp_files:
-#            plot_peaking_factor_map(pf_per_step, sp_files[0], params)
-                
+
     orig_material = depletion_2d_results_file.export_to_materials(0)
-    mass_U235 = orig_material[0].get_mass('U235')
-    mass_U238 = orig_material[0].get_mass('U238')
+
+    params['Fissile Area Per Pin'] = fuel_fissile_area(params)
+
+    volume_per_pin = params['Fissile Area Per Pin'] * params['Active Height']
+    for mat in orig_material:
+        if params['Fuel'] in mat.name:
+            mat.volume = volume_per_pin
+
+    mass_U235 = sum(mat.get_mass('U235') for mat in orig_material if params['Fuel'] in mat.name)
+    mass_U238 = sum(mat.get_mass('U238') for mat in orig_material if params['Fuel'] in mat.name)
 
     params['keff 2D'] = [float(k) for k in keff_2d_values]
     params['keff 3D (2D corrected)'] = [float(k) for k in keff_2d_values_corrected]
@@ -367,7 +447,7 @@ def openmc_depletion(params, lattice_geometry, settings):
 
 
 def run_depletion_analysis(params):
-    openmc.run()
+    # openmc.run()
     lattice_geometry = openmc.Geometry.from_xml()
     settings = openmc.Settings.from_xml()
     fuel_lifetime_days, mass_U235, mass_U238, pf_summary = \
