@@ -9,6 +9,7 @@ from core_design.utils import (
     create_cells,
     calculate_hex_edge_length,
     calculate_hex_apothem,
+    fuel_fissile_area,
 )
 import copy
 
@@ -25,47 +26,75 @@ and then used later to simplify and organize the code.
 
 def create_pin_regions(params, pin_type):
     """
-    Creating the pin regions
-    @ In, params, dict, The parameters that are used to "fill in" input files with placeholders.
-    @ In, pin_type, str, The type of pin ('moderator' or 'fuel').
-    @ out, regions, dict, Regions of the specified pin.
+    Build the annular regions of a pin as an ordered dict {key: openmc.Region},
+    centre -> out, so create_cells() can zip them positionally against the
+    material list.
+ 
+    Path-A behaviour: any radius entry equal to 0 is a COLLAPSED inner layer
+    (e.g. the Zr insert + inner gap of a solid fuel pin). Collapsed slots are
+    emitted as EMPTY, void-fillable regions so there is still exactly one dict
+    entry per material slot (positional zip stays aligned), and the first region
+    with a real radius is built as a SOLID DISK that includes the pin axis. That
+    guarantees r = 0 is always inside a real cell -> no undefined centreline hole
+    -> no lost particles on the axis. With all-positive radii it reproduces the
+    previous annular behaviour exactly (fully backward compatible).
+ 
+    @ In,  params, dict
+    @ In,  pin_type, str, 'moderator' or 'fuel'
+    @ out, regions, dict
     """
-
     if pin_type == 'moderator':
-        # Extract the radii values for different regions of the moderator pin from the input parameters
         pin_radii = {
             'moderator': params['Moderator Pin Radii'][0],
-            'cladding': params['Moderator Pin Radii'][1]
+            'cladding':  params['Moderator Pin Radii'][1],
         }
         region_keys = ['moderator', 'cladding', 'coolant']
-
+ 
     elif pin_type == 'fuel':
-        # Extract the radii values for different regions of the fuel pin from the input parameters
         pin_radii = {
-            'insert': params['Fuel Pin Radii'][0],
-            'gap1': params['Fuel Pin Radii'][1],
+            'insert':    params['Fuel Pin Radii'][0],
+            'gap1':      params['Fuel Pin Radii'][1],
             'fuel_meat': params['Fuel Pin Radii'][2],
-            'gap2': params['Fuel Pin Radii'][3],
-            'cladding': params['Fuel Pin Radii'][4]
+            'gap2':      params['Fuel Pin Radii'][3],
+            'cladding':  params['Fuel Pin Radii'][4],
         }
         region_keys = ['insert', 'gap1', 'fuel_meat', 'gap2', 'cladding', 'coolant']
-
+ 
     else:
         raise ValueError("Invalid pin type. Must be 'moderator' or 'fuel'.")
-
-    # Creating surfaces
-    # Create cylindrical surfaces for each of the specified radii
-    shells = [openmc.ZCylinder(r=r) for r in pin_radii.values()]
-
-    # Define the regions within the pin using the created cylindrical surfaces
+ 
+    radii_list = list(pin_radii.values())
+    EPS = 1e-12  # cm; radii <= EPS are treated as collapsed (zero-thickness)
+ 
+    # One surface per REAL radius, reused everywhere so two coincident surfaces
+    # are never created (coincident surfaces are themselves a lost-particle cause).
+    shell_by_index = {
+        i: openmc.ZCylinder(r=r) for i, r in enumerate(radii_list) if r > EPS
+    }
+    if not shell_by_index:
+        raise ValueError(
+            f"create_pin_regions: no positive radii for pin_type='{pin_type}'; "
+            f"got {radii_list!r}."
+        )
+    first_real_shell = shell_by_index[min(shell_by_index)]
+ 
     regions = {}
-    for i, key in enumerate(region_keys[:-1]):
-        if i == 0:
-            regions[key] = -shells[i]
+    prev_shell = None
+    for i, key in enumerate(region_keys[:-1]):      # every layer except outer coolant
+        shell = shell_by_index.get(i)
+        if shell is None:
+            # collapsed slot: provably-empty region (outside AND inside the same
+            # surface). Kept only to preserve the positional material alignment;
+            # create_cells will fill it with None (void).
+            regions[key] = +first_real_shell & -first_real_shell
+        elif prev_shell is None:
+            regions[key] = -shell                    # first real region: SOLID disk (incl. axis)
+            prev_shell = shell
         else:
-            regions[key] = +shells[i - 1] & -shells[i]
-    regions[region_keys[-1]] = +shells[-1]
-
+            regions[key] = +prev_shell & -shell      # annulus
+            prev_shell = shell
+ 
+    regions[region_keys[-1]] = +prev_shell           # coolant: outside the last real shell
     return regions
 
 
@@ -560,22 +589,9 @@ def build_openmc_model_LTMR(params):
     # **************************************************************************************************************************
     #                                                Sec. 1.4 : Material Volumes and Materials XML
     # **************************************************************************************************************************
-    # Find the fuel region index within the fuel pin
-    if params['Fuel'] in ['UZrH_alloy']:
-        fuel_index = params['Fuel Pin Materials'].index(params['Fuel'])  # → 2
-        fissile_area = (
-            circle_area(params['Fuel Pin Radii'][fuel_index])
-            - circle_area(params['Fuel Pin Radii'][fuel_index - 1])
-        )
-    else:
-        # fuel spans layers 0..2, outer radius is radii[2]
-        fuel_index = 2
-        fissile_area = circle_area(params['Fuel Pin Radii'][fuel_index])
 
-    params['Fissile Area Per Pin'] = fissile_area   # <-- stash so the mass calc reuses identical geometry
-    # fuel.volume = fissile_area * params['Active Height'] * params['Fuel Pin Count']
-    fuel.volume = fissile_area * params['Fuel Pin Count']
-    # fuel.depletable = True
+    params['Fissile Area Per Pin'] = fuel_fissile_area(params)  # <-- stash so the mass calc reuses identical geometry
+    fuel.volume = params['Fissile Area Per Pin'] * params['Fuel Pin Count']
     print(params['Fissile Area Per Pin'])
     all_materials = (
         fuel_materials
@@ -585,7 +601,7 @@ def build_openmc_model_LTMR(params):
     print(f"{params['Fuel']}")
     print(f"Pin Count {params['Fuel Pin Count']}")
     print(f"Fuel Height {params['Active Height']}")
-    print(f"Fissile area {fissile_area}")
+    print(f"Fissile area {params['Fissile Area Per Pin']}")
     print(f"Fuel volume {fuel.volume}")
     # Remove None materials while preserving their deterministic order
     all_materials_cleaned_list = [item for item in all_materials if item is not None]

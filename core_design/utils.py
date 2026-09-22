@@ -42,6 +42,26 @@ def cylinder_radial_shell(r, h):
     # Calculates the lateral surface area of a cylinder
     return circle_perimeter(r) * h
 
+def fuel_fissile_area(params):
+    """
+    Cross-sectional area of the fuel meat in ONE pin [cm^2] -- unified for
+    annular and solid fuel, and the single source of truth for every fissile
+    area / fuel-volume / U-mass calculation.
+ 
+    The fuel occupies the one layer whose material == params['Fuel'] in the
+    centre->clad 'Fuel Pin Materials' list, so its area is the annulus between
+    that layer's outer radius and the previous layer's outer radius. For solid
+    fuel the previous radius is 0 (set in the run script), so circle_area(0) = 0
+    and this reduces to a full disk automatically -- no branching.
+ 
+      annular (UZrH): mats = ['Zr', None, fuel, gap, clad], radii[1] > 0
+      solid          : mats = [None, None, fuel, gap, clad], radii[1] = 0
+    """
+ 
+    idx = params['Fuel Pin Materials'].index(params['Fuel'])
+    r_outer = params['Fuel Pin Radii'][idx]
+    r_inner = params['Fuel Pin Radii'][idx - 1] if idx > 0 else 0.0
+    return circle_area(r_outer) - circle_area(r_inner)
 
 def calculate_lattice_radius(params):
     """
@@ -284,12 +304,13 @@ def openmc_depletion(params, lattice_geometry, settings):
 
     # ensure model.materials is populated so differentiation mutates it in place
     model = openmc.Model(geometry=lattice_geometry, settings=settings)
-    # model.differentiate_depletable_mats(diff_volume_method='divide equally')  # ONCE; use the method you validated
+    model.differentiate_depletable_mats(diff_volume_method='divide equally')  # ONCE; use the method you validated
     chain = params['simplified_chain_thermal_xml']
 
     # build the operator once to read the BOL heavy-metal mass (reused by the gated loop)
     op0   = openmc.deplete.CoupledOperator(model, chain_file=chain)
     hm_kg = op0.heavy_metal / 1000.0            # OpenMC reports grams
+    print(f"BOL Heavy Metal {hm_kg}")
     # per-step increments (same conversion as before)
     if 'Burnup Steps' in params:
         step_sizes = np.diff(np.array(params['Burnup Steps']), prepend=0.0)
@@ -397,25 +418,9 @@ def openmc_depletion(params, lattice_geometry, settings):
         pf_summary = None
         pf_per_step = None
 
-#    if params.get('plotting') == 'Y':
-#        sp_files = sorted(glob.glob('./openmc_simulation_n*.h5'),
-#                          key=natural_sort_key)
-#        if sp_files:
-#            plot_peaking_factor_map(pf_per_step, sp_files[0], params)
-
     orig_material = depletion_2d_results_file.export_to_materials(0)
-    if params['Fuel'] in ['UZrH_alloy']:
-        fuel_index = params['Fuel Pin Materials'].index(params['Fuel'])  # → 2
-        fissile_area = (
-            circle_area(params['Fuel Pin Radii'][fuel_index])
-            - circle_area(params['Fuel Pin Radii'][fuel_index - 1])
-        )
-    else:
-        # fuel spans layers 0..2, outer radius is radii[2]
-        fuel_index = 2
-        fissile_area = circle_area(params['Fuel Pin Radii'][fuel_index])
 
-    params['Fissile Area Per Pin'] = fissile_area 
+    params['Fissile Area Per Pin'] = fuel_fissile_area(params)
 
     volume_per_pin = params['Fissile Area Per Pin'] * params['Active Height']
     for mat in orig_material:
