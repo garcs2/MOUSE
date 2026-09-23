@@ -6,7 +6,7 @@ import watts
 import traceback  # print full stack traces for OpenMC failures
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from core_design.correction_factor import corrected_keff_2d
+from core_design.correction_factor import corrected_keff_2d, corrected_keff_single
 from core_design.peaking_factor import compute_pin_peaking_factors
 # from reactor_engineering_evaluation.pin_temperatures import plot_peaking_factor_map
 import pandas
@@ -445,6 +445,48 @@ def openmc_depletion(params, lattice_geometry, settings):
 
     return fuel_lifetime_days, mass_U235, mass_U238, pf_summary
 
+def run_shutdown_margin(params):
+    """
+    Single-criticality shutdown-margin evaluation (no depletion).
+
+    Runs one OpenMC eigenvalue solve on the XML already written by
+    build_openmc_model (fresh fuel, current geometry/temperature) and applies
+    the same axial-leakage 2D->3D correction used in the depletion path.
+    Results are stored as single-element lists so the shutdown-margin block
+    consumes them exactly like the per-step depletion output.
+    """
+    if 'cross_sections_xml_location' in params:
+        openmc.config['cross_sections'] = params['cross_sections_xml_location']
+
+    sp_path = openmc.run()
+    if not sp_path:
+        candidates = sorted(glob.glob('statepoint.*.h5'), key=natural_sort_key)
+        sp_path = candidates[-1] if candidates else None
+    if not sp_path:
+        raise FileNotFoundError(
+            "No statepoint.*.h5 produced by the shutdown-margin criticality run."
+        )
+
+    total_height = params['Active Height'] + 2 * params['Axial Reflector Thickness']
+
+    (
+        keff_2d, keff_2d_unc,
+        keff_2d_corrected, keff_2d_corrected_unc,
+        p_nl_axial, _p_nl_total,
+    ) = corrected_keff_single(
+        sp_path,
+        total_height,
+        core_radius=params.get('Core Radius', np.nan),
+    )
+
+    # Single-element lists keep the SDM block's list comprehensions unchanged.
+    params['keff 2D'] = [float(keff_2d)]
+    params['keff 3D (2D corrected)'] = [float(keff_2d_corrected)]
+
+    print(f"[SDM] keff_2D = {keff_2d:.5f} +/- {keff_2d_unc:.5f}")
+    print(f"[SDM] P_nl_axial = {p_nl_axial:.5f}")
+    print(f"[SDM] keff_3D (2D corrected) = {keff_2d_corrected:.5f} "
+          f"+/- {keff_2d_corrected_unc:.5f}")
 
 def run_depletion_analysis(params):
     # openmc.run()

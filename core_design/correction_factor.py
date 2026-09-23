@@ -247,3 +247,74 @@ def corrected_keff_2d(depletion_2d_results_file, total_height, core_radius=None)
         bol_total_non_leakage_probability,
         estimated_total_leakage_bol_pct
     )
+
+def corrected_keff_single(sp_file, total_height, core_radius=None):
+    """
+    Axial (and optional radial) leakage correction for a SINGLE statepoint.
+
+    This is the per-statepoint core of corrected_keff_2d, factored out so a
+    one-shot criticality run (e.g. shutdown margin) can reuse the exact same
+    2D->3D correction without running a depletion.
+
+    Returns
+    -------
+    (keff_2d, keff_2d_uncertainty,
+     keff_2d_corrected, keff_2d_corrected_uncertainty,
+     p_nl_axial, p_nl_total)
+    """
+    geometry = openmc.Geometry.from_xml()
+    root_universe = geometry.root_universe
+
+    group_edges = np.array([
+        1e-5, 6.7e-2, 3.2e-1, 1, 4, 9.88,
+        4.81e1, 4.54e2, 4.9e4, 1.83e5, 8.21e5, 4e7
+    ])
+    groups = openmc.mgxs.EnergyGroups(group_edges)
+
+    mgxs_lib = openmc.mgxs.Library(geometry)
+    mgxs_lib.energy_groups = groups
+    mgxs_lib.mgxs_types = [
+        'absorption', 'diffusion-coefficient', 'transport',
+        'scatter matrix', 'total', 'scatter'
+    ]
+    mgxs_lib.domain_type = 'universe'
+    mgxs_lib.domains = [root_universe]
+    mgxs_lib.build_library()
+
+    with openmc.StatePoint(sp_file) as sp:
+        mgxs_lib.load_from_statepoint(sp)
+
+        keff_2d = sp.keff.nominal_value
+        keff_2d_uncertainty = sp.keff.std_dev
+
+        abs_xs_mg   = mgxs_lib.get_mgxs(root_universe, 'absorption')
+        trans_xs_mg = mgxs_lib.get_mgxs(root_universe, 'transport')
+
+        abs_xs_1g = float(np.mean(
+            abs_xs_mg.get_xs(nuclide='total', mgxs_type='absorption', collapse=True)))
+        trans_xs_1g = float(np.mean(
+            trans_xs_mg.get_xs(nuclide='total', mgxs_type='transport', collapse=True)))
+
+    diffcoeff_1g = 1 / (3 * trans_xs_1g)
+    diffusion_length_squared = diffcoeff_1g / abs_xs_1g
+
+    extrapolated_height = total_height + (2 * diffcoeff_1g)
+    buckling_axial = (np.pi / extrapolated_height) ** 2
+    p_nl_axial = 1 / (1 + diffusion_length_squared * buckling_axial)
+
+    if core_radius is not None and not np.isnan(core_radius) and core_radius > 0.0:
+        extrapolated_radius = core_radius + (2 * diffcoeff_1g)
+        buckling_radial = (2.405 / extrapolated_radius) ** 2
+        buckling_total = buckling_axial + buckling_radial
+        p_nl_total = 1 / (1 + diffusion_length_squared * buckling_total)
+    else:
+        p_nl_total = np.nan
+
+    keff_2d_corrected = p_nl_axial * keff_2d
+    keff_2d_corrected_uncertainty = p_nl_axial * keff_2d_uncertainty
+
+    return (
+        keff_2d, keff_2d_uncertainty,
+        keff_2d_corrected, keff_2d_corrected_uncertainty,
+        p_nl_axial, p_nl_total,
+    )
