@@ -165,8 +165,8 @@ def _build_base_materials(params):
     try:
         UZr = openmc.Material(name='UZr')
         UZr.set_density('g/cm3', 16.0)
-        UZr.add_element('U', 10, 'wo', enrichment=100 * params['Enrichment'])
-        UZr.add_element('Zr', 90, 'wo')
+        UZr.add_element('U', 90, 'wo', enrichment=100 * params['Enrichment'])
+        UZr.add_element('Zr', 10, 'wo')
         UZr.temperature = params['Common Temperature']
         mats['UZr'] = UZr
     except KeyError as e:
@@ -659,7 +659,7 @@ def _collect_materials_endf81(params):
     # --- MgO ---
     mats['MgO'].add_s_alpha_beta("c_Mg_in_MgO")                  # new in VIII.1
     mats['MgO'].add_s_alpha_beta("c_O_in_MgO")                   # new in VIII.1
-
+    mats['MgO'].temperature = 294.0                 # pin to the only TSL temperature (VIII.1 path only)
     # --- Tungsten (no TSL) ---
     # --- Heatpipe + monolith graphite ---
     mats['monolith_graphite'].add_s_alpha_beta('c_Graphite')

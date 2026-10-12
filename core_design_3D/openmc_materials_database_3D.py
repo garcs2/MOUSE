@@ -148,6 +148,10 @@ def _apply_thermal_expansion_all(mats, params):
         T = _resolve_region_temperature(params, key)
         _apply_thermal_expansion(mat, key, T, T_ref,
                                  scale_solid_density=scale_solid)
+        # --- MgO ---
+    mats['MgO'].temperature = 294.0     # c_Mg_in_MgO / c_O_in_MgO exist only at 294 K;
+                                    # pin so interpolation finds a match. Density stays at the
+                                    # operating-T expanded value already set by _apply_thermal_expansion.
 # --- Coolant density(T) functions: return (density_value, density_units) ----------
 # Coolants do not follow a solid linear-CTE law, so they get their own correlations.
 
