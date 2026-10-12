@@ -76,6 +76,11 @@ def coolant_expanded_pitch(params, T_ref=None):
     return pitch_ref * f_grid
 
 
+# Key under which build_openmc_model_LTMR_3D stores the axial-reflector-cap material
+# (its own clone, so it can be scaled by its own volume ratio).
+AXIAL_REFLECTOR_CELLS_KEY = '_axial_reflector_cells'
+
+
 def mass_conserving_density_scale(materials_database, params):
     """OPTIONAL (recommended for rigorous coefficients).
 
@@ -102,8 +107,13 @@ def mass_conserving_density_scale(materials_database, params):
     """
     axial_vr = params.get('Vol Ratio Axial', 1.0)
     refl_vr = params.get('Vol Ratio Reflector', 1.0)
+    axrefl_vr = params.get('Vol Ratio Axial Reflector', axial_vr)
 
-    reflector_roles = {params.get('Reflector'), params.get('Control Drum Reflector')}
+    # 'Radial Reflector' is the key the LTMR sweeps set ('Reflector' is the older
+    # name and is normally unset, which used to leave the radial reflector scaled
+    # by the AXIAL ratio, i.e. missing its radial growth).
+    reflector_roles = {params.get('Radial Reflector', params.get('Reflector')),
+                       params.get('Control Drum Reflector')}
     coolant_roles = {params.get('Coolant'), params.get('Secondary Coolant')}
     handled_units = ('g/cm3', 'g/cc', 'atom/b-cm', 'atom/cm3', 'kg/m3')
 
@@ -114,7 +124,12 @@ def mass_conserving_density_scale(materials_database, params):
         rho = getattr(mat, 'density', None)
         if rho is None or units not in handled_units:
             continue
-        vr = refl_vr if name in reflector_roles else axial_vr
+        if name == AXIAL_REFLECTOR_CELLS_KEY:
+            vr = axrefl_vr
+        elif name in reflector_roles:
+            vr = refl_vr
+        else:
+            vr = axial_vr
         mat.set_density(mat.density_units, rho / vr)
     return materials_database
 
@@ -133,6 +148,7 @@ def expand_derived_geometry(params, T_ref=None):
     if not params.get('Geometric Expansion', False):
         params.setdefault('Vol Ratio Axial', 1.0)
         params.setdefault('Vol Ratio Reflector', 1.0)
+        params.setdefault('Vol Ratio Axial Reflector', 1.0)
         return 1.0, 1.0
     if T_ref is None:
         T_ref = params.get('Reference Temperature', T_REF_DEFAULT)
@@ -160,4 +176,7 @@ def expand_derived_geometry(params, T_ref=None):
     a0 = (apothem + rad0) ** 2 - apothem ** 2
     a1 = (apothem + rad0 * radial) ** 2 - apothem ** 2
     params['Vol Ratio Reflector'] = (a1 / a0 if a0 else 1.0) * axial
+    # Axial caps: discs out to Core Radius, so they grow axially (fuel CTE, rule 2)
+    # and radially with the outer boundary (rule 3).
+    params['Vol Ratio Axial Reflector'] = axial * (params['Core Radius'] / Rc0) ** 2
     return axial, radial

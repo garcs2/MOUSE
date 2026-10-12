@@ -3,6 +3,7 @@
 import openmc
 import numpy as np
 from core_design_3D.openmc_materials_database_3D import collect_materials_data
+from reactor_engineering_evaluation.core_thermal_geometry import AXIAL_REFLECTOR_CELLS_KEY
 from core_design_3D.utils_3D import (
     create_universe_plot,
     circle_area,
@@ -357,7 +358,8 @@ def update_ltmr_reflector_geometry_from_drums(params):
     return drum_positions
 
 
-def create_core_geometry(params, drums, drums_positions, assembly_universes, reflector_material):
+def create_core_geometry(params, drums, drums_positions, assembly_universes, reflector_material,
+                         axial_reflector_material=None):
 
     N_AXIAL     = len(assembly_universes)
     half_h      = params['Active Height'] / 2.0
@@ -394,11 +396,15 @@ def create_core_geometry(params, drums, drums_positions, assembly_universes, ref
         zone_region = -outer_surface & drums_outside & +z_planes[i] & -z_planes[i + 1]
         core_cells.append(openmc.Cell(fill=au, region=zone_region))
 
+    # Top/bottom reflectors use the AXIAL reflector material when one is given
+    # (previously they always used the radial reflector material).
+    if axial_reflector_material is None:
+        axial_reflector_material = reflector_material
     top_refl_cell = openmc.Cell(name='axial_reflector_top',
-                                fill=reflector_material,
+                                fill=axial_reflector_material,
                                 region=-outer_surface & +z_planes[-1] & -z_top_refl)
     bot_refl_cell = openmc.Cell(name='axial_reflector_bot',
-                                fill=reflector_material,
+                                fill=axial_reflector_material,
                                 region=-outer_surface & +z_bottom_refl & -z_planes[0])
 
     core          = openmc.Universe(cells=core_cells + [top_refl_cell, bot_refl_cell] + drum_cells)
@@ -433,6 +439,15 @@ def build_openmc_model_LTMR_3D(params):
     # **************************************************************************************************************************
 
     materials_database    = collect_materials_data(params)
+
+    # The axial reflector caps get their OWN material object, even when the axial
+    # and radial reflectors are the same material, so the density scaling below can
+    # follow the caps' own volume change (they grow axially AND radially, unlike the
+    # radial annulus or the fuel).
+    _axial_key = params.get('Axial Reflector', params['Radial Reflector'])
+    axial_reflector = materials_database[_axial_key].clone()
+    axial_reflector.name = f'{_axial_key}_axial_reflector'
+    materials_database[AXIAL_REFLECTOR_CELLS_KEY] = axial_reflector
 
     # --- Mass-conserving thermal-expansion density scaling (ABC / geometry mode) ---
     # When materials are built cold (params['Thermal Expansion'] = False) and the
@@ -571,7 +586,8 @@ def build_openmc_model_LTMR_3D(params):
         drums,
         drums_positions=control_drum_positions,
         assembly_universes=assembly_universes,
-        reflector_material=reflector
+        reflector_material=reflector,
+        axial_reflector_material=axial_reflector,
     )
 
     core_geometry.export_to_xml()
