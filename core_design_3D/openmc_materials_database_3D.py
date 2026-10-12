@@ -363,8 +363,8 @@ def _build_base_materials(params):
     try:
         UZr = openmc.Material(name='UZr')
         UZr.set_density('g/cm3', 16.0)
-        UZr.add_element('U', 10, 'wo', enrichment=100 * params['Enrichment'])
-        UZr.add_element('Zr', 90, 'wo')
+        UZr.add_element('U', 90, 'wo', enrichment=100 * params['Enrichment'])
+        UZr.add_element('Zr', 10, 'wo')
         mats['UZr'] = UZr
     except KeyError as e:
         print(f"Skipping U-10Zr due to missing parameter: {e}")
