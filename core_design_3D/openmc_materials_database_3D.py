@@ -2,6 +2,7 @@
 # Importing libraries
 import warnings
 
+import os
 import openmc
 
 
@@ -256,6 +257,56 @@ def _enrich_tsl_suffix(enrichment_frac):
         return "_5p"
     else:
         return ""  # generic (natural) table fallback
+
+
+# ----------------------------------------------------------------------------------
+#  Thermal-scattering (TSL) name resolution against the library actually in use
+# ----------------------------------------------------------------------------------
+_TSL_AVAILABLE_CACHE = {}
+
+
+def _available_tsl_names(params):
+    """Names of the thermal-scattering tables in the cross_sections.xml in use
+    (None if that file cannot be found or read)."""
+    path = (params.get('cross_sections_xml_location')
+            or os.environ.get('OPENMC_CROSS_SECTIONS')
+            or openmc.config.get('cross_sections'))
+    if not path:
+        return None
+    path = str(path)
+    if path not in _TSL_AVAILABLE_CACHE:
+        try:
+            import xml.etree.ElementTree as ET
+            root = ET.parse(path).getroot()
+            _TSL_AVAILABLE_CACHE[path] = {
+                lib.get('materials') for lib in root.iter('library')
+                if lib.get('type') == 'thermal'}
+        except Exception as exc:
+            warnings.warn(f"[TSL] could not read {path} ({exc}); "
+                          "using enrichment-specific TSL names unchecked.")
+            _TSL_AVAILABLE_CACHE[path] = None
+    return _TSL_AVAILABLE_CACHE[path]
+
+
+_TSL_FALLBACK_WARNED = set()
+
+
+def _tsl(base, sfx, params):
+    """Enrichment-specific TSL name base+sfx if the library has it, otherwise the
+    generic table `base`. Not every enrichment variant exists for every compound
+    (e.g. ENDF/B-VIII.1 has c_O_in_UO2_10p but no c_U_in_UO2_10p), and OpenMC
+    aborts on a missing table."""
+    name = base + sfx
+    available = _available_tsl_names(params)
+    if not sfx or available is None or name in available:
+        return name
+    if base in available:
+        if name not in _TSL_FALLBACK_WARNED:
+            _TSL_FALLBACK_WARNED.add(name)
+            print(f"[TSL] '{name}' not in the library; using generic '{base}'.")
+        return base
+    raise ValueError(f"[TSL] neither '{name}' nor '{base}' is in the thermal "
+                     f"scattering library ({len(available)} tables found).")
 
 
 def _build_base_materials(params):
@@ -745,26 +796,26 @@ def _collect_materials_endf81(params):
 
     # --- UO2 ---
     if 'UO2' in mats:
-        mats['UO2'].add_s_alpha_beta("c_U_in_UO2" + sfx)         # enrichment-specific
-        mats['UO2'].add_s_alpha_beta("c_O_in_UO2" + sfx)         # enrichment-specific
+        mats['UO2'].add_s_alpha_beta(_tsl("c_U_in_UO2", sfx, params))         # enrichment-specific
+        mats['UO2'].add_s_alpha_beta(_tsl("c_O_in_UO2", sfx, params))         # enrichment-specific
         materials.append(mats['UO2'])
 
     # --- UC ---
     if 'UC' in mats:
-        mats['UC'].add_s_alpha_beta("c_U_in_UC" + sfx)           # new in VIII.1, enrichment-specific
-        mats['UC'].add_s_alpha_beta("c_C_in_UC" + sfx)           # new in VIII.1, enrichment-specific
+        mats['UC'].add_s_alpha_beta(_tsl("c_U_in_UC", sfx, params))           # new in VIII.1, enrichment-specific
+        mats['UC'].add_s_alpha_beta(_tsl("c_C_in_UC", sfx, params))           # new in VIII.1, enrichment-specific
         materials.append(mats['UC'])
 
     # --- UCO (approximation: UO2 TSLs for the oxide fraction) ---
     if 'UCO' in mats:
-        mats['UCO'].add_s_alpha_beta("c_U_in_UO2" + sfx)
-        mats['UCO'].add_s_alpha_beta("c_O_in_UO2" + sfx)
+        mats['UCO'].add_s_alpha_beta(_tsl("c_U_in_UO2", sfx, params))
+        mats['UCO'].add_s_alpha_beta(_tsl("c_O_in_UO2", sfx, params))
         materials.append(mats['UCO'])
 
     # --- UN ---
     if 'UN' in mats:
-        mats['UN'].add_s_alpha_beta("c_U_in_UN" + sfx)           # enrichment-specific
-        mats['UN'].add_s_alpha_beta("c_N_in_UN" + sfx)           # enrichment-specific
+        mats['UN'].add_s_alpha_beta(_tsl("c_U_in_UN", sfx, params))           # enrichment-specific
+        mats['UN'].add_s_alpha_beta(_tsl("c_N_in_UN", sfx, params))           # enrichment-specific
         materials.append(mats['UN'])
 
     # --- U-10Zr (no TSL available) ---
