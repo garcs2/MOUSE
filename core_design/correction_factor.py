@@ -15,6 +15,23 @@ def natural_sort_key(s):
     return [int(text) if text.isdigit() else text for text in re.split(r'(\d+)', s)]
 
 
+class SubcriticalAtBOL(ValueError):
+    """The (3D-corrected) keff is below 1 from the start of life, so the core is never
+    critical. Subclass of ValueError, so code that catches ValueError still catches it."""
+    def __init__(self, keff_bol):
+        self.keff_bol = float(keff_bol)
+        super().__init__(f"subcritical at BOL: corrected keff = {self.keff_bol:.5f} < 1.0")
+
+
+class LifetimeBeyondSteps(ValueError):
+    """keff stays at or above 1 for every depletion step, so the lifetime is longer than
+    the last burnup step (extend 'Burnup Steps' to resolve it)."""
+    def __init__(self, keff_last, t_last):
+        self.keff_last, self.t_last = float(keff_last), float(t_last)
+        super().__init__(f"keff still {self.keff_last:.5f} >= 1.0 at the last step "
+                         f"({self.t_last:.0f} days): lifetime exceeds the burnup steps")
+
+
 def corrected_keff_2d(depletion_2d_results_file, total_height, core_radius=None):
     """
     Apply a leakage correction to 2D depletion keff values using a simple
@@ -235,7 +252,11 @@ def corrected_keff_2d(depletion_2d_results_file, total_height, core_radius=None)
         print(f"Estimated fuel cycle length: {round_cycle_length} days")
     else:
         print("k = 1.0 not reached within the given time steps.")
-        raise ValueError("Cannot compute fuel cycle length: k=1.0 was never reached.")
+        # keff never crosses 1: either it starts below 1 (never critical) or it stays above
+        # 1 until the last step (lifetime longer than the steps cover). Say which.
+        if keff_2d_corrected_values[0] < 1.0:
+            raise SubcriticalAtBOL(keff_2d_corrected_values[0])
+        raise LifetimeBeyondSteps(keff_2d_corrected_values[-1], time_steps[-1])
 
     return (
         round_cycle_length,
