@@ -445,16 +445,12 @@ def openmc_depletion(params, lattice_geometry, settings):
 
     return fuel_lifetime_days, mass_U235, mass_U238, pf_summary
 
-def run_shutdown_margin(params):
-    """
-    Single-criticality shutdown-margin evaluation (no depletion).
-
-    Runs one OpenMC eigenvalue solve on the XML already written by
-    build_openmc_model (fresh fuel, current geometry/temperature) and applies
-    the same axial-leakage 2D->3D correction used in the depletion path.
-    Results are stored as single-element lists so the shutdown-margin block
-    consumes them exactly like the per-step depletion output.
-    """
+def _single_criticality(params, tag):
+    """One OpenMC eigenvalue solve (no depletion) on the XML already written by
+    build_openmc_model, with the same axial-leakage 2D->3D correction as the depletion
+    path. Stores single-element lists in 'keff 2D' / 'keff 3D (2D corrected)' (so code
+    that indexes [0] works as for depletion output) and returns
+    (keff_2d, keff_2d_unc, keff_3d, keff_3d_unc, p_nl_axial)."""
     if 'cross_sections_xml_location' in params:
         openmc.config['cross_sections'] = params['cross_sections_xml_location']
 
@@ -463,12 +459,9 @@ def run_shutdown_margin(params):
         candidates = sorted(glob.glob('statepoint.*.h5'), key=natural_sort_key)
         sp_path = candidates[-1] if candidates else None
     if not sp_path:
-        raise FileNotFoundError(
-            "No statepoint.*.h5 produced by the shutdown-margin criticality run."
-        )
+        raise FileNotFoundError(f"No statepoint.*.h5 produced by the {tag} criticality run.")
 
     total_height = params['Active Height'] + 2 * params['Axial Reflector Thickness']
-
     (
         keff_2d, keff_2d_unc,
         keff_2d_corrected, keff_2d_corrected_unc,
@@ -479,14 +472,45 @@ def run_shutdown_margin(params):
         core_radius=params.get('Core Radius', np.nan),
     )
 
-    # Single-element lists keep the SDM block's list comprehensions unchanged.
     params['keff 2D'] = [float(keff_2d)]
     params['keff 3D (2D corrected)'] = [float(keff_2d_corrected)]
 
-    print(f"[SDM] keff_2D = {keff_2d:.5f} +/- {keff_2d_unc:.5f}")
-    print(f"[SDM] P_nl_axial = {p_nl_axial:.5f}")
-    print(f"[SDM] keff_3D (2D corrected) = {keff_2d_corrected:.5f} "
+    print(f"[{tag}] keff_2D = {keff_2d:.5f} +/- {keff_2d_unc:.5f}")
+    print(f"[{tag}] P_nl_axial = {p_nl_axial:.5f}")
+    print(f"[{tag}] keff_3D (2D corrected) = {keff_2d_corrected:.5f} "
           f"+/- {keff_2d_corrected_unc:.5f}")
+    return keff_2d, keff_2d_unc, keff_2d_corrected, keff_2d_corrected_unc, p_nl_axial
+
+
+def run_shutdown_margin(params):
+    """
+    Single-criticality shutdown-margin evaluation (no depletion).
+
+    Runs one OpenMC eigenvalue solve on the XML already written by
+    build_openmc_model (fresh fuel, current geometry/temperature) and applies
+    the same axial-leakage 2D->3D correction used in the depletion path.
+    Results are stored as single-element lists so the shutdown-margin block
+    consumes them exactly like the per-step depletion output.
+    """
+    _single_criticality(params, 'SDM')
+
+
+def run_single_keff(params, tag='keff'):
+    """
+    Single criticality (no depletion) for whatever state build_openmc_model wrote:
+    e.g. drums out at operating temperature with fresh fuel, to find out cheaply
+    whether a core is critical at BOL before paying for a full depletion.
+
+    Same solve and axial-leakage correction as run_shutdown_margin. Stores
+    'keff 2D' / 'keff 3D (2D corrected)' as single-element lists, plus their
+    uncertainties ('keff 2D std', 'keff 3D (2D corrected) std') and
+    'BOL Axial Non-Leakage Probability'.
+    """
+    keff_2d, keff_2d_unc, keff_3d, keff_3d_unc, p_nl_axial = _single_criticality(params, tag)
+    params['keff 2D std'] = float(keff_2d_unc)
+    params['keff 3D (2D corrected) std'] = float(keff_3d_unc)
+    params['BOL Axial Non-Leakage Probability'] = float(p_nl_axial)
+
 
 def run_depletion_analysis(params):
     # openmc.run()

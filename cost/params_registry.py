@@ -1210,104 +1210,152 @@ PARAMS_REGISTRY = {
         'description': 'Volume of earth to be excavated for plant construction',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
 
-# --- Reactor transport (mobile deployment) ---
+# --- Reactor transport (mobile deployment, accounts 27 and 722) ---
+    # Fixed $ inputs are in the Dollar Year of the account row (2024 $) and escalate with it.
     'Transport Distance': {
         'group': 'Economic Parameters', 'units': 'miles',
         'description': 'One-way road distance for reactor transport; set to 0 to disable transport accounts 27 and 722',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Deployment Mode': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Transport configuration: Mobile (fueled unit in one load), Semi-Mobile (unfueled reactor + fuel separately), or Stationary (core, shielding, fuel all separate)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport FOAK Calibration Factor': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Multiplier on the bottom-up fixed costs of fuel-bearing shipments (excluding cask capital and state fees); 2.92 reproduces the MARVEL HALEU shipment estimate, 1 gives the pure bottom-up value',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Nuclear Premium Fraction': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Class 7 certified-carrier premium as a fraction of the line-haul rate (default 0.30, range 0.10-0.50)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Transport Nuclear Premium': {
         'group': 'Economic Parameters', 'units': '$/mile',
-        'description': 'Incremental per-mile premium for a Class 7 (radioactive) certified carrier',
+        'description': 'Deprecated: flat $/mile Class 7 premium; converted to a fraction of the line-haul rate if Transport Nuclear Premium Fraction is not given',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Transport Team Driver Premium': {
         'group': 'Economic Parameters', 'units': '$/mile',
-        'description': 'Incremental per-mile cost for team (two-driver) continuous transit',
+        'description': 'Deprecated and no longer used; see Outbound Team Driver Premium and Return Team Driver Premium',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Outbound Team Driver Premium': {
+        'group': 'Economic Parameters', 'units': '$/mile',
+        'description': 'Second-driver cost on the fresh fuel-bearing truck (default 0; 1.01 = 2025 ATRI driver wage and benefits)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Team Driver Premium': {
+        'group': 'Economic Parameters', 'units': '$/mile',
+        'description': 'Second-driver cost on the irradiated fuel-bearing truck for continuous movement (default 1.01)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Transport Escort Rate': {
         'group': 'Economic Parameters', 'units': '$/mile',
-        'description': 'Cost per escort/pilot vehicle per mile',
+        'description': 'Cost per escort/pilot vehicle per mile (default 1.84; range 0.73-2.95)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Outbound Escort Count': {
         'group': 'Economic Parameters', 'units': 'vehicles',
-        'description': 'Number of escort vehicles for the fresh-unit outbound shipment',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Deployment Mode': {
-        'group': 'Economic Parameters', 'units': '',
-        'description': 'Transport configuration: Mobile (fueled unit in one load), Semi-Mobile '
-                       '(unfueled reactor + fuel separately), or Stationary (core, shielding, fuel all separate)',
+        'description': 'Number of escort vehicles for the fresh fuel-bearing shipment (default 0; 10 CFR 73.67 requires none)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Cat II Security Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment 10 CFR 73.67 in-transit security cost for Category II SNM (HALEU, >=10 kg U-235)',
+        'description': 'Bottom-up per-shipment in-transit security cost for Category II SNM (HALEU, >=10 kg U-235), before FOAK calibration (default 2,500)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Cat III Security Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment 10 CFR 73.67 in-transit security cost for Category III SNM (LEU, or HALEU <10 kg U-235)',
+        'description': 'Bottom-up per-shipment in-transit security cost for Category III SNM, before FOAK calibration (default 2,500)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Mobile Fuel Packaging Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment packaging cost for the fully fueled+shielded unit in Mobile mode',
+        'description': 'Bottom-up fresh-fuel package amortization per shipment in Mobile mode, before FOAK calibration (default 10,900)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Bare Fuel Packaging Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment fissile packaging cost for bare fuel shipped separately (Semi-Mobile / Stationary)',
+        'description': 'Bottom-up fresh-fuel package amortization per shipment for separately shipped fuel, before FOAK calibration (default 10,900)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Permit Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Bottom-up permitting and route-planning cost for the fresh fuel-bearing truck, before FOAK calibration (default 3,700)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport Mobilization Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Bottom-up crane mobilization and load/unload cost at both ends for the fresh fuel-bearing truck, before FOAK calibration (default 14,000)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Transport State Fees': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'State shipment fees for the fresh fuel-bearing truck (default 0; state fees apply to spent fuel and HRCQ only)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Non-Fuel Mobilization Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Crane mobilization and load/unload cost per non-fuel truck, either direction (default 14,000)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Reactor Packaging Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment ISO/tie-down packaging cost for the unfueled (non-radioactive) reactor load',
+        'description': 'Additional packaging cost per unfueled non-fuel truck, outbound (default 0)',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Return Reactor Packaging Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment handling/packaging cost for an activated non-fuel reactor load on return',
+        'description': 'Additional handling/packaging cost per activated non-fuel truck on return (default 0)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Annual Reactor Return Frequency': {
+        'group': 'Economic Parameters', 'units': '1/year',
+        'description': 'Expected number of activated-unit return trips per year (e.g., 1/8 for an 8-year fuel cycle); set to 0 to disable account 722',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Escort Count': {
+        'group': 'Economic Parameters', 'units': 'vehicles',
+        'description': 'Number of pilot or police escort vehicles for the overweight irradiated-fuel return (default 2); armed-escort costs are in Return Security Fixed Cost',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Cask Capital Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Capital cost of the Type B return cask (default 6,400,000; DOE/RW-0591 truck cask escalated to 2024 $)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Cask Uses': {
+        'group': 'Economic Parameters', 'units': 'trips',
+        'description': 'Number of return trips a single cask serves (default 50; range 20-100)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Permit Routing Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Bottom-up HRCQ route planning, overweight permits and route survey per return shipment, before FOAK calibration (default 6,400)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Mobilization Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Bottom-up heavy cask handling and load/unload cost per return shipment, before FOAK calibration (default 22,900)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return Security Fixed Cost': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Bottom-up 10 CFR 73.37 security cost per return shipment from the NRC regulatory analysis, before FOAK calibration (default 37,800)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Return State Fees': {
+        'group': 'Economic Parameters', 'units': '$',
+        'description': 'Sum of state spent-fuel shipment fees along the route, return (default 3,500)',
+        'source': 'User Input', 'hidden': False, 'array_mode': None},
+    'Exclude Account 34 With Transport': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'If True (default), account 34 (MARVEL lump-sum shipping) is set to zero whenever Transport Distance > 0',
         'source': 'User Input', 'hidden': False, 'array_mode': None},
     'Transport Security Category': {
         'group': 'Economic Parameters', 'units': '',
         'description': 'II, III, or Exempt, derived from enrichment and U-235 mass during account 27 costing',
         'source': 'Calculated', 'hidden': False, 'array_mode': None},
-    'Transport Permit Cost': {
+    'Transport Outbound Fuel Truck Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment permitting and route-planning cost (outbound)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Transport Mobilization Cost': {
+        'description': 'Cost of the fresh fuel-bearing truck shipment (account 27)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+    'Transport Outbound Non-Fuel Truck Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment crane mobilization and load/unload cost at both ends (outbound)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Transport State Fees': {
+        'description': 'Cost of one outbound non-fuel truck shipment (account 27)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+    'Transport Return Fuel Truck Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Sum of state per-shipment/per-cask fees along the route (outbound)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Annual Reactor Return Frequency': {
-        'group': 'Economic Parameters', 'units': '1/year',
-        'description': 'Expected number of activated-unit return trips per year; set to 0 to disable account 722',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return Escort Count': {
-        'group': 'Economic Parameters', 'units': 'vehicles',
-        'description': 'Number of armed escort vehicles for the activated-unit return shipment',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return Cask Capital Cost': {
+        'description': 'Cost of the irradiated fuel-bearing return shipment (account 722)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+    'Transport Return Non-Fuel Truck Cost': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Full capital cost of the Type B return cask (before amortization)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return Cask Uses': {
-        'group': 'Economic Parameters', 'units': 'trips',
-        'description': 'Number of return trips a single cask serves; 1 = full cask charged per trip',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return Permit Routing Cost': {
+        'description': 'Cost of one activated non-fuel return truck (account 722)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+    'Transport Return Cost Per Trip': {
         'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment HRCQ preferred-routing, NRC route approval, and advance-notification cost',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return Mobilization Cost': {
-        'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment heavy cask handling and load/unload cost (return)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return Security Fixed Cost': {
-        'group': 'Economic Parameters', 'units': '$',
-        'description': 'Per-shipment 10 CFR 73.37 security and movement-control-center cost (return)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
-    'Return State Fees': {
-        'group': 'Economic Parameters', 'units': '$',
-        'description': 'Sum of state per-cask fees along the route (return)',
-        'source': 'User Input', 'hidden': False, 'array_mode': None},
+        'description': 'Total cost of one return trip across all trucks (account 722, before multiplying by return frequency)',
+        'source': 'Calculated', 'hidden': False, 'array_mode': None},
+    '_Transport Escalation Multiplier': {
+        'group': 'Economic Parameters', 'units': '',
+        'description': 'Internal: escalation multiplier of the transport account row, applied to fixed transport inputs',
+        'source': 'Calculated', 'hidden': True, 'array_mode': None},
     # --- HALEU enrichment pricing (account 253) ---
     'HALEU SWU Price': {
         'group': 'Economic Parameters', 'units': '$/SWU',

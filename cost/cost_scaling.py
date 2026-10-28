@@ -4,6 +4,24 @@ import numpy as np
 import pandas as pd
 from cost.sampling import sampler
 
+def _transport_escalation(params):
+    # Fixed transport inputs share the Dollar Year of their database row; scale_cost stores
+    # that row's escalation multiplier here so they escalate exactly like the unit cost.
+    return params.get('_Transport Escalation Multiplier', 1.0)
+
+
+def _transport_nuclear_fraction(params, unit_cost):
+    # Class 7 carrier premium as a fraction of the line-haul rate. The older $/mile input
+    # ('Transport Nuclear Premium') is still honoured if it is the only one supplied.
+    if 'Transport Nuclear Premium Fraction' in params:
+        return params['Transport Nuclear Premium Fraction']
+    if 'Transport Nuclear Premium' in params and unit_cost > 0:
+        print("\033[93m'Transport Nuclear Premium' ($/mile) is deprecated; "
+              "use 'Transport Nuclear Premium Fraction' instead.\033[0m")
+        return params['Transport Nuclear Premium'] / unit_cost
+    return 0.30
+
+
 def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent, params):
     # pumps
     if account == 222.11 or account == 222.12:
@@ -39,8 +57,16 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
             effective_unit_cost = leu_swu_price if matured else haleu_swu_price
         cost = effective_unit_cost * pow(scaling_variable_value, exponent)
     elif account == 27:   # Reactor transport to site (fresh unit) — scenario- & category-aware
+        # Per-shipment model (all fixed inputs in the account's Dollar Year, 2024 $):
+        #   C = [r_base(1 + f_nuc) + r_team + N_esc*r_esc]*D + k_FOAK*(C_pkg + C_permit + C_mob + C_sec) + C_state
+        # r_base is the database unit cost. k_FOAK calibrates the bottom-up fixed costs of the
+        # fuel-bearing truck to the MARVEL HALEU shipment estimate; set it to 1 for the pure
+        # bottom-up (NOAK-like) value. Non-fuel trucks are heavy specialized freight: r_base*D + C_mob.
         D = scaling_variable_value
         mode = params.get('Deployment Mode', 'Mobile')   # Mobile | Semi-Mobile | Stationary
+        esc = _transport_escalation(params)
+        k_foak = params.get('Transport FOAK Calibration Factor', 2.92)
+        f_nuc = _transport_nuclear_fraction(params, unit_cost)
 
         # Fresh-fuel security category from enrichment AND U-235 mass (10 CFR 73.2)
         u235_kg = params.get('Mass U235', 0) / 1000.0
@@ -49,31 +75,29 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
         else:
             category = 'III' if u235_kg >= 10 else 'Exempt'
         params['Transport Security Category'] = category
-        sec_cost = {'II':  params.get('Cat II Security Cost', 40000),
-                    'III': params.get('Cat III Security Cost', 10000),
+        sec_cost = {'II':  params.get('Cat II Security Cost', 2500),
+                    'III': params.get('Cat III Security Cost', 2500),
                     'Exempt': 0}[category]
 
-        # Mode-dependent fuel packaging: Mobile ships the whole fueled+shielded unit
-        # (heavier packaging); Semi-Mobile / Stationary ship bare fuel.
-        fuel_pkg = (params.get('Mobile Fuel Packaging Cost', 100000) if mode == 'Mobile' # fuel packing costs are order of magnitude estimates since vendor descriptions are not provided
-                    else params.get('Bare Fuel Packaging Cost', 250000))
+        # Fresh-fuel package amortization (MARVEL container recertification / shipments).
+        fuel_pkg = (params.get('Mobile Fuel Packaging Cost', 10900) if mode == 'Mobile'
+                    else params.get('Bare Fuel Packaging Cost', 10900))
 
-        def ship(radioactive, n_esc):
-            r_nuc = params.get('Transport Nuclear Premium', 1.5) if radioactive else 0.0
-            return (unit_cost + r_nuc
-                    + params.get('Transport Team Driver Premium', 0.5)
-                    + n_esc * params.get('Transport Escort Rate', 2.5)) * pow(D, exponent)
-
-        common_fixed = (params.get('Transport Permit Cost', 5000)
-                        + params.get('Transport Mobilization Cost', 20000)
-                        + params.get('Transport State Fees', 2000))
-
-        fuel_ship = (ship(True, params.get('Outbound Escort Count', 1))
-                     + fuel_pkg + sec_cost + common_fixed)
-        nonfuel_ship = (ship(False, 0)
-                        + params.get('Reactor Packaging Cost', 50000) + common_fixed)
+        line_rate = (unit_cost * (1 + f_nuc)
+                     + params.get('Outbound Team Driver Premium', 0.0)
+                     + params.get('Outbound Escort Count', 0) * params.get('Transport Escort Rate', 1.84))
+        fuel_ship = (line_rate * pow(D, exponent)
+                     + esc * (k_foak * (fuel_pkg + sec_cost
+                                        + params.get('Transport Permit Cost', 3700)
+                                        + params.get('Transport Mobilization Cost', 14000))
+                              + params.get('Transport State Fees', 0)))
+        nonfuel_ship = (unit_cost * pow(D, exponent)
+                        + esc * (params.get('Non-Fuel Mobilization Cost', 14000)
+                                 + params.get('Reactor Packaging Cost', 0)))
 
         n_nonfuel = {'Mobile': 0, 'Semi-Mobile': 1, 'Stationary': 2}[mode]
+        params['Transport Outbound Fuel Truck Cost'] = fuel_ship
+        params['Transport Outbound Non-Fuel Truck Cost'] = nonfuel_ship
         cost = fuel_ship + n_nonfuel * nonfuel_ship
 
     elif account == 711:
@@ -89,29 +113,35 @@ def non_standard_cost_scale(account, unit_cost, scaling_variable_value, exponent
         cost_multiplier = params['Annual Coolant Supply Frequency']
         cost = cost_multiplier * unit_cost * scaling_variable_value
     elif account == 722:  # Activated-unit return transport — scenario-aware, recurring
+            # Same model as account 27 for the irradiated-fuel-bearing truck. k_FOAK applies to
+            # permits, crane and security, not to the cask (own source) or state fees (statutory).
+            # Activated non-fuel loads pay the Class 7 premium and crane cost but no Type B cask
+            # or 10 CFR 73.37 security.
             D = scaling_variable_value
             mode = params.get('Deployment Mode', 'Mobile')
+            esc = _transport_escalation(params)
+            k_foak = params.get('Transport FOAK Calibration Factor', 2.92)
+            f_nuc = _transport_nuclear_fraction(params, unit_cost)
 
-            # Every return load is activated (radioactive) -> Class 7 applies to all legs.
-            def ship(n_esc):
-                return (unit_cost + params.get('Transport Nuclear Premium', 2.0)
-                        + params.get('Transport Team Driver Premium', 0.5)
-                        + n_esc * params.get('Transport Escort Rate', 2.5)) * pow(D, exponent)
-
-            common_fixed = (params.get('Return Permit Routing Cost', 35000)
-                            + params.get('Return Mobilization Cost', 50000)
-                            + params.get('Return State Fees', 5000))
-
-            # Irradiated-fuel-bearing shipment: Type B cask + 10 CFR 73.37 armed escorts.
-            fuel_ship = (ship(params.get('Return Escort Count', 2))
-                     + params.get('Return Cask Capital Cost', 1_500_000)
-                       / params.get('Return Cask Uses', 1)
-                        + params.get('Return Security Fixed Cost', 60000) + common_fixed)
-            nonfuel_ship = (ship(1)
-                            + params.get('Return Reactor Packaging Cost', 15000) + common_fixed)
+            line_rate = (unit_cost * (1 + f_nuc)
+                         + params.get('Return Team Driver Premium', 1.01)
+                         + params.get('Return Escort Count', 2) * params.get('Transport Escort Rate', 1.84))
+            cask_uses = max(params.get('Return Cask Uses', 50), 1)
+            fuel_ship = (line_rate * pow(D, exponent)
+                         + esc * (k_foak * (params.get('Return Permit Routing Cost', 6400)
+                                            + params.get('Return Mobilization Cost', 22900)
+                                            + params.get('Return Security Fixed Cost', 37800))
+                                  + params.get('Return Cask Capital Cost', 6_400_000) / cask_uses
+                                  + params.get('Return State Fees', 3500)))
+            nonfuel_ship = (unit_cost * (1 + f_nuc) * pow(D, exponent)
+                            + esc * (params.get('Non-Fuel Mobilization Cost', 14000)
+                                     + params.get('Return Reactor Packaging Cost', 0)))
 
             n_nonfuel = {'Mobile': 0, 'Semi-Mobile': 1, 'Stationary': 2}[mode]
             per_trip = fuel_ship + n_nonfuel * nonfuel_ship
+            params['Transport Return Fuel Truck Cost'] = fuel_ship
+            params['Transport Return Non-Fuel Truck Cost'] = nonfuel_ship
+            params['Transport Return Cost Per Trip'] = per_trip
             cost = params.get('Annual Reactor Return Frequency', 0) * per_trip
     elif account == 81:
         cost_multiplier =  params['FTEs Per Operator Per Year Per Refueling'] 
@@ -210,11 +240,18 @@ def scale_cost(initial_database, params):
                 else:
                     exponent = exponent_0
             
-            if row['Standard Cost Equation?'] == 'standard' :
-                
+            if (row['Account'] == 34 and params.get('Transport Distance', 0) > 0
+                    and params.get('Exclude Account 34 With Transport', True)):
+                # Account 34 is MARVEL's lump-sum shipping (mostly fuel supply-chain shipments).
+                # When the per-shipment transport model (accounts 27/722) is on, drop it to
+                # avoid double counting.
+                estimated_cost = 0
+
+            elif row['Standard Cost Equation?'] == 'standard' :
+
                 if pd.notna(row['Scaling Variable']) and scaling_variable_value == 0:
                     estimated_cost = 0
-                
+
                 else:     
                     # Check whether a reference value exists for the scaling variable; otherwise use the unit cost directly
                     if row['Scaling Variable Ref Value'] > 0:
@@ -228,7 +265,10 @@ def scale_cost(initial_database, params):
             elif row['Standard Cost Equation?'] == 'nonstandard':
                 if pd.notna(row['Scaling Variable']) and scaling_variable_value == 0:
                     estimated_cost = 0
-                else:    
+                else:
+                    params['_Transport Escalation Multiplier'] = (
+                        row['Adjusted Unit Cost ($)'] / row['Unit Cost']
+                        if pd.notna(row['Unit Cost']) and row['Unit Cost'] > 0 else 1.0)
                     estimated_cost = non_standard_cost_scale(row['Account'],\
                     unit_cost, scaling_variable_value, exponent, params)
 
